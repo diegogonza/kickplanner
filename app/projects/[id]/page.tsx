@@ -1,0 +1,180 @@
+import Link from 'next/link'
+import { redirect } from 'next/navigation'
+import { createClient } from '@/utils/supabase/server'
+import Sidebar from '@/app/components/sidebar'
+import Overview from '@/app/components/views/overview'
+import ListView from '@/app/components/views/list-view'
+import BoardView from '@/app/components/views/board-view'
+import TaskPanel from '@/app/components/task-panel'
+import TaskDetail from '@/app/components/task-detail'
+import type { Task, Tag } from '@/app/projects/statuses'
+
+const TABS = [
+  { key: 'resumen', label: 'Resumen' },
+  { key: 'lista', label: 'Lista' },
+  { key: 'tablero', label: 'Tablero' },
+]
+
+const TASK_COLS = 'id, title, status, priority, due_date, parent_id, description, created_at'
+
+export default async function ProjectPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ id: string }>
+  searchParams: Promise<{ view?: string; task?: string }>
+}) {
+  const { id } = await params
+  const { view, task: taskParam } = await searchParams
+  const active = TABS.some((t) => t.key === view) ? view! : 'lista'
+
+  const supabase = await createClient()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+  if (!user) redirect('/login')
+
+  const { data: project } = await supabase
+    .from('projects')
+    .select('id, name')
+    .eq('id', id)
+    .single()
+  if (!project) redirect('/')
+
+  // Solo tareas de nivel superior (las subtareas viven en el panel)
+  const { data: tasks } = await supabase
+    .from('tasks')
+    .select(TASK_COLS)
+    .eq('project_id', id)
+    .is('parent_id', null)
+    .order('created_at', { ascending: true })
+
+  const list = (tasks ?? []) as Task[]
+  const closeHref = `/projects/${id}?view=${active}`
+
+  // Conteo de subtareas por tarea padre (para el tablero)
+  const { data: subRows } = await supabase
+    .from('tasks')
+    .select('parent_id')
+    .eq('project_id', id)
+    .not('parent_id', 'is', null)
+  const subtaskCounts: Record<string, number> = {}
+  for (const r of subRows ?? []) {
+    const p = (r as { parent_id: string | null }).parent_id
+    if (p) subtaskCounts[p] = (subtaskCounts[p] ?? 0) + 1
+  }
+
+  // Datos del panel de detalle (si hay ?task=)
+  let panelTask: Task | null = null
+  let subtasks: Task[] = []
+  let panelTags: Tag[] = []
+  let allTags: Tag[] = []
+  let ancestors: { id: string; title: string }[] = []
+  if (taskParam) {
+    const { data: t } = await supabase
+      .from('tasks')
+      .select(TASK_COLS)
+      .eq('id', taskParam)
+      .eq('project_id', id)
+      .maybeSingle()
+    if (t) {
+      panelTask = t as Task
+
+      const { data: subs } = await supabase
+        .from('tasks')
+        .select(TASK_COLS)
+        .eq('parent_id', t.id)
+        .order('created_at', { ascending: true })
+      subtasks = (subs ?? []) as Task[]
+
+      const { data: tagRows } = await supabase
+        .from('task_tags')
+        .select('tags(id, name, color)')
+        .eq('task_id', t.id)
+      panelTags = ((tagRows ?? []).map((r) => r.tags).filter(Boolean) as unknown) as Tag[]
+
+      const { data: at } = await supabase
+        .from('tags')
+        .select('id, name, color')
+        .order('name', { ascending: true })
+      allTags = (at ?? []) as Tag[]
+
+      // Cadena de ancestros (para el breadcrumb de subtareas)
+      let pid = panelTask.parent_id
+      let guard = 0
+      while (pid && guard < 10) {
+        const { data: anc } = await supabase
+          .from('tasks')
+          .select('id, title, parent_id')
+          .eq('id', pid)
+          .maybeSingle()
+        if (!anc) break
+        ancestors.unshift({ id: anc.id, title: anc.title })
+        pid = anc.parent_id as string | null
+        guard++
+      }
+    }
+  }
+
+  return (
+    <div className="flex h-screen">
+      <Sidebar email={user.email ?? ''} />
+
+      <div className="flex flex-1 flex-col overflow-hidden">
+        <header className="topbar" style={{ borderBottom: 'none' }}>
+          <div>
+            <div className="breadcrumb">
+              <Link href="/" style={{ color: 'var(--text-3)' }}>
+                Proyectos
+              </Link>{' '}
+              / <b>{project.name}</b>
+            </div>
+            <h1 className="page-title">{project.name}</h1>
+          </div>
+        </header>
+
+        <div className="tabs">
+          {TABS.map((tab) => (
+            <Link
+              key={tab.key}
+              href={`/projects/${id}?view=${tab.key}`}
+              className={`tab ${active === tab.key ? 'active' : ''}`}
+            >
+              {tab.label}
+            </Link>
+          ))}
+        </div>
+
+        <div className="flex-1 overflow-y-auto px-6 py-6">
+          {active === 'resumen' && <Overview tasks={list} />}
+          {active === 'lista' && <ListView projectId={project.id} view={active} tasks={list} />}
+          {active === 'tablero' && (
+            <BoardView
+              projectId={project.id}
+              view={active}
+              userId={user.id}
+              tasks={list}
+              subtaskCounts={subtaskCounts}
+            />
+          )}
+        </div>
+      </div>
+
+      {panelTask && (
+        <TaskPanel closeHref={closeHref}>
+          <TaskDetail
+            task={panelTask}
+            subtasks={subtasks}
+            tags={panelTags}
+            allTags={allTags}
+            ancestors={ancestors}
+            projectId={project.id}
+            projectName={project.name}
+            view={active}
+            closeHref={closeHref}
+          />
+        </TaskPanel>
+      )}
+    </div>
+  )
+}
