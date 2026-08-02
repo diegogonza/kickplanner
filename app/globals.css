@@ -284,6 +284,30 @@ body {
 /* Título de tarea clickeable en Lista/Tablero */
 .task-open { text-align: left; background: transparent; border: 0; cursor: pointer; font-family: inherit; padding: 0; text-decoration: none; }
 
+/* ---------- TABLA DE PORTFOLIO ---------- */
+.ptable-wrap { overflow-x: auto; border: 1px solid var(--border); border-radius: var(--r-lg); background: var(--surface); }
+.ptable { width: 100%; border-collapse: collapse; }
+.ptable th { text-align: left; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.03em; color: var(--text-3); padding: 10px 12px; border-bottom: 1px solid var(--border); white-space: nowrap; background: var(--surface); }
+.ptable td { padding: 8px 12px; border-bottom: 1px solid var(--border); font-size: 13px; color: var(--text-2); vertical-align: middle; }
+.ptable tr:last-child td { border-bottom: 0; }
+.ptable tbody tr:hover td { background: var(--panel); }
+.ptable .idx { color: var(--text-3); width: 36px; }
+.ptable .pname { display: flex; align-items: center; gap: 10px; font-weight: 600; color: var(--text); text-decoration: none; }
+.ptable .pname:hover { color: var(--brand-600); }
+
+.cell-input { width: 100%; min-width: 90px; border: 1px solid transparent; background: transparent; border-radius: var(--r-sm); padding: 5px 8px; font-family: inherit; font-size: 13px; color: var(--text); }
+.cell-input:hover { border-color: var(--border-strong); }
+.cell-input:focus { border-color: var(--brand-400); box-shadow: 0 0 0 3px var(--brand-100); outline: none; background: var(--surface); }
+
+.pbar-track { height: 6px; width: 110px; background: var(--panel); border-radius: var(--r-full); overflow: hidden; display: inline-block; vertical-align: middle; }
+.pbar-fill { height: 100%; background: var(--brand-600); border-radius: var(--r-full); }
+
+.th-field { display: inline-flex; align-items: center; gap: 6px; }
+.th-del { opacity: 0; background: transparent; border: 0; cursor: pointer; color: var(--text-3); display: inline-flex; padding: 0; }
+.th-del svg { width: 13px; height: 13px; }
+.ptable th:hover .th-del { opacity: 1; }
+.th-del:hover { color: var(--urgent-fg); }
+
 /* ---------- ACCESIBILIDAD ---------- */
 :focus-visible { outline: 2px solid var(--brand-500); outline-offset: 2px; }
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }

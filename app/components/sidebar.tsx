@@ -1,7 +1,13 @@
 import Link from 'next/link'
 import { signout } from '@/app/login/actions'
 
-export default function Sidebar({ email }: { email: string }) {
+export default function Sidebar({
+  email,
+  active = 'projects',
+}: {
+  email: string
+  active?: 'projects' | 'portfolios'
+}) {
   const initial = email?.[0]?.toUpperCase() ?? '?'
 
   return (
@@ -18,11 +24,20 @@ export default function Sidebar({ email }: { email: string }) {
 
       <div className="nav-label">Espacio de trabajo</div>
       <nav className="flex flex-col gap-1">
-        <Link className="nav-item active" href="/">
+        <Link className={`nav-item ${active === 'projects' ? 'active' : ''}`} href="/">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />
           </svg>
           Proyectos
+        </Link>
+        <Link className={`nav-item ${active === 'portfolios' ? 'active' : ''}`} href="/portfolios">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <rect x="3" y="3" width="7" height="7" rx="1" />
+            <rect x="14" y="3" width="7" height="7" rx="1" />
+            <rect x="3" y="14" width="7" height="7" rx="1" />
+            <rect x="14" y="14" width="7" height="7" rx="1" />
+          </svg>
+          Portfolios
         </Link>
       </nav>
 
