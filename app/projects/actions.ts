@@ -53,6 +53,36 @@ export async function createTask(formData: FormData) {
   revalidatePath(`/projects/${projectId}`)
 }
 
+// Crea una tarea y le asigna una etiqueta (usado en la vista Etiquetas)
+export async function createTaskWithTag(formData: FormData) {
+  const title = (formData.get('title') as string)?.trim()
+  const projectId = formData.get('project_id') as string
+  const tagId = formData.get('tag_id') as string
+  if (!title || !projectId || !tagId) return
+
+  const supabase = await createClient()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+
+  const { data: task } = await supabase
+    .from('tasks')
+    .insert({ title, project_id: projectId, status: 'todo', created_by: user?.id })
+    .select('id')
+    .single()
+
+  if (task) {
+    await supabase
+      .from('task_tags')
+      .upsert(
+        { task_id: task.id, tag_id: tagId },
+        { onConflict: 'task_id,tag_id', ignoreDuplicates: true }
+      )
+  }
+
+  revalidatePath(`/projects/${projectId}`)
+}
+
 export async function updateTaskStatus(formData: FormData) {
   const id = formData.get('id') as string
   const projectId = formData.get('project_id') as string

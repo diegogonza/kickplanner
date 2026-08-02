@@ -5,15 +5,18 @@ import Sidebar from '@/app/components/sidebar'
 import Overview from '@/app/components/views/overview'
 import ListView from '@/app/components/views/list-view'
 import BoardView from '@/app/components/views/board-view'
+import TagsView from '@/app/components/views/tags-view'
 import TaskPanel from '@/app/components/task-panel'
 import TaskDetail from '@/app/components/task-detail'
 import ShareButton from '@/app/components/share-button'
+import NewTaskButton from '@/app/components/new-task-button'
 import type { Task, Tag, Member } from '@/app/projects/statuses'
 
 const TABS = [
   { key: 'resumen', label: 'Resumen' },
   { key: 'lista', label: 'Lista' },
   { key: 'tablero', label: 'Tablero' },
+  { key: 'etiquetas', label: 'Etiquetas' },
 ]
 
 const TASK_COLS =
@@ -75,6 +78,27 @@ export default async function ProjectPage({
   const members = (membersData ?? []) as Member[]
   const memberMap: Record<string, string> = {}
   for (const m of members) memberMap[m.user_id] = m.email
+
+  // Vista Etiquetas: agrupar tareas por etiqueta
+  const taskTags: Record<string, Tag[]> = {}
+  let usedTags: Tag[] = []
+  if (active === 'etiquetas' && list.length > 0) {
+    const { data: tt } = await supabase
+      .from('task_tags')
+      .select('task_id, tags(id, name, color)')
+      .in(
+        'task_id',
+        list.map((t) => t.id)
+      )
+    const seen = new Map<string, Tag>()
+    for (const row of tt ?? []) {
+      const tag = (row as { tags: unknown }).tags as Tag
+      if (!tag) continue
+      ;(taskTags[(row as { task_id: string }).task_id] ??= []).push(tag)
+      if (!seen.has(tag.id)) seen.set(tag.id, tag)
+    }
+    usedTags = Array.from(seen.values()).sort((a, b) => a.name.localeCompare(b.name))
+  }
 
   // Datos del panel de detalle (si hay ?task=)
   let panelTask: Task | null = null
@@ -155,7 +179,10 @@ export default async function ProjectPage({
             </div>
             <h1 className="page-title">{project.name}</h1>
           </div>
-          <ShareButton projectId={project.id} isOwner={isOwner} currentUserId={user.id} />
+          <div className="flex items-center gap-2">
+            <NewTaskButton projectId={project.id} />
+            <ShareButton projectId={project.id} isOwner={isOwner} currentUserId={user.id} />
+          </div>
         </header>
 
         <div className="tabs">
@@ -183,6 +210,17 @@ export default async function ProjectPage({
               tasks={list}
               subtaskCounts={subtaskCounts}
               memberMap={memberMap}
+            />
+          )}
+          {active === 'etiquetas' && (
+            <TagsView
+              projectId={project.id}
+              view={active}
+              tasks={list}
+              taskTags={taskTags}
+              usedTags={usedTags}
+              memberMap={memberMap}
+              subtaskCounts={subtaskCounts}
             />
           )}
         </div>

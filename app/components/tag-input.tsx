@@ -54,7 +54,11 @@ export default function TagInput({
       </form>
 
       {open && (
-        <div className="dropdown-menu" style={{ width: '100%', maxHeight: 240, overflowY: 'auto' }}>
+        <div
+          className="dropdown-menu"
+          style={{ width: '100%', maxHeight: 240, overflowY: 'auto' }}
+          onMouseDown={(e) => e.preventDefault()}
+        >
           {filtered.map((t) => (
             <form key={t.id} action={addTag} onSubmit={reset}>
               <input type="hidden" name="task_id" value={taskId} />
