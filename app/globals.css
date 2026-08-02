@@ -4,16 +4,16 @@
    SaaS Dashboard UI — Design Tokens ("estilo Layers")
    ============================================================ */
 :root {
-  /* Marca (indigo / violeta) */
-  --brand-50:  #F4F2FE;
-  --brand-100: #EAE6FD;
-  --brand-200: #D6CEFB;
-  --brand-300: #B9ABF6;
-  --brand-400: #9782F0;
-  --brand-500: #7B5CF0;
-  --brand-600: #6C5CE7;
-  --brand-700: #5B47D6;
-  --brand-800: #4A38B0;
+  /* Marca (coral) */
+  --brand-50:  #FFF1F0;
+  --brand-100: #FFE0DE;
+  --brand-200: #FEC5C3;
+  --brand-300: #FDA3A0;
+  --brand-400: #FD817E;
+  --brand-500: #FD6E6B;
+  --brand-600: #FD5F5C;   /* PRIMARIO (coral) */
+  --brand-700: #E84744;   /* hover del primario */
+  --brand-800: #C4322F;
 
   /* Neutrales / superficies */
   --bg:            #F7F8FA;
@@ -52,6 +52,16 @@
 
   /* Layout */
   --sidebar-w: 244px;
+
+  /* Navegación oscura (extraído del mockup) */
+  --nav-bg:      #232428;   /* fondo sidebar + topbar + tabs */
+  --nav-raised:  #343436;   /* fila activa / hover elevado */
+  --nav-text:    #C9CBD1;   /* texto de nav inactivo (claro) */
+  --nav-strong:  #FFFFFF;   /* marca, título, item activo */
+  --nav-muted:   #85858A;   /* etiquetas, íconos, breadcrumb */
+  --nav-dim:     #6B6F72;   /* email atenuado */
+  --nav-border:  rgba(255,255,255,0.09);
+  --nav-hover:   rgba(255,255,255,0.06);
 }
 
 body {
@@ -76,7 +86,7 @@ body {
 .btn-primary {
   background: var(--brand-600) !important;
   color: var(--text-inv) !important;
-  box-shadow: 0 6px 16px rgba(108,92,231,.28);
+  box-shadow: 0 6px 16px rgba(253,95,92,.28);
 }
 .btn-primary:hover { background: var(--brand-700) !important; }
 .btn-outline { background: var(--surface); color: var(--text-2); border-color: var(--border-strong); }
@@ -122,27 +132,34 @@ body {
 .card-desc   { font-size: 12.5px; color: var(--text-3); line-height: 1.5; margin: 0; }
 
 /* ---------- SIDEBAR ---------- */
-.sidebar { width: var(--sidebar-w); flex: 0 0 var(--sidebar-w); background: var(--surface);
-           border-right: 1px solid var(--border); padding: var(--space-5); display: flex; flex-direction: column; }
-.brand { display: flex; align-items: center; gap: 10px; font-weight: 700; color: var(--text); font-size: 16px; }
+.sidebar { width: var(--sidebar-w); flex: 0 0 var(--sidebar-w); background: var(--nav-bg);
+           border-right: 1px solid var(--nav-border); padding: var(--space-5); display: flex; flex-direction: column; }
+.brand { display: flex; align-items: center; gap: 10px; font-weight: 700; color: var(--nav-strong); font-size: 16px; }
 .brand-mark { width: 30px; height: 30px; border-radius: var(--r-sm);
               background: linear-gradient(135deg, var(--brand-500), var(--brand-700));
               display: inline-flex; align-items: center; justify-content: center; color: #fff; }
 .nav-label { font-size: 11px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase;
-             color: var(--text-3); margin: var(--space-6) 0 var(--space-3); }
+             color: var(--nav-muted); margin: var(--space-6) 0 var(--space-3); }
 .nav-item { display: flex; align-items: center; gap: 12px; padding: 9px 12px; border-radius: var(--r-md);
-            font-size: 13.5px; font-weight: 500; color: var(--text-2); cursor: pointer; text-decoration: none; }
-.nav-item svg { width: 18px; height: 18px; color: var(--text-3); }
-.nav-item:hover { background: var(--panel); }
-.nav-item.active { background: var(--brand-50); color: var(--brand-700); font-weight: 600; }
-.nav-item.active svg { color: var(--brand-600); }
+            font-size: 13.5px; font-weight: 500; color: var(--nav-text); cursor: pointer; text-decoration: none; }
+.nav-item svg { width: 18px; height: 18px; color: var(--nav-muted); }
+.nav-item:hover { background: var(--nav-hover); color: var(--nav-strong); }
+.nav-item:hover svg { color: var(--nav-text); }
+.nav-item.active { background: var(--nav-raised); color: var(--nav-strong); font-weight: 600; }
+.nav-item.active svg { color: var(--brand-500); }
+/* bloque de usuario (pie de la sidebar) */
+.sidebar .btn-ghost { color: var(--nav-muted); }
+.sidebar .btn-ghost:hover { background: var(--nav-hover); color: var(--nav-strong); }
 
 /* ---------- HEADER / TABS ---------- */
 .topbar { display: flex; align-items: center; justify-content: space-between;
-          padding: var(--space-4) var(--space-6); border-bottom: 1px solid var(--border); background: var(--surface); }
-.breadcrumb { font-size: 12.5px; color: var(--text-3); }
-.page-title { font-size: 21px; font-weight: 700; color: var(--text); display: flex; align-items: center; gap: 10px; }
-.count-badge { font-size: 12px; font-weight: 600; color: var(--text-3); background: var(--panel); border-radius: var(--r-full); padding: 1px 8px; }
+          padding: var(--space-4) var(--space-6); border-bottom: 1px solid var(--nav-border); background: var(--nav-bg); }
+.breadcrumb { font-size: 12.5px; color: var(--nav-muted); }
+.page-title { font-size: 21px; font-weight: 700; color: var(--nav-strong); display: flex; align-items: center; gap: 10px; }
+.count-badge { font-size: 12px; font-weight: 600; color: var(--nav-text); background: var(--nav-hover); border-radius: var(--r-full); padding: 1px 8px; }
+/* botón "Compartir" (outline) sobre la barra oscura */
+.topbar .btn-outline { background: transparent; color: var(--nav-text); border-color: var(--nav-border); }
+.topbar .btn-outline:hover { background: var(--nav-hover); color: var(--nav-strong); border-color: rgba(255,255,255,0.28); }
 
 /* ---------- AVATAR ---------- */
 .avatar { width: 34px; height: 34px; border-radius: var(--r-full); background: var(--brand-100); color: var(--brand-700);
@@ -186,19 +203,19 @@ body {
 /* ---------- PESTAÑAS (vistas del proyecto) ---------- */
 .tabs {
   display: flex; gap: var(--space-6);
-  border-bottom: 1px solid var(--border);
-  padding: 0 var(--space-6); background: var(--surface);
+  border-bottom: 1px solid var(--nav-border);
+  padding: 0 var(--space-6); background: var(--nav-bg);
 }
 .tab {
   display: inline-flex; align-items: center; gap: 7px;
   padding: 12px 2px; font-size: 13.5px; font-weight: 500;
-  color: var(--text-3); border-bottom: 2px solid transparent;
+  color: var(--nav-muted); border-bottom: 2px solid transparent;
   margin-bottom: -1px; text-decoration: none;
 }
 .tab svg { width: 16px; height: 16px; }
-.tab:hover { color: var(--text-2); }
-.tab.active { color: var(--brand-600); border-bottom-color: var(--brand-600); font-weight: 600; }
-.tab.active svg { color: var(--brand-600); }
+.tab:hover { color: var(--nav-strong); }
+.tab.active { color: var(--brand-500); border-bottom-color: var(--brand-500); font-weight: 600; }
+.tab.active svg { color: var(--brand-500); }
 
 /* ---------- TABLERO (Kanban) ---------- */
 .board { display: flex; gap: var(--space-5); overflow-x: auto; align-items: flex-start; padding-bottom: var(--space-4); min-height: 100%; }

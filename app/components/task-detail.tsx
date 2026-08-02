@@ -35,7 +35,7 @@ function timeAgo(iso: string): string {
 }
 
 const AVATAR_COLORS = [
-  '#6C5CE7', '#2E77E6', '#14B8A6', '#E0A81E',
+  '#FD5F5C', '#2E77E6', '#14B8A6', '#E0A81E',
   '#EC4899', '#E5484D', '#22C55E', '#0D9488',
 ]
 function avatarColor(email: string): string {

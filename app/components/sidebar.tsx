@@ -49,10 +49,10 @@ export default function Sidebar({
         </Link>
       </nav>
 
-      <div className="mt-auto flex items-center gap-3 border-t pt-4" style={{ borderColor: 'var(--border)' }}>
+      <div className="mt-auto flex items-center gap-3 border-t pt-4" style={{ borderColor: 'var(--nav-border)' }}>
         <span className="avatar">{initial}</span>
         <div className="min-w-0 flex-1">
-          <div className="truncate text-[13px] font-semibold" style={{ color: 'var(--text)' }}>
+          <div className="truncate text-[13px] font-semibold" style={{ color: 'var(--nav-text)' }}>
             {email}
           </div>
         </div>
