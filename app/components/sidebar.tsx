@@ -6,7 +6,7 @@ export default function Sidebar({
   active = 'projects',
 }: {
   email: string
-  active?: 'projects' | 'portfolios'
+  active?: 'projects' | 'portfolios' | 'teams'
 }) {
   const initial = email?.[0]?.toUpperCase() ?? '?'
 
@@ -38,6 +38,14 @@ export default function Sidebar({
             <rect x="14" y="14" width="7" height="7" rx="1" />
           </svg>
           Portfolios
+        </Link>
+        <Link className={`nav-item ${active === 'teams' ? 'active' : ''}`} href="/teams">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+            <circle cx="9" cy="7" r="4" />
+            <path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75" />
+          </svg>
+          Equipos
         </Link>
       </nav>
 
