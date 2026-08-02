@@ -7,6 +7,7 @@ import ListView from '@/app/components/views/list-view'
 import BoardView from '@/app/components/views/board-view'
 import TaskPanel from '@/app/components/task-panel'
 import TaskDetail from '@/app/components/task-detail'
+import ShareButton from '@/app/components/share-button'
 import type { Task, Tag } from '@/app/projects/statuses'
 
 const TABS = [
@@ -36,10 +37,12 @@ export default async function ProjectPage({
 
   const { data: project } = await supabase
     .from('projects')
-    .select('id, name')
+    .select('id, name, owner_id')
     .eq('id', id)
     .single()
   if (!project) redirect('/')
+
+  const isOwner = project.owner_id === user.id
 
   // Solo tareas de nivel superior (las subtareas viven en el panel)
   const { data: tasks } = await supabase
@@ -131,6 +134,7 @@ export default async function ProjectPage({
             </div>
             <h1 className="page-title">{project.name}</h1>
           </div>
+          <ShareButton projectId={project.id} isOwner={isOwner} currentUserId={user.id} />
         </header>
 
         <div className="tabs">
