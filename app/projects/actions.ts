@@ -159,6 +159,45 @@ export async function addTag(formData: FormData) {
   revalidatePath(`/projects/${projectId}`)
 }
 
+// ---------- RESPONSABLE ----------
+
+export async function setAssignee(formData: FormData) {
+  const id = formData.get('id') as string
+  const projectId = formData.get('project_id') as string
+  const assignee = (formData.get('assignee_id') as string) || null
+
+  const supabase = await createClient()
+  await supabase.from('tasks').update({ assignee_id: assignee }).eq('id', id)
+  revalidatePath(`/projects/${projectId}`)
+}
+
+// ---------- COMENTARIOS ----------
+
+export async function addComment(formData: FormData) {
+  const taskId = formData.get('task_id') as string
+  const projectId = formData.get('project_id') as string
+  const body = (formData.get('body') as string)?.trim()
+  if (!taskId || !body) return
+
+  const supabase = await createClient()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+  if (!user) return
+
+  await supabase.from('comments').insert({ task_id: taskId, author_id: user.id, body })
+  revalidatePath(`/projects/${projectId}`)
+}
+
+export async function deleteComment(formData: FormData) {
+  const id = formData.get('id') as string
+  const projectId = formData.get('project_id') as string
+
+  const supabase = await createClient()
+  await supabase.from('comments').delete().eq('id', id)
+  revalidatePath(`/projects/${projectId}`)
+}
+
 export async function removeTag(formData: FormData) {
   const taskId = formData.get('task_id') as string
   const tagId = formData.get('tag_id') as string

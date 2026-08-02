@@ -7,10 +7,12 @@ export default function ListView({
   projectId,
   view,
   tasks,
+  memberMap,
 }: {
   projectId: string
   view: string
   tasks: Task[]
+  memberMap: Record<string, string>
 }) {
   const hrefFor = (id: string) => `/projects/${projectId}?view=${view}&task=${id}`
 
@@ -56,6 +58,16 @@ export default function ListView({
                     >
                       {task.title}
                     </Link>
+
+                    {task.assignee_id && memberMap[task.assignee_id] && (
+                      <span
+                        className="avatar"
+                        style={{ width: 24, height: 24, fontSize: 11 }}
+                        title={memberMap[task.assignee_id]}
+                      >
+                        {memberMap[task.assignee_id][0]?.toUpperCase()}
+                      </span>
+                    )}
 
                     <form action={deleteTask}>
                       <input type="hidden" name="id" value={task.id} />

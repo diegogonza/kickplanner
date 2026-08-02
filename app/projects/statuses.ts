@@ -11,8 +11,11 @@ export type Task = {
   description: string | null
   priority: Priority | null
   due_date: string | null
+  assignee_id: string | null
   created_at: string
 }
+
+export type Member = { user_id: string; email: string; role: string }
 
 export const STATUSES: { key: Status; label: string; color: string }[] = [
   { key: 'todo', label: 'Por hacer', color: 'var(--info-fg)' },
@@ -20,8 +23,8 @@ export const STATUSES: { key: Status; label: string; color: string }[] = [
   { key: 'done', label: 'Hecho', color: 'var(--low-fg)' },
 ]
 
-export const PRIORITIES: { key: Priority; label: string; pill: string }[] = [
-  { key: 'media', label: 'Media', pill: 'pill-info' },
-  { key: 'alta', label: 'Alta', pill: 'pill-mod' },
-  { key: 'urgente', label: 'Urgente', pill: 'pill-urgent' },
+export const PRIORITIES: { key: Priority; label: string; pill: string; color: string }[] = [
+  { key: 'media', label: 'Media', pill: 'pill-info', color: '#2E77E6' },
+  { key: 'alta', label: 'Alta', pill: 'pill-mod', color: '#E0890B' },
+  { key: 'urgente', label: 'Urgente', pill: 'pill-urgent', color: '#E5484D' },
 ]

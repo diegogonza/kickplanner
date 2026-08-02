@@ -1,12 +1,48 @@
 import Link from 'next/link'
-import type { Task, Tag } from '@/app/projects/statuses'
-import { toggleComplete, removeTag, createTask } from '@/app/projects/actions'
+import type { Task, Tag, Member } from '@/app/projects/statuses'
+import {
+  toggleComplete,
+  removeTag,
+  createTask,
+  addComment,
+  deleteComment,
+} from '@/app/projects/actions'
 import PrioritySelect from '@/app/components/priority-select'
 import DueDateInput from '@/app/components/due-date-input'
 import TagInput from '@/app/components/tag-input'
 import DescriptionInput from '@/app/components/description-input'
+import AssigneeSelect from '@/app/components/assignee-select'
 
 type Ancestor = { id: string; title: string }
+type Comment = {
+  id: string
+  body: string
+  author_email: string
+  author_id: string
+  created_at: string
+}
+
+function timeAgo(iso: string): string {
+  const secs = Math.floor((Date.now() - new Date(iso).getTime()) / 1000)
+  if (secs < 60) return 'hace un momento'
+  const mins = Math.floor(secs / 60)
+  if (mins < 60) return `hace ${mins} min`
+  const hrs = Math.floor(mins / 60)
+  if (hrs < 24) return `hace ${hrs} h`
+  const days = Math.floor(hrs / 24)
+  if (days < 7) return `hace ${days} d`
+  return new Date(iso).toLocaleDateString('es')
+}
+
+const AVATAR_COLORS = [
+  '#6C5CE7', '#2E77E6', '#14B8A6', '#E0A81E',
+  '#EC4899', '#E5484D', '#22C55E', '#0D9488',
+]
+function avatarColor(email: string): string {
+  let h = 0
+  for (let i = 0; i < email.length; i++) h = (h * 31 + email.charCodeAt(i)) >>> 0
+  return AVATAR_COLORS[h % AVATAR_COLORS.length]
+}
 
 export default function TaskDetail({
   task,
@@ -14,6 +50,9 @@ export default function TaskDetail({
   tags,
   allTags,
   ancestors,
+  members,
+  comments,
+  currentUserId,
   projectId,
   projectName,
   view,
@@ -24,6 +63,9 @@ export default function TaskDetail({
   tags: Tag[]
   allTags: Tag[]
   ancestors: Ancestor[]
+  members: Member[]
+  comments: Comment[]
+  currentUserId: string
   projectId: string
   projectName: string
   view: string
@@ -31,6 +73,7 @@ export default function TaskDetail({
 }) {
   const done = task.status === 'done'
   const subDone = subtasks.filter((s) => s.status === 'done').length
+  const myEmail = members.find((m) => m.user_id === currentUserId)?.email ?? '?'
   const hrefFor = (id: string) => `/projects/${projectId}?view=${view}&task=${id}`
 
   return (
@@ -75,6 +118,17 @@ export default function TaskDetail({
         </nav>
 
         <h2 className="panel-title">{task.title}</h2>
+
+        {/* Responsable */}
+        <div className="detail-row">
+          <div className="k">Responsable</div>
+          <AssigneeSelect
+            taskId={task.id}
+            projectId={projectId}
+            current={task.assignee_id}
+            members={members}
+          />
+        </div>
 
         {/* Prioridad */}
         <div className="detail-row">
@@ -175,6 +229,69 @@ export default function TaskDetail({
             <input name="title" placeholder="Agregar subtarea…" autoComplete="off" />
           </form>
         </div>
+
+        {/* Comentarios / actividad (timeline) */}
+        <div className="comments">
+          <div className="comments-head">
+            <span className="comments-title">Comentarios</span>
+            {comments.length > 0 && <span className="comments-count">{comments.length}</span>}
+          </div>
+
+          {comments.length === 0 ? (
+            <p className="act-empty">Aún no hay comentarios. Escribí el primero abajo.</p>
+          ) : (
+            <div className="act-feed">
+              {comments.map((c) => {
+                const own = c.author_id === currentUserId
+                return (
+                  <div key={c.id} className={`act ${own ? 'own' : ''}`}>
+                    <span className="act-avatar" style={{ background: avatarColor(c.author_email) }}>
+                      {c.author_email[0]?.toUpperCase()}
+                    </span>
+                    <div className="act-card">
+                      <div className="act-top">
+                        <span className="act-author">{own ? 'Vos' : c.author_email}</span>
+                        <span className="act-time">{timeAgo(c.created_at)}</span>
+                        {own && (
+                          <form action={deleteComment} className="act-del">
+                            <input type="hidden" name="id" value={c.id} />
+                            <input type="hidden" name="project_id" value={projectId} />
+                            <button type="submit" className="btn-ghost" title="Eliminar comentario">
+                              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <path d="M18 6L6 18M6 6l12 12" />
+                              </svg>
+                            </button>
+                          </form>
+                        )}
+                      </div>
+                      <p className="act-body">{c.body}</p>
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Compositor fijo al pie del panel */}
+      <div className="panel-footer">
+        <form action={addComment} className="comment-composer">
+          <span
+            className="act-avatar"
+            style={{ width: 28, height: 28, fontSize: 11, background: avatarColor(myEmail) }}
+          >
+            {myEmail[0]?.toUpperCase()}
+          </span>
+          <input type="hidden" name="task_id" value={task.id} />
+          <input type="hidden" name="project_id" value={projectId} />
+          <input name="body" placeholder="Agregar un comentario…" autoComplete="off" required />
+          <button type="submit" className="comment-send" title="Enviar">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z" />
+            </svg>
+          </button>
+        </form>
       </div>
     </>
   )

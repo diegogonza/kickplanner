@@ -1,13 +1,13 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/utils/supabase/client'
 import { STATUSES, PRIORITIES, type Task, type Status } from '@/app/projects/statuses'
 
 const TASK_COLS =
-  'id, title, status, priority, due_date, parent_id, description, created_at'
+  'id, title, status, priority, due_date, parent_id, description, assignee_id, created_at'
 
 export default function BoardView({
   projectId,
@@ -15,17 +15,23 @@ export default function BoardView({
   userId,
   tasks,
   subtaskCounts,
+  memberMap,
 }: {
   projectId: string
   view: string
   userId: string
   tasks: Task[]
   subtaskCounts: Record<string, number>
+  memberMap: Record<string, string>
 }) {
   const supabase = createClient()
   const router = useRouter()
 
   const [items, setItems] = useState<Task[]>(tasks)
+  // Sincronizar con los datos frescos del servidor (ej. prioridad puesta en el panel)
+  useEffect(() => {
+    setItems(tasks)
+  }, [tasks])
   const [dragId, setDragId] = useState<string | null>(null)
   const [overCol, setOverCol] = useState<Status | null>(null)
   const [drafts, setDrafts] = useState<Record<string, string>>({})
@@ -108,6 +114,15 @@ export default function BoardView({
                       setOverCol(null)
                     }}
                   >
+                    {prio && (
+                      <div className="card-prio" style={{ background: `${prio.color}14`, color: prio.color }}>
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M4 21V4a1 1 0 0 1 1-1h12l-3 4 3 4H5" />
+                        </svg>
+                        Prioridad {prio.label}
+                      </div>
+                    )}
+                    <div className="task-mini-body">
                     <div className="flex items-start gap-2">
                       <button
                         type="button"
@@ -131,23 +146,26 @@ export default function BoardView({
                       </Link>
                     </div>
 
-                    {prio && (
-                      <div className="mt-2">
-                        <span className={`pill ${prio.pill}`}>{prio.label}</span>
-                      </div>
-                    )}
-
                     <div className="row">
-                      {subs > 0 ? (
-                        <span className="subcount" title={`${subs} subtareas`}>
-                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                            <path d="M9 6h11M9 12h11M9 18h11M4 6h.01M4 12h.01M4 18h.01" />
-                          </svg>
-                          {subs}
-                        </span>
-                      ) : (
-                        <span />
-                      )}
+                      <div className="flex items-center gap-2">
+                        {subs > 0 && (
+                          <span className="subcount" title={`${subs} subtareas`}>
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                              <path d="M9 6h11M9 12h11M9 18h11M4 6h.01M4 12h.01M4 18h.01" />
+                            </svg>
+                            {subs}
+                          </span>
+                        )}
+                        {task.assignee_id && memberMap[task.assignee_id] && (
+                          <span
+                            className="avatar"
+                            style={{ width: 22, height: 22, fontSize: 10 }}
+                            title={memberMap[task.assignee_id]}
+                          >
+                            {memberMap[task.assignee_id][0]?.toUpperCase()}
+                          </span>
+                        )}
+                      </div>
                       <button
                         type="button"
                         className="btn-ghost"
@@ -158,6 +176,7 @@ export default function BoardView({
                           <path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6" />
                         </svg>
                       </button>
+                    </div>
                     </div>
                   </div>
                 )

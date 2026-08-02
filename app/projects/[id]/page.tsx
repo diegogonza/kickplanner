@@ -8,7 +8,7 @@ import BoardView from '@/app/components/views/board-view'
 import TaskPanel from '@/app/components/task-panel'
 import TaskDetail from '@/app/components/task-detail'
 import ShareButton from '@/app/components/share-button'
-import type { Task, Tag } from '@/app/projects/statuses'
+import type { Task, Tag, Member } from '@/app/projects/statuses'
 
 const TABS = [
   { key: 'resumen', label: 'Resumen' },
@@ -16,7 +16,8 @@ const TABS = [
   { key: 'tablero', label: 'Tablero' },
 ]
 
-const TASK_COLS = 'id, title, status, priority, due_date, parent_id, description, created_at'
+const TASK_COLS =
+  'id, title, status, priority, due_date, parent_id, description, assignee_id, created_at'
 
 export default async function ProjectPage({
   params,
@@ -67,12 +68,27 @@ export default async function ProjectPage({
     if (p) subtaskCounts[p] = (subtaskCounts[p] ?? 0) + 1
   }
 
+  // Miembros del proyecto (para responsable y avatares)
+  const { data: membersData } = await supabase.rpc('project_members_list', {
+    p_project_id: id,
+  })
+  const members = (membersData ?? []) as Member[]
+  const memberMap: Record<string, string> = {}
+  for (const m of members) memberMap[m.user_id] = m.email
+
   // Datos del panel de detalle (si hay ?task=)
   let panelTask: Task | null = null
   let subtasks: Task[] = []
   let panelTags: Tag[] = []
   let allTags: Tag[] = []
   let ancestors: { id: string; title: string }[] = []
+  let comments: {
+    id: string
+    body: string
+    author_email: string
+    author_id: string
+    created_at: string
+  }[] = []
   if (taskParam) {
     const { data: t } = await supabase
       .from('tasks')
@@ -95,6 +111,11 @@ export default async function ProjectPage({
         .select('tags(id, name, color)')
         .eq('task_id', t.id)
       panelTags = ((tagRows ?? []).map((r) => r.tags).filter(Boolean) as unknown) as Tag[]
+
+      const { data: commentsData } = await supabase.rpc('task_comments', {
+        p_task_id: t.id,
+      })
+      comments = (commentsData ?? []) as typeof comments
 
       const { data: at } = await supabase
         .from('tags')
@@ -151,7 +172,9 @@ export default async function ProjectPage({
 
         <div className="flex-1 overflow-y-auto px-6 py-6">
           {active === 'resumen' && <Overview tasks={list} />}
-          {active === 'lista' && <ListView projectId={project.id} view={active} tasks={list} />}
+          {active === 'lista' && (
+            <ListView projectId={project.id} view={active} tasks={list} memberMap={memberMap} />
+          )}
           {active === 'tablero' && (
             <BoardView
               projectId={project.id}
@@ -159,6 +182,7 @@ export default async function ProjectPage({
               userId={user.id}
               tasks={list}
               subtaskCounts={subtaskCounts}
+              memberMap={memberMap}
             />
           )}
         </div>
@@ -172,6 +196,9 @@ export default async function ProjectPage({
             tags={panelTags}
             allTags={allTags}
             ancestors={ancestors}
+            members={members}
+            comments={comments}
+            currentUserId={user.id}
             projectId={project.id}
             projectName={project.name}
             view={active}
