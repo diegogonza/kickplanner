@@ -1,7 +1,8 @@
 import Link from 'next/link'
-import { PRIORITIES, type Task, type Tag } from '@/app/projects/statuses'
+import { PRIORITIES, type Task, type Tag, type Member } from '@/app/projects/statuses'
 import { toggleComplete, createTaskWithTag } from '@/app/projects/actions'
 import AddTaskRow from '@/app/components/add-task-row'
+import Avatar from '@/app/components/avatar'
 
 function TaskCard({
   task,
@@ -13,7 +14,7 @@ function TaskCard({
   task: Task
   projectId: string
   view: string
-  memberMap: Record<string, string>
+  memberMap: Record<string, Member>
   subtaskCounts: Record<string, number>
 }) {
   const prio = PRIORITIES.find((p) => p.key === task.priority)
@@ -71,13 +72,12 @@ function TaskCard({
               )}
             </div>
             {task.assignee_id && memberMap[task.assignee_id] && (
-              <span
-                className="avatar"
-                style={{ width: 22, height: 22, fontSize: 10 }}
-                title={memberMap[task.assignee_id]}
-              >
-                {memberMap[task.assignee_id][0]?.toUpperCase()}
-              </span>
+              <Avatar
+                name={memberMap[task.assignee_id].full_name}
+                email={memberMap[task.assignee_id].email}
+                url={memberMap[task.assignee_id].avatar_url}
+                size={22}
+              />
             )}
           </div>
         )}
@@ -100,7 +100,7 @@ export default function TagsView({
   tasks: Task[]
   taskTags: Record<string, Tag[]>
   usedTags: Tag[]
-  memberMap: Record<string, string>
+  memberMap: Record<string, Member>
   subtaskCounts: Record<string, number>
 }) {
   const untagged = tasks.filter((t) => (taskTags[t.id] ?? []).length === 0)

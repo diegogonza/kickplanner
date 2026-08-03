@@ -82,8 +82,8 @@ export default async function ProjectPage({
     p_project_id: id,
   })
   const members = (membersData ?? []) as Member[]
-  const memberMap: Record<string, string> = {}
-  for (const m of members) memberMap[m.user_id] = m.email
+  const memberMap: Record<string, Member> = {}
+  for (const m of members) memberMap[m.user_id] = m
 
   // Vista Etiquetas: agrupar tareas por etiqueta
   const taskTags: Record<string, Tag[]> = {}
@@ -128,6 +128,8 @@ export default async function ProjectPage({
     body: string
     author_email: string
     author_id: string
+    author_name: string | null
+    author_avatar: string | null
     created_at: string
   }[] = []
   if (taskParam) {

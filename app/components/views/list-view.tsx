@@ -26,7 +26,7 @@ export default function ListView({
   projectId: string
   view: string
   tasks: Task[]
-  memberMap: Record<string, string>
+  memberMap: Record<string, Member>
   members: Member[]
   subtaskCounts?: Record<string, number>
   childrenByParent?: Record<string, Task[]>

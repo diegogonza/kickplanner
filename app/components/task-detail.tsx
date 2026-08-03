@@ -1,5 +1,6 @@
 import Link from 'next/link'
-import type { Task, Tag, Member } from '@/app/projects/statuses'
+import { displayName, type Task, type Tag, type Member } from '@/app/projects/statuses'
+import Avatar from '@/app/components/avatar'
 import {
   toggleComplete,
   removeTag,
@@ -20,6 +21,8 @@ type Comment = {
   body: string
   author_email: string
   author_id: string
+  author_name: string | null
+  author_avatar: string | null
   created_at: string
 }
 
@@ -33,16 +36,6 @@ function timeAgo(iso: string): string {
   const days = Math.floor(hrs / 24)
   if (days < 7) return `hace ${days} d`
   return new Date(iso).toLocaleDateString('es')
-}
-
-const AVATAR_COLORS = [
-  '#FD5F5C', '#2E77E6', '#14B8A6', '#E0A81E',
-  '#EC4899', '#E5484D', '#22C55E', '#0D9488',
-]
-function avatarColor(email: string): string {
-  let h = 0
-  for (let i = 0; i < email.length; i++) h = (h * 31 + email.charCodeAt(i)) >>> 0
-  return AVATAR_COLORS[h % AVATAR_COLORS.length]
 }
 
 export default function TaskDetail({
@@ -74,7 +67,8 @@ export default function TaskDetail({
 }) {
   const done = task.status === 'done'
   const subDone = subtasks.filter((s) => s.status === 'done').length
-  const myEmail = members.find((m) => m.user_id === currentUserId)?.email ?? '?'
+  const me = members.find((m) => m.user_id === currentUserId)
+  const myEmail = me?.email ?? '?'
   const hrefFor = (id: string) => `/projects/${projectId}?view=${view}&task=${id}`
 
   return (
@@ -250,12 +244,12 @@ export default function TaskDetail({
                 const own = c.author_id === currentUserId
                 return (
                   <div key={c.id} className={`act ${own ? 'own' : ''}`}>
-                    <span className="act-avatar" style={{ background: avatarColor(c.author_email) }}>
-                      {c.author_email[0]?.toUpperCase()}
-                    </span>
+                    <Avatar name={c.author_name} email={c.author_email} url={c.author_avatar} size={34} />
                     <div className="act-card">
                       <div className="act-top">
-                        <span className="act-author">{own ? 'Vos' : c.author_email}</span>
+                        <span className="act-author">
+                          {own ? 'Vos' : displayName({ full_name: c.author_name, email: c.author_email })}
+                        </span>
                         <span className="act-time">{timeAgo(c.created_at)}</span>
                         {own && (
                           <form action={deleteComment} className="act-del">
@@ -282,12 +276,7 @@ export default function TaskDetail({
       {/* Compositor fijo al pie del panel */}
       <div className="panel-footer">
         <form action={addComment} className="comment-composer">
-          <span
-            className="act-avatar"
-            style={{ width: 28, height: 28, fontSize: 11, background: avatarColor(myEmail) }}
-          >
-            {myEmail[0]?.toUpperCase()}
-          </span>
+          <Avatar name={me?.full_name} email={myEmail} url={me?.avatar_url} size={28} />
           <input type="hidden" name="task_id" value={task.id} />
           <input type="hidden" name="project_id" value={projectId} />
           <input name="body" placeholder="Agregar un comentario…" autoComplete="off" required />

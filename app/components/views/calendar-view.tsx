@@ -2,21 +2,11 @@
 
 import { useOptimistic, useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
-import { PRIORITIES, STATUSES, type Task } from '@/app/projects/statuses'
+import { PRIORITIES, STATUSES, displayName, type Task, type Member } from '@/app/projects/statuses'
 import { updateDueDate } from '@/app/projects/actions'
+import Avatar from '@/app/components/avatar'
 
 const WEEKDAYS = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom']
-
-// Paleta para el avatar del responsable (color estable por email)
-const AVATAR_COLORS = [
-  '#FD5F5C', '#2E77E6', '#14B8A6', '#E0A81E',
-  '#EC4899', '#7B5CF0', '#22C55E', '#0D9488',
-]
-function avatarColor(email: string): string {
-  let h = 0
-  for (let i = 0; i < email.length; i++) h = (h * 31 + email.charCodeAt(i)) >>> 0
-  return AVATAR_COLORS[h % AVATAR_COLORS.length]
-}
 
 function parseDue(s: string): Date {
   const [y, m, d] = s.split('-').map(Number)
@@ -48,7 +38,7 @@ export default function CalendarView({
   projectId: string
   view: string
   tasks: Task[]
-  memberMap?: Record<string, string>
+  memberMap?: Record<string, Member>
 }) {
   const router = useRouter()
   const [, startTransition] = useTransition()
@@ -222,12 +212,13 @@ export default function CalendarView({
               <div className="cal-chips">
                 {shown.map((t) => {
                   const done = t.status === 'done'
-                  const email = t.assignee_id ? memberMap[t.assignee_id] : undefined
+                  const member = t.assignee_id ? memberMap[t.assignee_id] : undefined
+                  const who = member ? displayName(member) : undefined
                   return (
                     <div
                       key={t.id}
                       className={`cal-chip ${done ? 'done' : ''} ${dragId === t.id ? 'dragging' : ''}`}
-                      title={email ? `${t.title} · ${email}` : t.title}
+                      title={who ? `${t.title} · ${who}` : t.title}
                       draggable
                       onDragStart={(e) => {
                         setDragId(t.id)
@@ -240,10 +231,8 @@ export default function CalendarView({
                       }}
                       onClick={() => router.push(hrefFor(t.id))}
                     >
-                      {email ? (
-                        <span className="cal-av" style={{ background: avatarColor(email) }}>
-                          {email[0]?.toUpperCase()}
-                        </span>
+                      {member ? (
+                        <Avatar name={member.full_name} email={member.email} url={member.avatar_url} size={16} />
                       ) : (
                         <span className="cal-dotmark" style={{ background: chipColor(t) }} />
                       )}

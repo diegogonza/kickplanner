@@ -2,7 +2,8 @@
 
 import { useState } from 'react'
 import { setAssignee } from '@/app/projects/actions'
-import type { Member } from '@/app/projects/statuses'
+import { displayName, type Member } from '@/app/projects/statuses'
+import Avatar from '@/app/components/avatar'
 
 export default function AssigneeSelect({
   taskId,
@@ -23,10 +24,8 @@ export default function AssigneeSelect({
       <button type="button" className="dropdown-trigger" onClick={() => setOpen((o) => !o)}>
         {cur ? (
           <span className="flex items-center gap-2">
-            <span className="avatar" style={{ width: 24, height: 24, fontSize: 11 }}>
-              {cur.email[0]?.toUpperCase()}
-            </span>
-            <span className="text-[13px]" style={{ color: 'var(--text)' }}>{cur.email}</span>
+            <Avatar name={cur.full_name} email={cur.email} url={cur.avatar_url} size={24} />
+            <span className="text-[13px]" style={{ color: 'var(--text)' }}>{displayName(cur)}</span>
           </span>
         ) : (
           <span className="text-[13px]" style={{ color: 'var(--text-3)' }}>Sin responsable</span>
@@ -45,10 +44,8 @@ export default function AssigneeSelect({
               <input type="hidden" name="assignee_id" value={m.user_id} />
               <button type="submit" className="dropdown-item">
                 <span className="flex items-center gap-2">
-                  <span className="avatar" style={{ width: 22, height: 22, fontSize: 10 }}>
-                    {m.email[0]?.toUpperCase()}
-                  </span>
-                  {m.email}
+                  <Avatar name={m.full_name} email={m.email} url={m.avatar_url} size={22} />
+                  {displayName(m)}
                 </span>
               </button>
             </form>

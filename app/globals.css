@@ -492,6 +492,11 @@ body {
   .cal-chip { justify-content: center; }
 }
 
+/* ---------- AVATAR ---------- */
+.ava { border-radius: var(--r-full); flex: 0 0 auto; display: inline-flex; }
+.ava-img { object-fit: cover; display: inline-block; }
+.ava-ini { align-items: center; justify-content: center; color: #fff; font-weight: 700; }
+
 /* ---------- ARCHIVO DE DRIVE ---------- */
 .drive-logo { height: 20px; width: auto; display: block; flex: 0 0 auto; }
 .drive-logo-lg { width: 34px; height: 34px; flex: 0 0 34px; }

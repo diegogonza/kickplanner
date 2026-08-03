@@ -4,7 +4,8 @@ import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/utils/supabase/client'
-import { STATUSES, PRIORITIES, type Task, type Status } from '@/app/projects/statuses'
+import { STATUSES, PRIORITIES, type Task, type Status, type Member } from '@/app/projects/statuses'
+import Avatar from '@/app/components/avatar'
 
 const TASK_COLS =
   'id, title, status, priority, due_date, parent_id, description, assignee_id, created_at'
@@ -22,7 +23,7 @@ export default function BoardView({
   userId: string
   tasks: Task[]
   subtaskCounts: Record<string, number>
-  memberMap: Record<string, string>
+  memberMap: Record<string, Member>
 }) {
   const supabase = createClient()
   const router = useRouter()
@@ -157,13 +158,12 @@ export default function BoardView({
                           </span>
                         )}
                         {task.assignee_id && memberMap[task.assignee_id] && (
-                          <span
-                            className="avatar"
-                            style={{ width: 22, height: 22, fontSize: 10 }}
-                            title={memberMap[task.assignee_id]}
-                          >
-                            {memberMap[task.assignee_id][0]?.toUpperCase()}
-                          </span>
+                          <Avatar
+                            name={memberMap[task.assignee_id].full_name}
+                            email={memberMap[task.assignee_id].email}
+                            url={memberMap[task.assignee_id].avatar_url}
+                            size={22}
+                          />
                         )}
                       </div>
                       <button

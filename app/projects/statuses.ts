@@ -16,7 +16,18 @@ export type Task = {
   created_at: string
 }
 
-export type Member = { user_id: string; email: string; role: string }
+export type Member = {
+  user_id: string
+  email: string
+  role: string
+  full_name: string | null
+  avatar_url: string | null
+}
+
+// Nombre para mostrar: usa el nombre del perfil, o el correo si no hay
+export function displayName(m: { full_name?: string | null; email: string }): string {
+  return m.full_name?.trim() || m.email
+}
 
 export const STATUSES: { key: Status; label: string; color: string }[] = [
   { key: 'todo', label: 'Por hacer', color: 'var(--info-fg)' },
