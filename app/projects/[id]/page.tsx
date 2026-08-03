@@ -59,16 +59,20 @@ export default async function ProjectPage({
   const list = (tasks ?? []) as Task[]
   const closeHref = `/projects/${id}?view=${active}`
 
-  // Conteo de subtareas por tarea padre (para el tablero)
+  // Subtareas del proyecto: conteo (tablero) + agrupadas por padre (expandir en la lista)
   const { data: subRows } = await supabase
     .from('tasks')
-    .select('parent_id')
+    .select(TASK_COLS)
     .eq('project_id', id)
     .not('parent_id', 'is', null)
+    .order('created_at', { ascending: true })
+  const childrenByParent: Record<string, Task[]> = {}
   const subtaskCounts: Record<string, number> = {}
-  for (const r of subRows ?? []) {
-    const p = (r as { parent_id: string | null }).parent_id
-    if (p) subtaskCounts[p] = (subtaskCounts[p] ?? 0) + 1
+  for (const r of (subRows ?? []) as Task[]) {
+    const p = r.parent_id
+    if (!p) continue
+    ;(childrenByParent[p] ??= []).push(r)
+    subtaskCounts[p] = (subtaskCounts[p] ?? 0) + 1
   }
 
   // Miembros del proyecto (para responsable y avatares)
@@ -200,7 +204,15 @@ export default async function ProjectPage({
         <div className="flex-1 overflow-y-auto px-6 py-6">
           {active === 'resumen' && <Overview tasks={list} />}
           {active === 'lista' && (
-            <ListView projectId={project.id} view={active} tasks={list} memberMap={memberMap} />
+            <ListView
+              projectId={project.id}
+              view={active}
+              tasks={list}
+              memberMap={memberMap}
+              members={members}
+              subtaskCounts={subtaskCounts}
+              childrenByParent={childrenByParent}
+            />
           )}
           {active === 'tablero' && (
             <BoardView

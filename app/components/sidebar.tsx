@@ -6,7 +6,7 @@ export default function Sidebar({
   active = 'projects',
 }: {
   email: string
-  active?: 'projects' | 'portfolios' | 'teams'
+  active?: 'projects' | 'portfolios' | 'teams' | 'mis-tareas'
 }) {
   const initial = email?.[0]?.toUpperCase() ?? '?'
 
@@ -24,6 +24,13 @@ export default function Sidebar({
 
       <div className="nav-label">Espacio de trabajo</div>
       <nav className="flex flex-col gap-1">
+        <Link className={`nav-item ${active === 'mis-tareas' ? 'active' : ''}`} href="/mis-tareas">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M9 11l3 3L22 4" />
+            <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" />
+          </svg>
+          Mis tareas
+        </Link>
         <Link className={`nav-item ${active === 'projects' ? 'active' : ''}`} href="/">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />
