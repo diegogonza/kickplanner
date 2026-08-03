@@ -12,6 +12,7 @@ export type Task = {
   priority: Priority | null
   due_date: string | null
   assignee_id: string | null
+  drive_url: string | null
   created_at: string
 }
 

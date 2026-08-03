@@ -12,6 +12,7 @@ import DueDateInput from '@/app/components/due-date-input'
 import TagInput from '@/app/components/tag-input'
 import DescriptionInput from '@/app/components/description-input'
 import AssigneeSelect from '@/app/components/assignee-select'
+import DriveField from '@/app/components/drive-field'
 
 type Ancestor = { id: string; title: string }
 type Comment = {
@@ -181,6 +182,10 @@ export default function TaskDetail({
         {/* Descripción (autoguardado) */}
         <div className="section-label">Descripción</div>
         <DescriptionInput taskId={task.id} initial={task.description} />
+
+        {/* Archivo de Drive */}
+        <div className="section-label">Archivo de Drive</div>
+        <DriveField taskId={task.id} projectId={projectId} value={task.drive_url} />
 
         {/* Subtareas */}
         <div className="section-label">

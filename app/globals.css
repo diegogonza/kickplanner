@@ -446,6 +446,70 @@ body {
 .lsubrow.done .title { text-decoration: line-through; color: var(--text-3); }
 .lsub-add { padding: 4px 12px 8px 52px; }
 
+/* ---------- VISTA CALENDARIO ---------- */
+.cal { width: 100%; }
+.cal-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: var(--space-4); }
+.cal-title { font-size: 17px; font-weight: 700; color: var(--text); }
+.cal-nav { display: flex; align-items: center; gap: 8px; }
+.cal-nav .btn-outline { padding: 6px 12px; font-size: 13px; }
+
+.cal-dow { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; margin-bottom: 6px; }
+.cal-dow span { font-size: 11px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; color: var(--text-3); padding: 0 4px; }
+
+.cal-modes { display: inline-flex; background: var(--panel); border-radius: var(--r-md); padding: 2px; gap: 2px; margin-right: 4px; }
+.cal-mode { border: 0; background: transparent; font-family: inherit; font-size: 13px; color: var(--text-3); padding: 5px 12px; border-radius: var(--r-sm); cursor: pointer; }
+.cal-mode.active { background: var(--surface); color: var(--text); font-weight: 600; box-shadow: var(--shadow-sm); }
+.cal-toggle { display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; font-size: 13px; }
+.cal-toggle.active { background: var(--brand-50); color: var(--brand-700); border-color: var(--brand-200); }
+.cal-toggle svg { color: currentColor; }
+
+.cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); grid-auto-rows: minmax(104px, auto); gap: 6px; }
+.cal-grid.week { grid-auto-rows: minmax(440px, auto); }
+.cal-cell.dragover { border-color: var(--brand-400); background: var(--brand-50); box-shadow: inset 0 0 0 1px var(--brand-400); }
+.cal-chip { cursor: pointer; }
+.cal-chip.dragging { opacity: .5; }
+.cal-av { width: 16px; height: 16px; border-radius: var(--r-full); flex: 0 0 16px; display: inline-flex; align-items: center; justify-content: center; font-size: 9px; font-weight: 700; color: #fff; }
+.cal-cell { background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-md); padding: 6px; display: flex; flex-direction: column; gap: 4px; overflow: hidden; }
+.cal-cell.other { background: var(--panel); }
+.cal-cell.other .cal-daynum { color: var(--text-3); }
+.cal-cell.weekend { background: #EDEEF2; border-color: #E4E5EA; }
+.cal-cell.weekend .cal-daynum { color: var(--text-3); }
+.cal-cell.today { border-color: var(--brand-400); box-shadow: inset 0 0 0 1px var(--brand-400); }
+.cal-daynum { font-size: 12.5px; font-weight: 600; color: var(--text-2); align-self: flex-start; padding: 1px 2px; }
+.cal-cell.today .cal-daynum { background: var(--brand-600); color: #fff; border-radius: var(--r-full); min-width: 22px; height: 22px; display: inline-flex; align-items: center; justify-content: center; }
+
+.cal-chips { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.cal-chip { display: flex; align-items: center; gap: 6px; text-decoration: none; background: var(--panel); border-radius: var(--r-sm); padding: 2px 6px; min-width: 0; }
+.cal-chip:hover { background: var(--brand-50); }
+.cal-dotmark { width: 7px; height: 7px; border-radius: var(--r-full); flex: 0 0 7px; }
+.cal-chip-title { font-size: 12px; color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cal-chip.done .cal-chip-title { text-decoration: line-through; color: var(--text-3); }
+.cal-more { font-size: 11px; font-weight: 600; color: var(--text-3); padding: 1px 6px; }
+
+@media (max-width: 720px) {
+  .cal-grid { grid-auto-rows: minmax(72px, auto); }
+  .cal-chip-title { display: none; }
+  .cal-chip { justify-content: center; }
+}
+
+/* ---------- ARCHIVO DE DRIVE ---------- */
+.drive-logo { height: 20px; width: auto; display: block; flex: 0 0 auto; }
+.drive-logo-lg { width: 34px; height: 34px; flex: 0 0 34px; }
+.drive-edithead { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; font-size: 13px; color: var(--text-2); }
+.drive-edit { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.drive-edit .field { flex: 1; min-width: 180px; }
+.drive-hint { font-size: 12px; color: var(--text-3); margin: 6px 0 0; }
+.drive-err { font-size: 12.5px; color: var(--urgent-fg); margin: 6px 0 0; }
+.drive-card { border: 1px solid var(--border); border-radius: var(--r-md); padding: 12px; background: var(--surface); }
+.drive-head { display: flex; align-items: center; gap: 12px; }
+.drive-meta { display: flex; flex-direction: column; gap: 1px; flex: 1; min-width: 0; text-decoration: none; }
+.drive-name { font-size: 14px; font-weight: 600; color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.drive-link { display: inline-flex; align-items: center; gap: 4px; font-size: 12.5px; color: var(--brand-700); }
+.drive-meta:hover .drive-link { text-decoration: underline; }
+.drive-actions { display: flex; align-items: center; gap: 2px; flex: 0 0 auto; }
+.drive-actions .btn-ghost.is-on { color: var(--brand-600); background: var(--brand-50); }
+.drive-frame { width: 100%; height: 360px; border: 1px solid var(--border); border-radius: var(--r-sm); background: var(--panel); display: block; margin-top: 10px; }
+
 /* ---------- ACCESIBILIDAD ---------- */
 :focus-visible { outline: 2px solid var(--brand-500); outline-offset: 2px; }
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }

@@ -6,6 +6,7 @@ import Overview from '@/app/components/views/overview'
 import ListView from '@/app/components/views/list-view'
 import BoardView from '@/app/components/views/board-view'
 import TagsView from '@/app/components/views/tags-view'
+import CalendarView from '@/app/components/views/calendar-view'
 import TaskPanel from '@/app/components/task-panel'
 import TaskDetail from '@/app/components/task-detail'
 import ShareButton from '@/app/components/share-button'
@@ -16,11 +17,12 @@ const TABS = [
   { key: 'resumen', label: 'Resumen' },
   { key: 'lista', label: 'Lista' },
   { key: 'tablero', label: 'Tablero' },
+  { key: 'calendario', label: 'Calendario' },
   { key: 'etiquetas', label: 'Etiquetas' },
 ]
 
 const TASK_COLS =
-  'id, title, status, priority, due_date, parent_id, description, assignee_id, created_at'
+  'id, title, status, priority, due_date, parent_id, description, assignee_id, drive_url, created_at'
 
 export default async function ProjectPage({
   params,
@@ -102,6 +104,17 @@ export default async function ProjectPage({
       if (!seen.has(tag.id)) seen.set(tag.id, tag)
     }
     usedTags = Array.from(seen.values()).sort((a, b) => a.name.localeCompare(b.name))
+  }
+
+  // Vista Calendario: todas las tareas con fecha de entrega (incluye subtareas)
+  let calTasks: Task[] = []
+  if (active === 'calendario') {
+    const { data: ct } = await supabase
+      .from('tasks')
+      .select(TASK_COLS)
+      .eq('project_id', id)
+      .not('due_date', 'is', null)
+    calTasks = (ct ?? []) as Task[]
   }
 
   // Datos del panel de detalle (si hay ?task=)
@@ -223,6 +236,9 @@ export default async function ProjectPage({
               subtaskCounts={subtaskCounts}
               memberMap={memberMap}
             />
+          )}
+          {active === 'calendario' && (
+            <CalendarView projectId={project.id} view={active} tasks={calTasks} memberMap={memberMap} />
           )}
           {active === 'etiquetas' && (
             <TagsView

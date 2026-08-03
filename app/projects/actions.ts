@@ -147,6 +147,30 @@ export async function updateDueDate(formData: FormData) {
   revalidatePath(`/projects/${projectId}`)
 }
 
+// ---------- ARCHIVO DE DRIVE ----------
+
+export async function setDriveUrl(formData: FormData) {
+  const id = formData.get('id') as string
+  const projectId = formData.get('project_id') as string
+  const raw = ((formData.get('drive_url') as string) ?? '').trim()
+
+  let value: string | null = null
+  if (raw) {
+    try {
+      const host = new URL(raw).hostname.toLowerCase()
+      // Solo se aceptan enlaces de Google Drive / Docs
+      if (host === 'drive.google.com' || host === 'docs.google.com') value = raw
+      else return
+    } catch {
+      return
+    }
+  }
+
+  const supabase = await createClient()
+  await supabase.from('tasks').update({ drive_url: value }).eq('id', id)
+  revalidatePath(`/projects/${projectId}`)
+}
+
 // ---------- ETIQUETAS (globales, se crean solas) ----------
 
 export async function addTag(formData: FormData) {
