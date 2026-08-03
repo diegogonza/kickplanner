@@ -131,6 +131,17 @@ export default async function ProjectPage({
     author_name: string | null
     author_avatar: string | null
     created_at: string
+    mentions: { id: string; name: string | null; email: string; avatar: string | null }[]
+  }[] = []
+  let activity: {
+    id: string
+    actor_id: string
+    actor_name: string | null
+    actor_avatar: string | null
+    actor_email: string | null
+    type: string
+    meta: { to?: string | null } | null
+    created_at: string
   }[] = []
   if (taskParam) {
     const { data: t } = await supabase
@@ -159,6 +170,11 @@ export default async function ProjectPage({
         p_task_id: t.id,
       })
       comments = (commentsData ?? []) as typeof comments
+
+      const { data: activityData } = await supabase.rpc('task_activity_feed', {
+        p_task_id: t.id,
+      })
+      activity = (activityData ?? []) as typeof activity
 
       const { data: at } = await supabase
         .from('tags')
@@ -266,6 +282,7 @@ export default async function ProjectPage({
             ancestors={ancestors}
             members={members}
             comments={comments}
+            activity={activity}
             currentUserId={user.id}
             projectId={project.id}
             projectName={project.name}

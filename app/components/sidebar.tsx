@@ -8,7 +8,7 @@ export default async function Sidebar({
   active = 'projects',
 }: {
   email?: string
-  active?: 'projects' | 'portfolios' | 'teams' | 'mis-tareas'
+  active?: 'projects' | 'portfolios' | 'teams' | 'mis-tareas' | 'notificaciones'
 }) {
   const supabase = await createClient()
   const {
@@ -18,6 +18,7 @@ export default async function Sidebar({
 
   let fullName: string | null = null
   let avatarUrl: string | null = null
+  let unread = 0
   if (user) {
     const { data: prof } = await supabase
       .from('profiles')
@@ -26,6 +27,12 @@ export default async function Sidebar({
       .maybeSingle()
     fullName = prof?.full_name ?? null
     avatarUrl = prof?.avatar_url ?? null
+
+    const { count } = await supabase
+      .from('notifications')
+      .select('id', { count: 'exact', head: true })
+      .eq('read', false)
+    unread = count ?? 0
   }
   const name = displayName({ full_name: fullName, email })
 
@@ -49,6 +56,14 @@ export default async function Sidebar({
             <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" />
           </svg>
           Mis tareas
+        </Link>
+        <Link className={`nav-item ${active === 'notificaciones' ? 'active' : ''}`} href="/notificaciones">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
+            <path d="M13.73 21a2 2 0 0 1-3.46 0" />
+          </svg>
+          Notificaciones
+          {unread > 0 && <span className="nav-badge">{unread > 99 ? '99+' : unread}</span>}
         </Link>
         <Link className={`nav-item ${active === 'projects' ? 'active' : ''}`} href="/">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">

@@ -1,11 +1,11 @@
 import Link from 'next/link'
-import { displayName, type Task, type Tag, type Member } from '@/app/projects/statuses'
+import type { ReactNode } from 'react'
+import { displayName, STATUSES, PRIORITIES, type Task, type Tag, type Member } from '@/app/projects/statuses'
 import Avatar from '@/app/components/avatar'
 import {
   toggleComplete,
   removeTag,
   createTask,
-  addComment,
   deleteComment,
 } from '@/app/projects/actions'
 import PrioritySelect from '@/app/components/priority-select'
@@ -14,8 +14,10 @@ import TagInput from '@/app/components/tag-input'
 import DescriptionInput from '@/app/components/description-input'
 import AssigneeSelect from '@/app/components/assignee-select'
 import DriveField from '@/app/components/drive-field'
+import MentionComposer from '@/app/components/mention-composer'
 
 type Ancestor = { id: string; title: string }
+type Mention = { id: string; name: string | null; email: string; avatar: string | null }
 type Comment = {
   id: string
   body: string
@@ -24,6 +26,58 @@ type Comment = {
   author_name: string | null
   author_avatar: string | null
   created_at: string
+  mentions: Mention[]
+}
+
+function escapeRegExp(s: string): string {
+  return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+}
+
+// Convierte el texto del comentario en nodos, reemplazando "@Nombre" por un chip con foto
+function renderCommentBody(body: string, mentions: Mention[]): ReactNode {
+  if (!mentions || mentions.length === 0) return body
+  const named = mentions
+    .map((m) => ({ m, dn: (m.name?.trim() || m.email) }))
+    .sort((a, b) => b.dn.length - a.dn.length)
+  const re = new RegExp('@(' + named.map((n) => escapeRegExp(n.dn)).join('|') + ')', 'g')
+
+  const nodes: ReactNode[] = []
+  let last = 0
+  let match: RegExpExecArray | null
+  let key = 0
+  while ((match = re.exec(body)) !== null) {
+    if (match.index > last) nodes.push(body.slice(last, match.index))
+    const dn = match[1]
+    const m = named.find((n) => n.dn === dn)?.m
+    if (m) {
+      nodes.push(
+        <span key={`m-${key++}`} className="mention-chip">
+          <Avatar name={m.name} email={m.email} url={m.avatar} size={18} />
+          {dn}
+        </span>
+      )
+    } else {
+      nodes.push(match[0])
+    }
+    last = match.index + match[0].length
+  }
+  if (last < body.length) nodes.push(body.slice(last))
+  return nodes
+}
+type Activity = {
+  id: string
+  actor_id: string
+  actor_name: string | null
+  actor_avatar: string | null
+  actor_email: string | null
+  type: string
+  meta: { to?: string | null } | null
+  created_at: string
+}
+
+function fmtDate(s: string): string {
+  const [y, m, d] = s.split('-').map(Number)
+  return new Date(y, m - 1, d).toLocaleDateString('es', { day: 'numeric', month: 'short' })
 }
 
 function timeAgo(iso: string): string {
@@ -46,6 +100,7 @@ export default function TaskDetail({
   ancestors,
   members,
   comments,
+  activity,
   currentUserId,
   projectId,
   projectName,
@@ -59,6 +114,7 @@ export default function TaskDetail({
   ancestors: Ancestor[]
   members: Member[]
   comments: Comment[]
+  activity: Activity[]
   currentUserId: string
   projectId: string
   projectName: string
@@ -70,6 +126,42 @@ export default function TaskDetail({
   const me = members.find((m) => m.user_id === currentUserId)
   const myEmail = me?.email ?? '?'
   const hrefFor = (id: string) => `/projects/${projectId}?view=${view}&task=${id}`
+
+  const actText = (a: Activity): string => {
+    const to = a.meta?.to ?? null
+    switch (a.type) {
+      case 'created':
+        return 'creó la tarea'
+      case 'status': {
+        if (to === 'done') return 'marcó como completada'
+        const s = STATUSES.find((x) => x.key === to)
+        return s ? `movió a ${s.label}` : 'actualizó el estado'
+      }
+      case 'priority': {
+        const p = PRIORITIES.find((x) => x.key === to)
+        return p ? `cambió la prioridad a ${p.label}` : 'quitó la prioridad'
+      }
+      case 'due':
+        return to ? `cambió la fecha de entrega a ${fmtDate(to)}` : 'quitó la fecha de entrega'
+      case 'assignee': {
+        if (!to) return 'quitó el responsable'
+        const m = members.find((x) => x.user_id === to)
+        return `asignó a ${m ? displayName(m) : 'alguien'}`
+      }
+      default:
+        return 'actualizó la tarea'
+    }
+  }
+
+  type FeedItem =
+    | { kind: 'comment'; at: string; c: Comment }
+    | { kind: 'activity'; at: string; a: Activity }
+  const feed: FeedItem[] = [
+    ...comments.map((c) => ({ kind: 'comment' as const, at: c.created_at, c })),
+    ...activity
+      .filter((a) => a.type !== 'comment')
+      .map((a) => ({ kind: 'activity' as const, at: a.created_at, a })),
+  ].sort((x, y) => new Date(x.at).getTime() - new Date(y.at).getTime())
 
   return (
     <>
@@ -229,21 +321,36 @@ export default function TaskDetail({
           </form>
         </div>
 
-        {/* Comentarios / actividad (timeline) */}
+        {/* Actividad y comentarios (timeline) */}
         <div className="comments">
           <div className="comments-head">
-            <span className="comments-title">Comentarios</span>
+            <span className="comments-title">Actividad</span>
             {comments.length > 0 && <span className="comments-count">{comments.length}</span>}
           </div>
 
-          {comments.length === 0 ? (
-            <p className="act-empty">Aún no hay comentarios. Escribí el primero abajo.</p>
+          {feed.length === 0 ? (
+            <p className="act-empty">Aún no hay actividad. Escribí el primer comentario abajo.</p>
           ) : (
             <div className="act-feed">
-              {comments.map((c) => {
+              {feed.map((item) => {
+                if (item.kind === 'activity') {
+                  const a = item.a
+                  const own = a.actor_id === currentUserId
+                  const who = own ? 'Vos' : displayName({ full_name: a.actor_name, email: a.actor_email ?? '' })
+                  return (
+                    <div key={`a-${a.id}`} className="act-line">
+                      <Avatar name={a.actor_name} email={a.actor_email ?? ''} url={a.actor_avatar} size={22} />
+                      <span className="act-line-text">
+                        <b>{who}</b> {actText(a)}
+                      </span>
+                      <span className="act-line-time">{timeAgo(a.created_at)}</span>
+                    </div>
+                  )
+                }
+                const c = item.c
                 const own = c.author_id === currentUserId
                 return (
-                  <div key={c.id} className={`act ${own ? 'own' : ''}`}>
+                  <div key={`c-${c.id}`} className={`act ${own ? 'own' : ''}`}>
                     <Avatar name={c.author_name} email={c.author_email} url={c.author_avatar} size={34} />
                     <div className="act-card">
                       <div className="act-top">
@@ -263,7 +370,7 @@ export default function TaskDetail({
                           </form>
                         )}
                       </div>
-                      <p className="act-body">{c.body}</p>
+                      <p className="act-body">{renderCommentBody(c.body, c.mentions)}</p>
                     </div>
                   </div>
                 )
@@ -273,19 +380,16 @@ export default function TaskDetail({
         </div>
       </div>
 
-      {/* Compositor fijo al pie del panel */}
+      {/* Compositor fijo al pie del panel (con menciones @) */}
       <div className="panel-footer">
-        <form action={addComment} className="comment-composer">
-          <Avatar name={me?.full_name} email={myEmail} url={me?.avatar_url} size={28} />
-          <input type="hidden" name="task_id" value={task.id} />
-          <input type="hidden" name="project_id" value={projectId} />
-          <input name="body" placeholder="Agregar un comentario…" autoComplete="off" required />
-          <button type="submit" className="comment-send" title="Enviar">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z" />
-            </svg>
-          </button>
-        </form>
+        <MentionComposer
+          taskId={task.id}
+          projectId={projectId}
+          members={members}
+          meName={me?.full_name ?? null}
+          meEmail={myEmail}
+          meAvatar={me?.avatar_url ?? null}
+        />
       </div>
     </>
   )

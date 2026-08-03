@@ -42,13 +42,21 @@ export async function createTask(formData: FormData) {
     data: { user },
   } = await supabase.auth.getUser()
 
-  await supabase.from('tasks').insert({
-    title,
-    project_id: projectId,
-    parent_id: parentId,
-    status,
-    created_by: user?.id,
-  })
+  const { data: created } = await supabase
+    .from('tasks')
+    .insert({
+      title,
+      project_id: projectId,
+      parent_id: parentId,
+      status,
+      created_by: user?.id,
+    })
+    .select('id')
+    .single()
+
+  if (created) {
+    await supabase.from('task_activity').insert({ task_id: created.id, type: 'created', meta: {} })
+  }
 
   revalidatePath(`/projects/${projectId}`)
 }
@@ -91,6 +99,7 @@ export async function updateTaskStatus(formData: FormData) {
 
   const supabase = await createClient()
   await supabase.from('tasks').update({ status: statusRaw }).eq('id', id)
+  await supabase.from('task_activity').insert({ task_id: id, type: 'status', meta: { to: statusRaw } })
   revalidatePath(`/projects/${projectId}`)
 }
 
@@ -102,6 +111,7 @@ export async function toggleComplete(formData: FormData) {
 
   const supabase = await createClient()
   await supabase.from('tasks').update({ status: next }).eq('id', id)
+  await supabase.from('task_activity').insert({ task_id: id, type: 'status', meta: { to: next } })
   revalidatePath(`/projects/${projectId}`)
 }
 
@@ -124,6 +134,7 @@ export async function setPriority(formData: FormData) {
 
   const supabase = await createClient()
   await supabase.from('tasks').update({ priority }).eq('id', id)
+  await supabase.from('task_activity').insert({ task_id: id, type: 'priority', meta: { to: priority } })
   revalidatePath(`/projects/${projectId}`)
 }
 
@@ -144,6 +155,7 @@ export async function updateDueDate(formData: FormData) {
 
   const supabase = await createClient()
   await supabase.from('tasks').update({ due_date: dueDate }).eq('id', id)
+  await supabase.from('task_activity').insert({ task_id: id, type: 'due', meta: { to: dueDate } })
   revalidatePath(`/projects/${projectId}`)
 }
 
@@ -221,7 +233,8 @@ export async function setAssignee(formData: FormData) {
   const assignee = (formData.get('assignee_id') as string) || null
 
   const supabase = await createClient()
-  await supabase.from('tasks').update({ assignee_id: assignee }).eq('id', id)
+  // RPC: actualiza responsable + registra actividad + notifica al asignado
+  await supabase.rpc('set_task_assignee', { p_task_id: id, p_assignee: assignee })
   revalidatePath(`/projects/${projectId}`)
 }
 
@@ -233,13 +246,15 @@ export async function addComment(formData: FormData) {
   const body = (formData.get('body') as string)?.trim()
   if (!taskId || !body) return
 
-  const supabase = await createClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-  if (!user) return
+  // IDs de usuarios mencionados (separados por coma) que arma el compositor
+  const mentions = ((formData.get('mentions') as string) ?? '')
+    .split(',')
+    .map((s) => s.trim())
+    .filter(Boolean)
 
-  await supabase.from('comments').insert({ task_id: taskId, author_id: user.id, body })
+  const supabase = await createClient()
+  // RPC: crea comentario + menciones + notificaciones + actividad
+  await supabase.rpc('post_comment', { p_task_id: taskId, p_body: body, p_mentions: mentions })
   revalidatePath(`/projects/${projectId}`)
 }
 
