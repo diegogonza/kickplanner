@@ -28,6 +28,7 @@ function weekStartOf(d: Date): Date {
 }
 
 type Mode = 'month' | 'week'
+type CalTask = Task & { project_id?: string }
 
 export default function CalendarView({
   projectId,
@@ -37,7 +38,7 @@ export default function CalendarView({
 }: {
   projectId: string
   view: string
-  tasks: Task[]
+  tasks: CalTask[]
   memberMap?: Record<string, Member>
 }) {
   const router = useRouter()
@@ -48,20 +49,20 @@ export default function CalendarView({
 
   const [mode, setMode] = useState<Mode>('month')
   const [cursor, setCursor] = useState<Date>(() => new Date(today.getFullYear(), today.getMonth(), today.getDate()))
-  const [dragId, setDragId] = useState<string | null>(null)
+  const [drag, setDrag] = useState<{ id: string; pid?: string } | null>(null)
   const [overKey, setOverKey] = useState<string | null>(null)
   const [hideWeekends, setHideWeekends] = useState(true)
 
   // Estado optimista: al soltar, la tarea se ve en el nuevo día al instante
   const [optimisticTasks, moveOptimistic] = useOptimistic(
     tasks,
-    (state: Task[], { id, due }: { id: string; due: string }) =>
+    (state: CalTask[], { id, due }: { id: string; due: string }) =>
       state.map((t) => (t.id === id ? { ...t, due_date: due } : t))
   )
 
-  const hrefFor = (id: string) => `/projects/${projectId}?view=${view}&task=${id}`
+  const hrefFor = (t: CalTask) => `/projects/${t.project_id ?? projectId}?view=${view}&task=${t.id}`
 
-  const byDay = new Map<string, Task[]>()
+  const byDay = new Map<string, CalTask[]>()
   for (const t of optimisticTasks) {
     if (!t.due_date) continue
     const k = dayKey(parseDue(t.due_date))
@@ -117,18 +118,18 @@ export default function CalendarView({
   const goToday = () => setCursor(new Date(today.getFullYear(), today.getMonth(), today.getDate()))
 
   const onDrop = (cell: Date) => {
-    const id = dragId
+    const dragged = drag
     setOverKey(null)
-    setDragId(null)
-    if (!id) return
+    setDrag(null)
+    if (!dragged) return
     const due = isoDate(cell)
-    const current = tasks.find((t) => t.id === id)
+    const current = tasks.find((t) => t.id === dragged.id)
     if (current?.due_date === due) return
     startTransition(async () => {
-      moveOptimistic({ id, due })
+      moveOptimistic({ id: dragged.id, due })
       const fd = new FormData()
-      fd.set('id', id)
-      fd.set('project_id', projectId)
+      fd.set('id', dragged.id)
+      fd.set('project_id', dragged.pid ?? projectId)
       fd.set('due_date', due)
       await updateDueDate(fd)
     })
@@ -217,19 +218,19 @@ export default function CalendarView({
                   return (
                     <div
                       key={t.id}
-                      className={`cal-chip ${done ? 'done' : ''} ${dragId === t.id ? 'dragging' : ''}`}
+                      className={`cal-chip ${done ? 'done' : ''} ${drag?.id === t.id ? 'dragging' : ''}`}
                       title={who ? `${t.title} · ${who}` : t.title}
                       draggable
                       onDragStart={(e) => {
-                        setDragId(t.id)
+                        setDrag({ id: t.id, pid: t.project_id })
                         e.dataTransfer.effectAllowed = 'move'
                         e.dataTransfer.setData('text/plain', t.id)
                       }}
                       onDragEnd={() => {
-                        setDragId(null)
+                        setDrag(null)
                         setOverKey(null)
                       }}
-                      onClick={() => router.push(hrefFor(t.id))}
+                      onClick={() => router.push(hrefFor(t))}
                     >
                       {member ? (
                         <Avatar name={member.full_name} email={member.email} url={member.avatar_url} size={16} />

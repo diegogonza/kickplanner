@@ -113,6 +113,7 @@ export async function toggleComplete(formData: FormData) {
   await supabase.from('tasks').update({ status: next }).eq('id', id)
   await supabase.from('task_activity').insert({ task_id: id, type: 'status', meta: { to: next } })
   revalidatePath(`/projects/${projectId}`)
+  revalidatePath('/mis-tareas')
 }
 
 export async function deleteTask(formData: FormData) {
@@ -122,6 +123,7 @@ export async function deleteTask(formData: FormData) {
   const supabase = await createClient()
   await supabase.from('tasks').delete().eq('id', id)
   revalidatePath(`/projects/${projectId}`)
+  revalidatePath('/mis-tareas')
 }
 
 // ---------- DETALLE DE TAREA ----------
@@ -136,6 +138,7 @@ export async function setPriority(formData: FormData) {
   await supabase.from('tasks').update({ priority }).eq('id', id)
   await supabase.from('task_activity').insert({ task_id: id, type: 'priority', meta: { to: priority } })
   revalidatePath(`/projects/${projectId}`)
+  revalidatePath('/mis-tareas')
 }
 
 export async function updateDescription(formData: FormData) {
@@ -157,6 +160,7 @@ export async function updateDueDate(formData: FormData) {
   await supabase.from('tasks').update({ due_date: dueDate }).eq('id', id)
   await supabase.from('task_activity').insert({ task_id: id, type: 'due', meta: { to: dueDate } })
   revalidatePath(`/projects/${projectId}`)
+  revalidatePath('/mis-tareas')
 }
 
 // ---------- ARCHIVO DE DRIVE ----------
