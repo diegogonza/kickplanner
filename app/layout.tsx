@@ -8,7 +8,7 @@ const jakarta = Plus_Jakarta_Sans({
 });
 
 export const metadata: Metadata = {
-  title: "Asana Clone",
+  title: "KickPlanner",
   description: "Gestor de tareas y proyectos",
 };
 

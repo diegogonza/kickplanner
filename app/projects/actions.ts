@@ -1,26 +1,82 @@
 'use server'
 
 import { revalidatePath } from 'next/cache'
-import { redirect } from 'next/navigation'
 import { createClient } from '@/utils/supabase/server'
 
 // ---------- PROYECTOS ----------
+
+const PROJECT_STATUS = ['inprogress', 'research', 'ideate', 'blocked', 'completed'] as const
 
 export async function createProject(formData: FormData) {
   const name = (formData.get('name') as string)?.trim()
   if (!name) return
 
+  const client = ((formData.get('client') as string) ?? '').trim() || null
+  const description = ((formData.get('description') as string) ?? '').trim() || null
+  const raw = (formData.get('status') as string) ?? 'inprogress'
+  const status = PROJECT_STATUS.includes(raw as never) ? raw : 'inprogress'
+
   const supabase = await createClient()
-  const { data: newId, error } = await supabase.rpc('create_project', {
-    p_name: name,
-  })
-  if (error) {
-    console.error('createProject:', error.message)
+  const { data: newId, error } = await supabase.rpc('create_project', { p_name: name })
+  if (error || !newId) {
+    console.error('createProject:', error?.message)
     return
   }
-
+  await supabase.from('projects').update({ client, description, status }).eq('id', newId)
   revalidatePath('/')
-  redirect(`/projects/${newId}`)
+}
+
+export async function updateProject(formData: FormData) {
+  const id = formData.get('id') as string
+  const name = (formData.get('name') as string)?.trim()
+  if (!id || !name) return
+  const client = ((formData.get('client') as string) ?? '').trim() || null
+  const description = ((formData.get('description') as string) ?? '').trim() || null
+  const raw = (formData.get('status') as string) ?? 'inprogress'
+  const status = PROJECT_STATUS.includes(raw as never) ? raw : 'inprogress'
+
+  const supabase = await createClient()
+  await supabase.from('projects').update({ name, client, description, status }).eq('id', id)
+  revalidatePath('/')
+}
+
+export async function setProjectStatus(formData: FormData) {
+  const id = formData.get('id') as string
+  const raw = formData.get('status') as string
+  if (!id || !PROJECT_STATUS.includes(raw as never)) return
+
+  const supabase = await createClient()
+  await supabase.from('projects').update({ status: raw }).eq('id', id)
+  revalidatePath('/')
+}
+
+export async function toggleFavorite(formData: FormData) {
+  const id = formData.get('project_id') as string
+  const isFav = (formData.get('favorite') as string) === 'true'
+  if (!id) return
+
+  const supabase = await createClient()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+  if (!user) return
+
+  if (isFav) {
+    await supabase.from('project_favorites').delete().eq('project_id', id).eq('user_id', user.id)
+  } else {
+    await supabase
+      .from('project_favorites')
+      .upsert({ project_id: id, user_id: user.id }, { onConflict: 'project_id,user_id', ignoreDuplicates: true })
+  }
+  revalidatePath('/')
+}
+
+export async function deleteProject(formData: FormData) {
+  const id = formData.get('id') as string
+  if (!id) return
+  const supabase = await createClient()
+  await supabase.from('projects').delete().eq('id', id)
+  revalidatePath('/')
 }
 
 // ---------- TAREAS ----------
