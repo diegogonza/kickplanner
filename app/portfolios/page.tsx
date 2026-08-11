@@ -21,7 +21,7 @@ export default async function PortfoliosPage() {
   const list = (portfolios ?? []) as Portfolio[]
 
   return (
-    <div className="flex h-screen">
+    <div className="flex h-full">
       <Sidebar email={user.email ?? ''} active="portfolios" />
 
       <div className="flex flex-1 flex-col overflow-hidden">

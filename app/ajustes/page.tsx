@@ -20,7 +20,7 @@ export default async function SettingsPage() {
   const email = user.email ?? ''
 
   return (
-    <div className="flex h-screen">
+    <div className="flex h-full">
       <Sidebar />
 
       <div className="flex flex-1 flex-col overflow-hidden">

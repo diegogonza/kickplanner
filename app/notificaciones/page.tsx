@@ -48,7 +48,7 @@ export default async function NotificationsPage() {
   const unread = items.filter((n) => !n.read).length
 
   return (
-    <div className="flex h-screen">
+    <div className="flex h-full">
       <Sidebar active="notificaciones" />
 
       <div className="flex flex-1 flex-col overflow-hidden">

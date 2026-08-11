@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
 import { Plus_Jakarta_Sans } from "next/font/google";
 import "./globals.css";
+import GlobalSearch from "./components/global-search";
 
 const jakarta = Plus_Jakarta_Sans({
   subsets: ["latin"],
@@ -19,7 +21,14 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="es" className={`${jakarta.variable} h-full antialiased`} suppressHydrationWarning>
-      <body className="min-h-full" suppressHydrationWarning>{children}</body>
+      <body className="h-full" suppressHydrationWarning>
+        <div className="app-shell">
+          <Suspense fallback={null}>
+            <GlobalSearch />
+          </Suspense>
+          <div className="app-main">{children}</div>
+        </div>
+      </body>
     </html>
   );
 }

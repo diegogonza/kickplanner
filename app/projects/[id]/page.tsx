@@ -200,7 +200,7 @@ export default async function ProjectPage({
   }
 
   return (
-    <div className="flex h-screen">
+    <div className="flex h-full">
       <Sidebar email={user.email ?? ''} />
 
       <div className="flex flex-1 flex-col overflow-hidden">

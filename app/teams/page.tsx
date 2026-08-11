@@ -16,7 +16,7 @@ export default async function TeamsPage() {
   const list = (teams ?? []) as Team[]
 
   return (
-    <div className="flex h-screen">
+    <div className="flex h-full">
       <Sidebar email={user.email ?? ''} active="teams" />
 
       <div className="flex flex-1 flex-col overflow-hidden">

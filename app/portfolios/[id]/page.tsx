@@ -71,7 +71,7 @@ export default async function PortfolioPage({
   const available = ((mine ?? []) as Project[]).filter((p) => !inIds.has(p.id))
 
   return (
-    <div className="flex h-screen">
+    <div className="flex h-full">
       <Sidebar email={user.email ?? ''} active="portfolios" />
 
       <div className="flex flex-1 flex-col overflow-hidden">

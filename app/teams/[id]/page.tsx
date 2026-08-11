@@ -39,7 +39,7 @@ export default async function TeamPage({
   const available = ((owned ?? []) as Project[]).filter((p) => p.team_id !== id)
 
   return (
-    <div className="flex h-screen">
+    <div className="flex h-full">
       <Sidebar email={user.email ?? ''} active="teams" />
 
       <div className="flex flex-1 flex-col overflow-hidden">

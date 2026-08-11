@@ -14,7 +14,7 @@ export default async function Home() {
   const projects = (data ?? []) as ProjectOverview[]
 
   return (
-    <div className="flex h-screen">
+    <div className="flex h-full">
       <Sidebar active="projects" />
 
       <div className="flex flex-1 flex-col overflow-hidden">

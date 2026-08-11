@@ -38,11 +38,7 @@ export default async function Sidebar({
 
   return (
     <aside className="sidebar">
-      <div className="brand">
-        <img src="/kickplanner.png" alt="KickPlanner" className="brand-logo" />
-      </div>
-
-      <div className="nav-label">Espacio de trabajo</div>
+      <div className="nav-label" style={{ marginTop: 0 }}>Espacio de trabajo</div>
       <nav className="flex flex-col gap-1">
         <Link className={`nav-item ${active === 'mis-tareas' ? 'active' : ''}`} href="/mis-tareas">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">

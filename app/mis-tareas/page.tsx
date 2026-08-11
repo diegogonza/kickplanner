@@ -49,7 +49,7 @@ export default async function MyTasksPage({
   const pending = rows.filter((t) => t.status !== 'done').length
 
   return (
-    <div className="flex h-screen">
+    <div className="flex h-full">
       <Sidebar active="mis-tareas" />
 
       <div className="flex flex-1 flex-col overflow-hidden">
