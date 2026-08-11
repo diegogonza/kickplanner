@@ -215,6 +215,12 @@ export default async function ProjectPage({
             <h1 className="page-title">{project.name}</h1>
           </div>
           <div className="flex items-center gap-2">
+            <a className="btn btn-outline" href={`/api/export/tasks?project=${project.id}`} title="Exportar a Excel">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3" />
+              </svg>
+              Exportar
+            </a>
             <NewTaskButton projectId={project.id} />
             <ShareButton projectId={project.id} isOwner={isOwner} currentUserId={user.id} />
           </div>

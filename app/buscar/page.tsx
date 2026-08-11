@@ -110,6 +110,9 @@ export default async function SearchPage({
     const s = u.toString()
     return '/buscar' + (s ? `?${s}` : '')
   }
+  const exportParams = new URLSearchParams()
+  for (const [k, v] of Object.entries(baseParams)) if (v) exportParams.set(k, v)
+  const exportHref = '/api/export/tasks' + (exportParams.toString() ? `?${exportParams.toString()}` : '')
 
   // Chips de filtros activos
   const assigneeName =
@@ -143,6 +146,14 @@ export default async function SearchPage({
               <span className="count-badge">{tasks.length}</span>
             </h1>
           </div>
+          {tasks.length > 0 && (
+            <a href={exportHref} className="btn btn-outline" title="Exportar a Excel">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3" />
+              </svg>
+              Exportar a Excel
+            </a>
+          )}
         </header>
 
         {chips.length > 0 && (
