@@ -5,16 +5,19 @@ import { createClient } from '@/utils/supabase/server'
 
 // ---------- PROYECTOS ----------
 
-const PROJECT_STATUS = ['inprogress', 'research', 'ideate', 'blocked', 'completed'] as const
+const PROJECT_STATUS = ['upcoming', 'on_track', 'at_risk', 'on_hold'] as const
+const PROJECT_TYPE = ['seo', 'web'] as const
 
 export async function createProject(formData: FormData) {
   const name = (formData.get('name') as string)?.trim()
   if (!name) return
 
-  const client = ((formData.get('client') as string) ?? '').trim() || null
+  const clientId = (formData.get('client_id') as string) || null
   const description = ((formData.get('description') as string) ?? '').trim() || null
-  const raw = (formData.get('status') as string) ?? 'inprogress'
-  const status = PROJECT_STATUS.includes(raw as never) ? raw : 'inprogress'
+  const raw = (formData.get('status') as string) ?? 'upcoming'
+  const status = PROJECT_STATUS.includes(raw as never) ? raw : 'upcoming'
+  const typeRaw = (formData.get('type') as string) ?? 'seo'
+  const type = PROJECT_TYPE.includes(typeRaw as never) ? typeRaw : 'seo'
 
   const supabase = await createClient()
   const { data: newId, error } = await supabase.rpc('create_project', { p_name: name })
@@ -22,32 +25,60 @@ export async function createProject(formData: FormData) {
     console.error('createProject:', error?.message)
     return
   }
-  await supabase.from('projects').update({ client, description, status }).eq('id', newId)
+  await supabase.from('projects').update({ client_id: clientId, description, type }).eq('id', newId)
+  // Fija el estado inicial y lo registra en el historial (sin nota)
+  await supabase.rpc('set_project_status', {
+    p_project_id: newId,
+    p_status: status,
+    p_note: null,
+  })
+
+  // Aplica una plantilla si se eligió al crear
+  const templateId = (formData.get('template_id') as string) || null
+  if (templateId) {
+    await supabase.rpc('apply_template', { p_template_id: templateId, p_project_id: newId })
+  }
+
   revalidatePath('/')
+  revalidatePath('/panel')
 }
 
 export async function updateProject(formData: FormData) {
   const id = formData.get('id') as string
   const name = (formData.get('name') as string)?.trim()
   if (!id || !name) return
-  const client = ((formData.get('client') as string) ?? '').trim() || null
+  const clientId = (formData.get('client_id') as string) || null
   const description = ((formData.get('description') as string) ?? '').trim() || null
-  const raw = (formData.get('status') as string) ?? 'inprogress'
-  const status = PROJECT_STATUS.includes(raw as never) ? raw : 'inprogress'
+  const raw = (formData.get('status') as string) ?? ''
+  const status = PROJECT_STATUS.includes(raw as never) ? raw : null
+  const typeRaw = (formData.get('type') as string) ?? ''
+  const type = PROJECT_TYPE.includes(typeRaw as never) ? typeRaw : null
 
   const supabase = await createClient()
-  await supabase.from('projects').update({ name, client, description, status }).eq('id', id)
+  await supabase
+    .from('projects')
+    .update({ name, client_id: clientId, description, ...(type ? { type } : {}) })
+    .eq('id', id)
+  // Si cambió el estado desde el modal de edición, se registra en el historial
+  if (status) {
+    await supabase.rpc('set_project_status', { p_project_id: id, p_status: status, p_note: null })
+  }
   revalidatePath('/')
+  revalidatePath('/panel')
+  revalidatePath(`/projects/${id}`)
 }
 
 export async function setProjectStatus(formData: FormData) {
   const id = formData.get('id') as string
   const raw = formData.get('status') as string
+  const note = ((formData.get('note') as string) ?? '').trim() || null
   if (!id || !PROJECT_STATUS.includes(raw as never)) return
 
   const supabase = await createClient()
-  await supabase.from('projects').update({ status: raw }).eq('id', id)
+  await supabase.rpc('set_project_status', { p_project_id: id, p_status: raw, p_note: note })
   revalidatePath('/')
+  revalidatePath('/panel')
+  revalidatePath(`/projects/${id}`)
 }
 
 export async function toggleFavorite(formData: FormData) {

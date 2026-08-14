@@ -10,12 +10,14 @@ function TaskCard({
   view,
   memberMap,
   subtaskCounts,
+  hideDone,
 }: {
   task: Task
   projectId: string
   view: string
   memberMap: Record<string, Member>
   subtaskCounts: Record<string, number>
+  hideDone?: boolean
 }) {
   const prio = PRIORITIES.find((p) => p.key === task.priority)
   const subs = subtaskCounts[task.id] ?? 0
@@ -48,7 +50,7 @@ function TaskCard({
             </button>
           </form>
           <Link
-            href={`/projects/${projectId}?view=${view}&task=${task.id}`}
+            href={`/projects/${projectId}?view=${view}${hideDone ? '&hide=done' : ''}&task=${task.id}`}
             className="t task-open flex-1"
             style={{
               textDecoration: done ? 'line-through' : 'none',
@@ -94,6 +96,7 @@ export default function TagsView({
   usedTags,
   memberMap,
   subtaskCounts,
+  hideDone,
 }: {
   projectId: string
   view: string
@@ -102,6 +105,7 @@ export default function TagsView({
   usedTags: Tag[]
   memberMap: Record<string, Member>
   subtaskCounts: Record<string, number>
+  hideDone?: boolean
 }) {
   const untagged = tasks.filter((t) => (taskTags[t.id] ?? []).length === 0)
 
@@ -135,6 +139,7 @@ export default function TagsView({
                 view={view}
                 memberMap={memberMap}
                 subtaskCounts={subtaskCounts}
+                hideDone={hideDone}
               />
             ))}
 

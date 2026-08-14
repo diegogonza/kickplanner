@@ -1,9 +1,15 @@
+import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/utils/supabase/server'
 import Sidebar from './components/sidebar'
 import ProjectsView, { type ProjectOverview } from './components/projects-view'
 
-export default async function Home() {
+export default async function Home({
+  searchParams,
+}: {
+  searchParams: Promise<{ client?: string }>
+}) {
+  const { client: clientFilter } = await searchParams
   const supabase = await createClient()
   const {
     data: { user },
@@ -11,7 +17,15 @@ export default async function Home() {
   if (!user) redirect('/login')
 
   const { data } = await supabase.rpc('projects_overview')
-  const projects = (data ?? []) as ProjectOverview[]
+  const all = (data ?? []) as ProjectOverview[]
+  const projects = clientFilter ? all.filter((p) => p.client_id === clientFilter) : all
+
+  const { data: clientRows } = await supabase.from('clients').select('id, name').order('name')
+  const clients = (clientRows ?? []) as { id: string; name: string }[]
+  const activeClientName = clientFilter ? clients.find((c) => c.id === clientFilter)?.name : null
+
+  const { data: tplRows } = await supabase.from('templates').select('id, name, type').order('name')
+  const templates = (tplRows ?? []) as { id: string; name: string; type: string }[]
 
   return (
     <div className="flex h-full">
@@ -29,8 +43,14 @@ export default async function Home() {
         </header>
 
         <div className="flex-1 overflow-y-auto px-6 py-6">
-          <div className="mx-auto max-w-5xl">
-            <ProjectsView projects={projects} />
+          <div className="w-full">
+            {activeClientName && (
+              <div className="filter-bar">
+                <span>Filtrado por cliente <b>{activeClientName}</b></span>
+                <Link href="/" className="filter-clear">Quitar filtro</Link>
+              </div>
+            )}
+            <ProjectsView projects={projects} clients={clients} templates={templates} />
           </div>
         </div>
       </div>

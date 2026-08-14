@@ -32,7 +32,7 @@ export default async function SettingsPage() {
         </header>
 
         <div className="flex-1 overflow-y-auto px-6 py-6">
-          <div className="mx-auto max-w-2xl">
+          <div className="w-full">
             <div className="section-label" style={{ marginTop: 0 }}>Perfil</div>
 
             {/* Foto */}

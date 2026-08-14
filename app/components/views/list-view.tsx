@@ -22,6 +22,7 @@ export default function ListView({
   members,
   subtaskCounts = {},
   childrenByParent = {},
+  hideDone = false,
 }: {
   projectId: string
   view: string
@@ -30,6 +31,7 @@ export default function ListView({
   members: Member[]
   subtaskCounts?: Record<string, number>
   childrenByParent?: Record<string, Task[]>
+  hideDone?: boolean
 }) {
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set())
   const [expanded, setExpanded] = useState<Set<string>>(new Set())
@@ -42,7 +44,7 @@ export default function ListView({
       return next
     })
 
-  const hrefFor = (id: string) => `/projects/${projectId}?view=${view}&task=${id}`
+  const hrefFor = (id: string) => `/projects/${projectId}?view=${view}${hideDone ? '&hide=done' : ''}&task=${id}`
 
   const today = new Date()
   today.setHours(0, 0, 0, 0)
@@ -60,6 +62,7 @@ export default function ListView({
       </div>
 
       {STATUSES.map((section) => {
+        if (hideDone && section.key === 'done') return null
         const items = tasks.filter((t) => t.status === section.key)
         const isCollapsed = collapsed.has(section.key)
 

@@ -35,11 +35,13 @@ export default function CalendarView({
   view,
   tasks,
   memberMap = {},
+  hideDone = false,
 }: {
   projectId: string
   view: string
   tasks: CalTask[]
   memberMap?: Record<string, Member>
+  hideDone?: boolean
 }) {
   const router = useRouter()
   const [, startTransition] = useTransition()
@@ -60,7 +62,7 @@ export default function CalendarView({
       state.map((t) => (t.id === id ? { ...t, due_date: due } : t))
   )
 
-  const hrefFor = (t: CalTask) => `/projects/${t.project_id ?? projectId}?view=${view}&task=${t.id}`
+  const hrefFor = (t: CalTask) => `/projects/${t.project_id ?? projectId}?view=${view}${hideDone ? '&hide=done' : ''}&task=${t.id}`
 
   const byDay = new Map<string, CalTask[]>()
   for (const t of optimisticTasks) {

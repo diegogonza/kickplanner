@@ -178,7 +178,7 @@ export default async function SearchPage({
         )}
 
         <div className="flex-1 overflow-y-auto px-6 py-6">
-          <div className="mx-auto max-w-4xl">
+          <div className="w-full">
             {tasks.length === 0 ? (
               <div className="card text-center" style={{ padding: 'var(--space-10)' }}>
                 <p className="card-title mb-1">Sin resultados</p>

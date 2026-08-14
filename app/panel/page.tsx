@@ -3,7 +3,7 @@ import { redirect } from 'next/navigation'
 import { createClient } from '@/utils/supabase/server'
 import Sidebar from '@/app/components/sidebar'
 import Avatar from '@/app/components/avatar'
-import { STATUSES, PRIORITIES, displayName } from '@/app/projects/statuses'
+import { STATUSES, PRIORITIES, PROJECT_STATUSES, projectStatusOf, displayName } from '@/app/projects/statuses'
 
 type PerProject = { id: string; name: string; status: string; total: number; done: number; overdue: number }
 type Workload = {
@@ -26,14 +26,6 @@ type Dash = {
   completed_pct: number
   per_project: PerProject[]
   workload: Workload[]
-}
-
-const PSTATUS: Record<string, { label: string; cls: string }> = {
-  inprogress: { label: 'In progress', cls: 'ps-prog' },
-  research: { label: 'Research', cls: 'ps-research' },
-  ideate: { label: 'Ideate', cls: 'ps-ideate' },
-  blocked: { label: 'Blocked', cls: 'ps-blocked' },
-  completed: { label: 'Completed', cls: 'ps-done' },
 }
 
 export default async function PanelPage() {
@@ -82,7 +74,7 @@ export default async function PanelPage() {
         </header>
 
         <div className="flex-1 overflow-y-auto px-6 py-6">
-          <div className="mx-auto max-w-5xl">
+          <div className="w-full">
             {/* KPIs */}
             <div className="kpi-grid">
               {kpis.map((k) => (
@@ -160,10 +152,18 @@ export default async function PanelPage() {
             {/* Proyectos */}
             <div className="card" style={{ marginTop: 'var(--space-4)' }}>
               <div className="section-head" style={{ margin: '0 0 var(--space-3)' }}>Proyectos</div>
+              <div className="pstatus-summary">
+                {PROJECT_STATUSES.map((s) => (
+                  <div className="pss-item" key={s.key}>
+                    <span className="pss-num" style={{ color: s.color }}>{d.projects_by_status?.[s.key] ?? 0}</span>
+                    <span className="pss-label"><span className="pstatus-dot" style={{ background: s.color }} />{s.label}</span>
+                  </div>
+                ))}
+              </div>
               <div className="dash-projects">
                 {(d.per_project ?? []).map((p) => {
                   const prog = p.total > 0 ? Math.round((p.done / p.total) * 100) : 0
-                  const st = PSTATUS[p.status] ?? PSTATUS.inprogress
+                  const st = projectStatusOf(p.status)
                   return (
                     <Link href={`/projects/${p.id}`} key={p.id} className="dproj-row">
                       <span className="dproj-name">{p.name}</span>

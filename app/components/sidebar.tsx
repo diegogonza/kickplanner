@@ -8,7 +8,7 @@ export default async function Sidebar({
   active = 'projects',
 }: {
   email?: string
-  active?: 'projects' | 'portfolios' | 'teams' | 'mis-tareas' | 'notificaciones' | 'panel'
+  active?: 'projects' | 'clientes' | 'plantillas' | 'portfolios' | 'teams' | 'mis-tareas' | 'notificaciones' | 'panel'
 }) {
   const supabase = await createClient()
   const {
@@ -69,6 +69,19 @@ export default async function Sidebar({
             <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />
           </svg>
           Proyectos
+        </Link>
+        <Link className={`nav-item ${active === 'clientes' ? 'active' : ''}`} href="/clientes">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+            <circle cx="12" cy="7" r="4" />
+          </svg>
+          Clientes
+        </Link>
+        <Link className={`nav-item ${active === 'plantillas' ? 'active' : ''}`} href="/plantillas">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M4 4h16v4H4zM4 12h10v8H4zM17 12h3v8h-3z" />
+          </svg>
+          Plantillas
         </Link>
         <Link className={`nav-item ${active === 'portfolios' ? 'active' : ''}`} href="/portfolios">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">

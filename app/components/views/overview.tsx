@@ -6,7 +6,7 @@ export default function Overview({ tasks }: { tasks: Task[] }) {
   const progress = total === 0 ? 0 : Math.round((done / total) * 100)
 
   return (
-    <div className="mx-auto max-w-3xl">
+    <div className="w-full">
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <div className="kpi">
           <div className="num">{total}</div>

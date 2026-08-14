@@ -104,7 +104,7 @@ export default async function PortfolioPage({
 
         <div className="flex-1 overflow-y-auto px-6 py-6">
           {rows.length === 0 ? (
-            <div className="mx-auto max-w-3xl">
+            <div className="w-full">
               <div className="card text-center" style={{ padding: 'var(--space-10)' }}>
                 <p className="card-title mb-1">Este portfolio está vacío</p>
                 <p className="card-desc">Agregá proyectos con el botón de arriba.</p>

@@ -11,7 +11,9 @@ import TaskPanel from '@/app/components/task-panel'
 import TaskDetail from '@/app/components/task-detail'
 import ShareButton from '@/app/components/share-button'
 import NewTaskButton from '@/app/components/new-task-button'
-import type { Task, Tag, Member } from '@/app/projects/statuses'
+import ProjectStatus, { type StatusUpdate } from '@/app/components/project-status'
+import ApplyTemplateButton from '@/app/components/apply-template-button'
+import { projectTypeOf, type Task, type Tag, type Member } from '@/app/projects/statuses'
 
 const TABS = [
   { key: 'resumen', label: 'Resumen' },
@@ -29,11 +31,12 @@ export default async function ProjectPage({
   searchParams,
 }: {
   params: Promise<{ id: string }>
-  searchParams: Promise<{ view?: string; task?: string }>
+  searchParams: Promise<{ view?: string; task?: string; hide?: string }>
 }) {
   const { id } = await params
-  const { view, task: taskParam } = await searchParams
+  const { view, task: taskParam, hide } = await searchParams
   const active = TABS.some((t) => t.key === view) ? view! : 'lista'
+  const hideDone = hide === 'done'
 
   const supabase = await createClient()
   const {
@@ -43,12 +46,35 @@ export default async function ProjectPage({
 
   const { data: project } = await supabase
     .from('projects')
-    .select('id, name, owner_id')
+    .select('id, name, owner_id, status, type, client_id')
     .eq('id', id)
     .single()
   if (!project) redirect('/')
 
+  const ptype = projectTypeOf(project.type)
+
+  let clientName: string | null = null
+  if (project.client_id) {
+    const { data: cli } = await supabase.from('clients').select('name').eq('id', project.client_id).maybeSingle()
+    clientName = cli?.name ?? null
+  }
+
+  const { data: tplData } = await supabase.rpc('templates_overview')
+  const templates = (tplData ?? []) as { id: string; name: string; type: string; num_tasks: number }[]
+
   const isOwner = project.owner_id === user.id
+
+  // Estado del proyecto: historial + conteo de vencidas (para la sugerencia "En riesgo")
+  const { data: statusHistory } = await supabase.rpc('project_status_history', { p_project_id: id })
+  const history = (statusHistory ?? []) as StatusUpdate[]
+  const todayStr = new Date().toISOString().slice(0, 10)
+  const { count: overdueCount } = await supabase
+    .from('tasks')
+    .select('id', { count: 'exact', head: true })
+    .eq('project_id', id)
+    .lt('due_date', todayStr)
+    .neq('status', 'done')
+  const overdue = overdueCount ?? 0
 
   // Solo tareas de nivel superior (las subtareas viven en el panel)
   const { data: tasks } = await supabase
@@ -58,8 +84,9 @@ export default async function ProjectPage({
     .is('parent_id', null)
     .order('created_at', { ascending: true })
 
-  const list = (tasks ?? []) as Task[]
-  const closeHref = `/projects/${id}?view=${active}`
+  const allTop = (tasks ?? []) as Task[]
+  const list = hideDone ? allTop.filter((t) => t.status !== 'done') : allTop
+  const closeHref = `/projects/${id}?view=${active}${hideDone ? '&hide=done' : ''}`
 
   // Subtareas del proyecto: conteo (tablero) + agrupadas por padre (expandir en la lista)
   const { data: subRows } = await supabase
@@ -73,6 +100,7 @@ export default async function ProjectPage({
   for (const r of (subRows ?? []) as Task[]) {
     const p = r.parent_id
     if (!p) continue
+    if (hideDone && r.status === 'done') continue
     ;(childrenByParent[p] ??= []).push(r)
     subtaskCounts[p] = (subtaskCounts[p] ?? 0) + 1
   }
@@ -114,7 +142,8 @@ export default async function ProjectPage({
       .select(TASK_COLS)
       .eq('project_id', id)
       .not('due_date', 'is', null)
-    calTasks = (ct ?? []) as Task[]
+    const ctAll = (ct ?? []) as Task[]
+    calTasks = hideDone ? ctAll.filter((t) => t.status !== 'done') : ctAll
   }
 
   // Datos del panel de detalle (si hay ?task=)
@@ -210,9 +239,22 @@ export default async function ProjectPage({
               <Link href="/" style={{ color: 'var(--text-3)' }}>
                 Proyectos
               </Link>{' '}
-              / <b>{project.name}</b>
+              /{' '}
+              {clientName && (
+                <>
+                  <Link href={`/?client=${project.client_id}`} style={{ color: 'var(--text-3)' }}>
+                    {clientName}
+                  </Link>{' '}
+                  /{' '}
+                </>
+              )}
+              <b>{project.name}</b>
             </div>
-            <h1 className="page-title">{project.name}</h1>
+            <div className="flex items-center gap-3">
+              <h1 className="page-title" style={{ margin: 0 }}>{project.name}</h1>
+              <span className={`ptype ${ptype.cls}`} title={`Proyecto ${ptype.label}`}>{ptype.label}</span>
+              <ProjectStatus projectId={project.id} status={project.status} overdue={overdue} history={history} />
+            </div>
           </div>
           <div className="flex items-center gap-2">
             <a className="btn btn-outline" href={`/api/export/tasks?project=${project.id}`} title="Exportar a Excel">
@@ -221,6 +263,7 @@ export default async function ProjectPage({
               </svg>
               Exportar
             </a>
+            <ApplyTemplateButton projectId={project.id} projectType={project.type} templates={templates} />
             <NewTaskButton projectId={project.id} />
             <ShareButton projectId={project.id} isOwner={isOwner} currentUserId={user.id} />
           </div>
@@ -230,12 +273,32 @@ export default async function ProjectPage({
           {TABS.map((tab) => (
             <Link
               key={tab.key}
-              href={`/projects/${id}?view=${tab.key}`}
+              href={`/projects/${id}?view=${tab.key}${hideDone ? '&hide=done' : ''}`}
               className={`tab ${active === tab.key ? 'active' : ''}`}
             >
               {tab.label}
             </Link>
           ))}
+          <Link
+            href={`/projects/${id}?view=${active}${hideDone ? '' : '&hide=done'}${taskParam ? `&task=${taskParam}` : ''}`}
+            className={`hide-done ${hideDone ? 'on' : ''}`}
+            title={hideDone ? 'Mostrar tareas completadas' : 'Ocultar tareas completadas'}
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" width="15" height="15">
+              {hideDone ? (
+                <>
+                  <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24" />
+                  <path d="M1 1l22 22" />
+                </>
+              ) : (
+                <>
+                  <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                  <circle cx="12" cy="12" r="3" />
+                </>
+              )}
+            </svg>
+            {hideDone ? 'Mostrar completadas' : 'Ocultar completadas'}
+          </Link>
         </div>
 
         <div className="flex-1 overflow-y-auto px-6 py-6">
@@ -249,6 +312,7 @@ export default async function ProjectPage({
               members={members}
               subtaskCounts={subtaskCounts}
               childrenByParent={childrenByParent}
+              hideDone={hideDone}
             />
           )}
           {active === 'tablero' && (
@@ -259,10 +323,11 @@ export default async function ProjectPage({
               tasks={list}
               subtaskCounts={subtaskCounts}
               memberMap={memberMap}
+              hideDone={hideDone}
             />
           )}
           {active === 'calendario' && (
-            <CalendarView projectId={project.id} view={active} tasks={calTasks} memberMap={memberMap} />
+            <CalendarView projectId={project.id} view={active} tasks={calTasks} memberMap={memberMap} hideDone={hideDone} />
           )}
           {active === 'etiquetas' && (
             <TagsView
@@ -273,6 +338,7 @@ export default async function ProjectPage({
               usedTags={usedTags}
               memberMap={memberMap}
               subtaskCounts={subtaskCounts}
+              hideDone={hideDone}
             />
           )}
         </div>

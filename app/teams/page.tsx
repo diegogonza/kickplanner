@@ -31,7 +31,7 @@ export default async function TeamsPage() {
         </header>
 
         <div className="flex-1 overflow-y-auto px-6 py-6">
-          <div className="mx-auto max-w-3xl">
+          <div className="w-full">
             <div className="grid gap-3 sm:grid-cols-2">
               {list.map((t) => (
                 <Link key={t.id} href={`/teams/${t.id}`} className="card block">

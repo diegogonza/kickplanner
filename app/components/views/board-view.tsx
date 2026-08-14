@@ -17,6 +17,7 @@ export default function BoardView({
   tasks,
   subtaskCounts,
   memberMap,
+  hideDone = false,
 }: {
   projectId: string
   view: string
@@ -24,6 +25,7 @@ export default function BoardView({
   tasks: Task[]
   subtaskCounts: Record<string, number>
   memberMap: Record<string, Member>
+  hideDone?: boolean
 }) {
   const supabase = createClient()
   const router = useRouter()
@@ -37,7 +39,7 @@ export default function BoardView({
   const [overCol, setOverCol] = useState<Status | null>(null)
   const [drafts, setDrafts] = useState<Record<string, string>>({})
 
-  const hrefFor = (id: string) => `/projects/${projectId}?view=${view}&task=${id}`
+  const hrefFor = (id: string) => `/projects/${projectId}?view=${view}${hideDone ? '&hide=done' : ''}&task=${id}`
 
   // ---- Mutaciones (optimistas + persistencia con el cliente del navegador) ----
   const move = async (id: string, status: Status) => {
@@ -75,6 +77,7 @@ export default function BoardView({
   return (
     <div className="board">
       {STATUSES.map((col) => {
+        if (hideDone && col.key === 'done') return null
         const colItems = items.filter((t) => t.status === col.key)
         return (
           <div
