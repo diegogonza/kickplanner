@@ -1,4 +1,4 @@
-import { login, signup } from "./actions";
+import { login } from "./actions";
 
 export default async function LoginPage({
   searchParams,
@@ -37,12 +37,10 @@ export default async function LoginPage({
         >
           Ingresar
         </button>
-        <button
-          formAction={signup}
-          className="rounded border border-blue-600 p-2 font-medium text-blue-600 hover:bg-blue-50"
-        >
-          Crear cuenta
-        </button>
+
+        <p className="text-center text-xs text-gray-400">
+          Acceso restringido al equipo. Contactá al administrador si necesitás una cuenta.
+        </p>
       </form>
     </main>
   );
