@@ -129,6 +129,12 @@ export async function createTask(formData: FormData) {
     data: { user },
   } = await supabase.auth.getUser()
 
+  // Posición al final entre sus hermanas (orden estable)
+  let posQuery = supabase.from('tasks').select('position').eq('project_id', projectId)
+  posQuery = parentId ? posQuery.eq('parent_id', parentId) : posQuery.is('parent_id', null)
+  const { data: last } = await posQuery.order('position', { ascending: false, nullsFirst: false }).limit(1).maybeSingle()
+  const position = (last?.position ?? 0) + 1
+
   const { data: created } = await supabase
     .from('tasks')
     .insert({
@@ -136,6 +142,7 @@ export async function createTask(formData: FormData) {
       project_id: projectId,
       parent_id: parentId,
       status,
+      position,
       created_by: user?.id,
     })
     .select('id')

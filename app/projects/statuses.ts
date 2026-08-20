@@ -14,6 +14,7 @@ export type Task = {
   assignee_id: string | null
   drive_url: string | null
   created_at: string
+  position?: number | null
 }
 
 export type Member = {

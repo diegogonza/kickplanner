@@ -1,11 +1,9 @@
 import Link from 'next/link'
-import type { ReactNode } from 'react'
 import { displayName, STATUSES, PRIORITIES, type Task, type Tag, type Member } from '@/app/projects/statuses'
 import Avatar from '@/app/components/avatar'
 import {
   toggleComplete,
   removeTag,
-  createTask,
   deleteComment,
 } from '@/app/projects/actions'
 import PrioritySelect from '@/app/components/priority-select'
@@ -14,7 +12,10 @@ import TagInput from '@/app/components/tag-input'
 import DescriptionInput from '@/app/components/description-input'
 import AssigneeSelect from '@/app/components/assignee-select'
 import DriveField from '@/app/components/drive-field'
-import MentionComposer from '@/app/components/mention-composer'
+import InlineTaskTitle from '@/app/components/inline-task-title'
+import SubtaskList from '@/app/components/subtask-list'
+import CommentEditor from '@/app/components/comment-editor'
+import CommentBody from '@/app/components/comment-body'
 
 type Ancestor = { id: string; title: string }
 type Mention = { id: string; name: string | null; email: string; avatar: string | null }
@@ -29,41 +30,6 @@ type Comment = {
   mentions: Mention[]
 }
 
-function escapeRegExp(s: string): string {
-  return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
-}
-
-// Convierte el texto del comentario en nodos, reemplazando "@Nombre" por un chip con foto
-function renderCommentBody(body: string, mentions: Mention[]): ReactNode {
-  if (!mentions || mentions.length === 0) return body
-  const named = mentions
-    .map((m) => ({ m, dn: (m.name?.trim() || m.email) }))
-    .sort((a, b) => b.dn.length - a.dn.length)
-  const re = new RegExp('@(' + named.map((n) => escapeRegExp(n.dn)).join('|') + ')', 'g')
-
-  const nodes: ReactNode[] = []
-  let last = 0
-  let match: RegExpExecArray | null
-  let key = 0
-  while ((match = re.exec(body)) !== null) {
-    if (match.index > last) nodes.push(body.slice(last, match.index))
-    const dn = match[1]
-    const m = named.find((n) => n.dn === dn)?.m
-    if (m) {
-      nodes.push(
-        <span key={`m-${key++}`} className="mention-chip">
-          <Avatar name={m.name} email={m.email} url={m.avatar} size={18} />
-          {dn}
-        </span>
-      )
-    } else {
-      nodes.push(match[0])
-    }
-    last = match.index + match[0].length
-  }
-  if (last < body.length) nodes.push(body.slice(last))
-  return nodes
-}
 type Activity = {
   id: string
   actor_id: string
@@ -204,7 +170,7 @@ export default function TaskDetail({
           <b style={{ color: 'var(--text-2)', fontWeight: 500 }}>{task.title}</b>
         </nav>
 
-        <h2 className="panel-title">{task.title}</h2>
+        <InlineTaskTitle key={task.id} taskId={task.id} initial={task.title} />
 
         {/* Responsable */}
         <div className="detail-row">
@@ -277,49 +243,13 @@ export default function TaskDetail({
         <div className="section-label">
           Subtareas {subtasks.length > 0 && `· ${subDone}/${subtasks.length}`}
         </div>
-        <div className="flex flex-col gap-2">
-          {subtasks.map((sub) => {
-            const subIsDone = sub.status === 'done'
-            return (
-              <div key={sub.id} className="flex items-center gap-3">
-                <form action={toggleComplete}>
-                  <input type="hidden" name="id" value={sub.id} />
-                  <input type="hidden" name="project_id" value={projectId} />
-                  <input type="hidden" name="status" value={sub.status} />
-                  <button
-                    type="submit"
-                    className={`task-check ${subIsDone ? 'done' : ''}`}
-                    title={subIsDone ? 'Marcar como pendiente' : 'Marcar como completada'}
-                  >
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M20 6L9 17l-5-5" />
-                    </svg>
-                  </button>
-                </form>
-                <Link
-                  href={hrefFor(sub.id)}
-                  className="subtask-link"
-                  style={{
-                    textDecoration: subIsDone ? 'line-through' : 'none',
-                    color: subIsDone ? 'var(--text-3)' : 'var(--text-2)',
-                  }}
-                >
-                  {sub.title}
-                </Link>
-              </div>
-            )
-          })}
-
-          <form action={createTask} className="add-row" style={{ border: '1px dashed var(--border-strong)' }}>
-            <input type="hidden" name="project_id" value={projectId} />
-            <input type="hidden" name="parent_id" value={task.id} />
-            <input type="hidden" name="status" value="todo" />
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M12 5v14M5 12h14" />
-            </svg>
-            <input name="title" placeholder="Agregar subtarea…" autoComplete="off" />
-          </form>
-        </div>
+        <SubtaskList
+          parentId={task.id}
+          projectId={projectId}
+          view={view}
+          subtasks={subtasks}
+          members={members}
+        />
 
         {/* Actividad y comentarios (timeline) */}
         <div className="comments">
@@ -370,7 +300,9 @@ export default function TaskDetail({
                           </form>
                         )}
                       </div>
-                      <p className="act-body">{renderCommentBody(c.body, c.mentions)}</p>
+                      <p className="act-body">
+                        <CommentBody body={c.body} mentions={c.mentions} members={members} />
+                      </p>
                     </div>
                   </div>
                 )
@@ -382,7 +314,7 @@ export default function TaskDetail({
 
       {/* Compositor fijo al pie del panel (con menciones @) */}
       <div className="panel-footer">
-        <MentionComposer
+        <CommentEditor
           taskId={task.id}
           projectId={projectId}
           members={members}

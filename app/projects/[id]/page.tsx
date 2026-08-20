@@ -24,7 +24,7 @@ const TABS = [
 ]
 
 const TASK_COLS =
-  'id, title, status, priority, due_date, parent_id, description, assignee_id, drive_url, created_at'
+  'id, title, status, priority, due_date, parent_id, description, assignee_id, drive_url, created_at, position'
 
 export default async function ProjectPage({
   params,
@@ -94,6 +94,7 @@ export default async function ProjectPage({
     .select(TASK_COLS)
     .eq('project_id', id)
     .not('parent_id', 'is', null)
+    .order('position', { ascending: true, nullsFirst: false })
     .order('created_at', { ascending: true })
   const childrenByParent: Record<string, Task[]> = {}
   const subtaskCounts: Record<string, number> = {}
@@ -186,6 +187,7 @@ export default async function ProjectPage({
         .from('tasks')
         .select(TASK_COLS)
         .eq('parent_id', t.id)
+        .order('position', { ascending: true, nullsFirst: false })
         .order('created_at', { ascending: true })
       subtasks = (subs ?? []) as Task[]
 

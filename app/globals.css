@@ -3525,3 +3525,215 @@ body {
     animation: none !important;
   }
 }
+
+/* ---------- MODAL: título editable ---------- */
+.panel-title-input {
+  width: 100%;
+  border: 1px solid transparent;
+  border-radius: var(--r-md, 8px);
+  background: transparent;
+  font-family: inherit;
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--text);
+  line-height: 1.3;
+  margin: 0 0 var(--space-4);
+  padding: 4px 8px;
+  margin-left: -8px;
+  outline: 0;
+}
+.panel-title-input:hover {
+  border-color: var(--border);
+}
+.panel-title-input:focus {
+  border-color: var(--brand-400);
+  background: var(--surface);
+  box-shadow: 0 0 0 3px var(--brand-100);
+}
+
+/* ---------- MODAL: lista de subtareas (drag, editar, responsable) ---------- */
+.subrow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 3px 6px;
+  border-radius: var(--r-md, 8px);
+  border: 1px solid transparent;
+}
+.subrow:hover {
+  background: var(--surface-2, var(--bg-2, #f7f7f8));
+}
+.subrow.dragging {
+  opacity: 0.5;
+}
+.subrow.dragover {
+  border-color: var(--brand-400);
+  box-shadow: inset 0 0 0 1px var(--brand-200);
+}
+.subrow-grip {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 22px;
+  color: var(--text-3);
+  cursor: grab;
+  opacity: 0;
+  transition: opacity 0.12s ease;
+}
+.subrow:hover .subrow-grip {
+  opacity: 1;
+}
+.subrow-grip:active {
+  cursor: grabbing;
+}
+.subrow-title {
+  flex: 1 1 auto;
+  min-width: 0;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  background: transparent;
+  font-family: inherit;
+  font-size: 13.5px;
+  color: var(--text-2);
+  padding: 3px 6px;
+  outline: 0;
+}
+.subrow-title:hover {
+  border-color: var(--border);
+}
+.subrow-title:focus {
+  border-color: var(--brand-400);
+  background: var(--surface);
+  box-shadow: 0 0 0 2px var(--brand-100);
+}
+.subrow-open {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 6px;
+  color: var(--text-3);
+  opacity: 0;
+  transition: opacity 0.12s ease;
+}
+.subrow:hover .subrow-open {
+  opacity: 1;
+}
+.subrow-open:hover {
+  background: var(--border);
+  color: var(--text);
+}
+.subrow-assignee {
+  flex: 0 0 auto;
+  margin-left: auto;
+  position: relative;
+}
+.subrow-assignee-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  background: transparent;
+  border-radius: var(--r-full);
+  cursor: pointer;
+  padding: 0;
+}
+.subrow-noassignee {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: var(--r-full);
+  border: 1px dashed var(--border-strong);
+  color: var(--text-3);
+}
+.subrow-noassignee:hover {
+  color: var(--brand-600);
+  border-color: var(--brand-400);
+}
+
+/* ---------- MODAL: editor de comentarios (WYSIWYG-lite) ---------- */
+.comment-editor {
+  display: flex;
+  align-items: flex-end;
+  gap: 10px;
+}
+.comment-editor .ce-box {
+  flex: 1 1 auto;
+  min-width: 0;
+  border: 1px solid var(--border-strong);
+  border-radius: 14px;
+  background: var(--surface);
+  overflow: hidden;
+}
+.comment-editor .ce-box:focus-within {
+  border-color: var(--brand-400);
+  box-shadow: 0 0 0 3px var(--brand-100);
+}
+.ce-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 4px 6px;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface-2, #f7f7f8);
+}
+.ce-tool {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text-2);
+  cursor: pointer;
+  font-size: 13px;
+}
+.ce-tool:hover {
+  background: var(--border);
+  color: var(--text);
+}
+.ce-input {
+  min-height: 38px;
+  max-height: 180px;
+  overflow-y: auto;
+  padding: 9px 12px;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--text);
+  outline: 0;
+  word-break: break-word;
+}
+.ce-input.is-empty::before {
+  content: attr(data-placeholder);
+  color: var(--text-3);
+  pointer-events: none;
+}
+.ce-input a {
+  color: var(--brand-700);
+  text-decoration: underline;
+}
+.comment-editor .comment-send:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+.comment-editor .comment-send:disabled:hover {
+  background: var(--brand-600);
+}
+
+/* Enlaces dentro de los comentarios publicados */
+.act-body a {
+  color: var(--brand-700);
+  text-decoration: underline;
+  word-break: break-all;
+}
+.act-body a:hover {
+  text-decoration: none;
+}
