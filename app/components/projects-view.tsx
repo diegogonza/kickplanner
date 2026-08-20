@@ -1,11 +1,12 @@
 'use client'
 
-import { useState } from 'react'
+import { Fragment, useMemo, useState } from 'react'
 import Link from 'next/link'
 import {
   createProject,
   updateProject,
   setProjectStatus,
+  setProjectManager,
   toggleFavorite,
   deleteProject,
 } from '@/app/projects/actions'
@@ -15,6 +16,7 @@ import {
   PROJECT_TYPES,
   projectTypeOf,
 } from '@/app/projects/statuses'
+import Avatar from '@/app/components/avatar'
 
 export type ProjectOverview = {
   id: string
@@ -30,7 +32,14 @@ export type ProjectOverview = {
   last_activity: string
   favorite: boolean
   num_tasks: number
+  manager_id: string | null
+  manager: string | null
+  manager_avatar: string | null
 }
+
+type Member = { user_id: string; email: string; full_name: string | null; avatar_url: string | null }
+
+const memberName = (m: Member) => m.full_name?.trim() || m.email
 
 function activeAgo(iso: string): string {
   const secs = Math.floor((Date.now() - new Date(iso).getTime()) / 1000)
@@ -57,10 +66,12 @@ export default function ProjectsView({
   projects,
   clients = [],
   templates = [],
+  members = [],
 }: {
   projects: ProjectOverview[]
   clients?: { id: string; name: string }[]
   templates?: { id: string; name: string; type: string }[]
+  members?: Member[]
 }) {
   const [createType, setCreateType] = useState('seo')
   const tplFor = (type: string) => templates.filter((t) => t.type === type || t.type === 'general')
@@ -68,6 +79,61 @@ export default function ProjectsView({
   const [editing, setEditing] = useState<ProjectOverview | null>(null)
   const [menuOpen, setMenuOpen] = useState<string | null>(null)
   const [statusOpen, setStatusOpen] = useState<string | null>(null)
+  const [managerOpen, setManagerOpen] = useState<string | null>(null)
+  const [groupBy, setGroupBy] = useState(false)
+
+  // Filtros por columna (estilo data table), aplicados en cliente
+  const [fName, setFName] = useState('')
+  const [fClient, setFClient] = useState('')
+  const [fManager, setFManager] = useState('')
+  const [fType, setFType] = useState('')
+  const [fStatus, setFStatus] = useState('')
+  const [fOverdue, setFOverdue] = useState('')
+
+  const anyFilter = !!(fName.trim() || fClient || fManager || fType || fStatus || fOverdue)
+  const clearFilters = () => {
+    setFName(''); setFClient(''); setFManager(''); setFType(''); setFStatus(''); setFOverdue('')
+  }
+
+  const filtered = useMemo(() => {
+    const q = fName.trim().toLowerCase()
+    return projects.filter((p) => {
+      if (q && !p.name.toLowerCase().includes(q)) return false
+      if (fClient) {
+        if (fClient === '__none__' ? p.client_id != null : p.client_id !== fClient) return false
+      }
+      if (fManager) {
+        if (fManager === '__none__' ? p.manager_id != null : p.manager_id !== fManager) return false
+      }
+      if (fType && p.type !== fType) return false
+      if (fStatus && p.status !== fStatus) return false
+      if (fOverdue === 'with' && !(p.overdue > 0)) return false
+      if (fOverdue === 'without' && p.overdue > 0) return false
+      return true
+    })
+  }, [projects, fName, fClient, fManager, fType, fStatus, fOverdue])
+
+  // Agrupa por encargado (respetando el orden original dentro de cada grupo)
+  const groups = useMemo(() => {
+    const map = new Map<string, { key: string; name: string; avatar: string | null; items: ProjectOverview[] }>()
+    for (const p of filtered) {
+      const key = p.manager_id ?? '__none__'
+      if (!map.has(key)) {
+        map.set(key, {
+          key,
+          name: p.manager_id ? p.manager ?? 'Encargado' : 'Sin encargado',
+          avatar: p.manager_avatar,
+          items: [],
+        })
+      }
+      map.get(key)!.items.push(p)
+    }
+    return Array.from(map.values()).sort((a, b) => {
+      if (a.key === '__none__') return 1
+      if (b.key === '__none__') return -1
+      return a.name.localeCompare(b.name)
+    })
+  }, [filtered])
 
   const StatusPill = ({ p }: { p: ProjectOverview }) => {
     const s = statusOf(p.status)
@@ -93,7 +159,56 @@ export default function ProjectsView({
     )
   }
 
-  // Indicador informativo: solo muestra cuántas tareas vencidas hay (no cambia el estado)
+  // Celda de encargado: avatar + nombre, con menú para reasignar
+  const ManagerCell = ({ p }: { p: ProjectOverview }) => (
+    <div className="dropdown proj-manager">
+      <button
+        type="button"
+        className="proj-manager-btn"
+        onClick={() => setManagerOpen(managerOpen === p.id ? null : p.id)}
+        title={p.manager ? `Encargado: ${p.manager}` : 'Sin encargado'}
+      >
+        {p.manager_id ? (
+          <>
+            <Avatar name={p.manager} url={p.manager_avatar} size={22} />
+            <span className="proj-manager-name">{p.manager}</span>
+          </>
+        ) : (
+          <span className="proj-manager-none">
+            <span className="proj-manager-dot" />
+            Sin encargado
+          </span>
+        )}
+      </button>
+      {managerOpen === p.id && (
+        <div className="dropdown-menu" style={{ left: 0, minWidth: 210, maxHeight: 260, overflowY: 'auto' }}>
+          <div className="dropdown-label">Encargado</div>
+          {members.map((m) => (
+            <form key={m.user_id} action={setProjectManager} onSubmit={() => setManagerOpen(null)}>
+              <input type="hidden" name="id" value={p.id} />
+              <input type="hidden" name="manager_id" value={m.user_id} />
+              <button type="submit" className="dropdown-item">
+                <span className="flex items-center gap-2">
+                  <Avatar name={m.full_name} email={m.email} url={m.avatar_url} size={22} />
+                  {memberName(m)}
+                </span>
+              </button>
+            </form>
+          ))}
+          {p.manager_id && (
+            <form action={setProjectManager} onSubmit={() => setManagerOpen(null)}>
+              <input type="hidden" name="id" value={p.id} />
+              <input type="hidden" name="manager_id" value="" />
+              <button type="submit" className="dropdown-item" style={{ color: 'var(--text-3)' }}>
+                Quitar encargado
+              </button>
+            </form>
+          )}
+        </div>
+      )}
+    </div>
+  )
+
   const RiskHint = ({ p }: { p: ProjectOverview }) =>
     p.overdue > 0 ? (
       <span className="risk-hint" title="Tareas vencidas en este proyecto">
@@ -137,6 +252,24 @@ export default function ProjectsView({
     </div>
   )
 
+  const Row = ({ p }: { p: ProjectOverview }) => (
+    <div className="projtable-row">
+      <StarBtn p={p} />
+      <Link href={`/projects/${p.id}`} className="projtable-name">
+        <span className="name">{p.name}</span>
+      </Link>
+      <span className="projtable-cell projtable-muted">{p.client ?? '—'}</span>
+      <span className="projtable-cell"><ManagerCell p={p} /></span>
+      <span className="projtable-cell"><TypeBadge p={p} /></span>
+      <span className="projtable-cell"><StatusPill p={p} /></span>
+      <span className="projtable-cell">
+        {p.overdue > 0 ? <RiskHint p={p} /> : <span className="projtable-muted">—</span>}
+      </span>
+      <span className="projtable-cell proj-active">{activeAgo(p.last_activity)}</span>
+      <Menu p={p} />
+    </div>
+  )
+
   return (
     <div>
       {/* Toolbar */}
@@ -144,6 +277,17 @@ export default function ProjectsView({
         <button type="button" className="btn btn-primary" onClick={() => setCreateOpen(true)}>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 5v14M5 12h14" /></svg>
           Iniciar un nuevo proyecto
+        </button>
+        <button
+          type="button"
+          className={`btn btn-outline proj-groupbtn ${groupBy ? 'on' : ''}`}
+          onClick={() => setGroupBy((v) => !v)}
+          title="Agrupar proyectos por encargado"
+        >
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01" />
+          </svg>
+          {groupBy ? 'Sin agrupar' : 'Agrupar por encargado'}
         </button>
       </div>
 
@@ -153,34 +297,88 @@ export default function ProjectsView({
           <p className="card-desc">Crea tu primer proyecto para empezar a organizar el trabajo.</p>
         </div>
       ) : (
-        <div className="projtable">
-          <div className="projtable-head">
-            <span />
-            <span>Nombre</span>
-            <span>Cliente</span>
-            <span>Tipo</span>
-            <span>Estado</span>
-            <span>Vencidas</span>
-            <span>Actividad</span>
-            <span />
-          </div>
-          {projects.map((p) => (
-            <div className="projtable-row" key={p.id}>
-              <StarBtn p={p} />
-              <Link href={`/projects/${p.id}`} className="projtable-name">
-                <span className="name">{p.name}</span>
-              </Link>
-              <span className="projtable-cell projtable-muted">{p.client ?? '—'}</span>
-              <span className="projtable-cell"><TypeBadge p={p} /></span>
-              <span className="projtable-cell"><StatusPill p={p} /></span>
-              <span className="projtable-cell">
-                {p.overdue > 0 ? <RiskHint p={p} /> : <span className="projtable-muted">—</span>}
-              </span>
-              <span className="projtable-cell proj-active">{activeAgo(p.last_activity)}</span>
-              <Menu p={p} />
+        <>
+          {/* Barra de filtros por columna (data table) */}
+          <div className="projfilters">
+            <div className="projfilter projfilter-search">
+              <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="11" cy="11" r="7" /><path d="M21 21l-4.3-4.3" />
+              </svg>
+              <input
+                value={fName}
+                onChange={(e) => setFName(e.target.value)}
+                placeholder="Buscar por nombre…"
+                autoComplete="off"
+              />
             </div>
-          ))}
-        </div>
+            <select className="projfilter-sel" value={fClient} onChange={(e) => setFClient(e.target.value)} title="Cliente">
+              <option value="">Cliente: todos</option>
+              {clients.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+              <option value="__none__">Sin cliente</option>
+            </select>
+            <select className="projfilter-sel" value={fManager} onChange={(e) => setFManager(e.target.value)} title="Encargado">
+              <option value="">Encargado: todos</option>
+              {members.map((m) => <option key={m.user_id} value={m.user_id}>{memberName(m)}</option>)}
+              <option value="__none__">Sin encargado</option>
+            </select>
+            <select className="projfilter-sel" value={fType} onChange={(e) => setFType(e.target.value)} title="Tipo">
+              <option value="">Tipo: todos</option>
+              {PROJECT_TYPES.map((t) => <option key={t.key} value={t.key}>{t.label}</option>)}
+            </select>
+            <select className="projfilter-sel" value={fStatus} onChange={(e) => setFStatus(e.target.value)} title="Estado">
+              <option value="">Estado: todos</option>
+              {STATUSES.map((s) => <option key={s.key} value={s.key}>{s.label}</option>)}
+            </select>
+            <select className="projfilter-sel" value={fOverdue} onChange={(e) => setFOverdue(e.target.value)} title="Vencidas">
+              <option value="">Vencidas: todas</option>
+              <option value="with">Con vencidas</option>
+              <option value="without">Sin vencidas</option>
+            </select>
+            {anyFilter && (
+              <button type="button" className="projfilter-clear" onClick={clearFilters}>
+                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6L6 18M6 6l12 12" /></svg>
+                Limpiar
+              </button>
+            )}
+            <span className="projfilter-count">
+              {filtered.length} de {projects.length}
+            </span>
+          </div>
+
+          {filtered.length === 0 ? (
+            <div className="card text-center" style={{ padding: 'var(--space-8)' }}>
+              <p className="card-title mb-1">Sin resultados</p>
+              <p className="card-desc">Ningún proyecto coincide con los filtros. <button type="button" className="linklike" onClick={clearFilters}>Limpiar filtros</button></p>
+            </div>
+          ) : (
+            <div className="projtable">
+              <div className="projtable-head">
+                <span />
+                <span>Nombre</span>
+                <span>Cliente</span>
+                <span>Encargado</span>
+                <span>Tipo</span>
+                <span>Estado</span>
+                <span>Vencidas</span>
+                <span>Actividad</span>
+                <span />
+              </div>
+
+              {groupBy
+                ? groups.map((g) => (
+                    <Fragment key={g.key}>
+                      <div className="projgroup">
+                        {g.key !== '__none__' && <Avatar name={g.name} url={g.avatar} size={22} />}
+                        <span className="projgroup-title">Encargado: {g.name}</span>
+                        <span className="projgroup-count">{g.items.length}</span>
+                      </div>
+                      {g.items.map((p) => <Row key={p.id} p={p} />)}
+                    </Fragment>
+                  ))
+                : filtered.map((p) => <Row key={p.id} p={p} />)}
+            </div>
+          )}
+        </>
       )}
 
       {/* Modal crear */}
@@ -196,6 +394,11 @@ export default function ProjectsView({
                 <select name="client_id" className="field" defaultValue="">
                   <option value="">Sin cliente</option>
                   {clients.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+                </select>
+                <label className="k">Encargado</label>
+                <select name="manager_id" className="field" defaultValue="">
+                  <option value="">Sin encargado</option>
+                  {members.map((m) => <option key={m.user_id} value={m.user_id}>{memberName(m)}</option>)}
                 </select>
                 <textarea name="description" className="field" placeholder="Descripción (opcional)" rows={3} />
                 <label className="k">Tipo de proyecto</label>
@@ -234,6 +437,11 @@ export default function ProjectsView({
                 <select name="client_id" className="field" defaultValue={editing.client_id ?? ''}>
                   <option value="">Sin cliente</option>
                   {clients.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+                </select>
+                <label className="k">Encargado</label>
+                <select name="manager_id" className="field" defaultValue={editing.manager_id ?? ''}>
+                  <option value="">Sin encargado</option>
+                  {members.map((m) => <option key={m.user_id} value={m.user_id}>{memberName(m)}</option>)}
                 </select>
                 <textarea name="description" className="field" defaultValue={editing.description ?? ''} placeholder="Descripción (opcional)" rows={3} />
                 <label className="k">Tipo de proyecto</label>

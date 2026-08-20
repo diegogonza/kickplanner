@@ -18,6 +18,7 @@ export async function createProject(formData: FormData) {
   const status = PROJECT_STATUS.includes(raw as never) ? raw : 'upcoming'
   const typeRaw = (formData.get('type') as string) ?? 'seo'
   const type = PROJECT_TYPE.includes(typeRaw as never) ? typeRaw : 'seo'
+  const managerId = (formData.get('manager_id') as string) || null
 
   const supabase = await createClient()
   const { data: newId, error } = await supabase.rpc('create_project', { p_name: name })
@@ -25,7 +26,7 @@ export async function createProject(formData: FormData) {
     console.error('createProject:', error?.message)
     return
   }
-  await supabase.from('projects').update({ client_id: clientId, description, type }).eq('id', newId)
+  await supabase.from('projects').update({ client_id: clientId, description, type, manager_id: managerId }).eq('id', newId)
   // Fija el estado inicial y lo registra en el historial (sin nota)
   await supabase.rpc('set_project_status', {
     p_project_id: newId,
@@ -53,16 +54,30 @@ export async function updateProject(formData: FormData) {
   const status = PROJECT_STATUS.includes(raw as never) ? raw : null
   const typeRaw = (formData.get('type') as string) ?? ''
   const type = PROJECT_TYPE.includes(typeRaw as never) ? typeRaw : null
+  const managerId = (formData.get('manager_id') as string) || null
 
   const supabase = await createClient()
   await supabase
     .from('projects')
-    .update({ name, client_id: clientId, description, ...(type ? { type } : {}) })
+    .update({ name, client_id: clientId, description, manager_id: managerId, ...(type ? { type } : {}) })
     .eq('id', id)
   // Si cambió el estado desde el modal de edición, se registra en el historial
   if (status) {
     await supabase.rpc('set_project_status', { p_project_id: id, p_status: status, p_note: null })
   }
+  revalidatePath('/')
+  revalidatePath('/panel')
+  revalidatePath(`/projects/${id}`)
+}
+
+// Cambio rápido de encargado desde la lista de proyectos
+export async function setProjectManager(formData: FormData) {
+  const id = formData.get('id') as string
+  if (!id) return
+  const managerId = (formData.get('manager_id') as string) || null
+
+  const supabase = await createClient()
+  await supabase.from('projects').update({ manager_id: managerId }).eq('id', id)
   revalidatePath('/')
   revalidatePath('/panel')
   revalidatePath(`/projects/${id}`)

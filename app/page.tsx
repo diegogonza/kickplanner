@@ -27,6 +27,9 @@ export default async function Home({
   const { data: tplRows } = await supabase.from('templates').select('id, name, type').order('name')
   const templates = (tplRows ?? []) as { id: string; name: string; type: string }[]
 
+  const { data: memberRows } = await supabase.rpc('workspace_members')
+  const members = (memberRows ?? []) as { user_id: string; email: string; full_name: string | null; avatar_url: string | null }[]
+
   return (
     <div className="flex h-full">
       <Sidebar active="projects" />
@@ -50,7 +53,7 @@ export default async function Home({
                 <Link href="/" className="filter-clear">Quitar filtro</Link>
               </div>
             )}
-            <ProjectsView projects={projects} clients={clients} templates={templates} />
+            <ProjectsView projects={projects} clients={clients} templates={templates} members={members} />
           </div>
         </div>
       </div>
