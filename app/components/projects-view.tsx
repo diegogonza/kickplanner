@@ -211,13 +211,13 @@ export default function ProjectsView({
 
   const RiskHint = ({ p }: { p: ProjectOverview }) =>
     p.overdue > 0 ? (
-      <span className="risk-hint" title="Tareas vencidas en este proyecto">
+      <Link className="risk-hint" href={`/projects/${p.id}?view=lista&overdue=1`} title="Ver las tareas vencidas de este proyecto">
         <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
           <path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
           <path d="M12 9v4M12 17h.01" />
         </svg>
         {p.overdue} {p.overdue === 1 ? 'tarea vencida' : 'tareas vencidas'}
-      </span>
+      </Link>
     ) : null
 
   const TypeBadge = ({ p }: { p: ProjectOverview }) => {

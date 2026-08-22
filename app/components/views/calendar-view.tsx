@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { PRIORITIES, STATUSES, displayName, type Task, type Member } from '@/app/projects/statuses'
 import { updateDueDate } from '@/app/projects/actions'
 import Avatar from '@/app/components/avatar'
+import { useTaskContextMenu } from '@/app/components/task-context-menu'
 
 const WEEKDAYS = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom']
 
@@ -45,6 +46,7 @@ export default function CalendarView({
 }) {
   const router = useRouter()
   const [, startTransition] = useTransition()
+  const { onContextMenu, menu } = useTaskContextMenu()
 
   const today = new Date()
   today.setHours(0, 0, 0, 0)
@@ -222,6 +224,7 @@ export default function CalendarView({
                       key={t.id}
                       className={`cal-chip ${done ? 'done' : ''} ${drag?.id === t.id ? 'dragging' : ''}`}
                       title={who ? `${t.title} · ${who}` : t.title}
+                      onContextMenu={(e) => onContextMenu(e, { id: t.id, projectId: t.project_id ?? projectId })}
                       draggable
                       onDragStart={(e) => {
                         setDrag({ id: t.id, pid: t.project_id })
@@ -249,6 +252,7 @@ export default function CalendarView({
           )
         })}
       </div>
+      {menu}
     </div>
   )
 }

@@ -52,13 +52,13 @@ export default async function PanelPage() {
     { key: 'none', label: 'Sin prioridad', color: 'var(--text-3)' },
   ]
 
-  const kpis = [
+  const kpis: { label: string; value: number | string; color: string; href?: string }[] = [
     { label: 'Proyectos', value: d.projects_total ?? 0, color: 'var(--text)' },
     { label: 'Tareas', value: d.tasks_total ?? 0, color: 'var(--text)' },
     { label: 'Completado', value: `${pct}%`, color: 'var(--low-fg)' },
-    { label: 'Vencidas', value: d.overdue ?? 0, color: 'var(--urgent-fg)' },
-    { label: 'Vencen en 7 días', value: d.due_soon ?? 0, color: 'var(--mod-fg)' },
-    { label: 'Sin responsable', value: d.unassigned ?? 0, color: 'var(--text-2)' },
+    { label: 'Vencidas', value: d.overdue ?? 0, color: 'var(--urgent-fg)', href: '/panel/tareas?filter=overdue' },
+    { label: 'Vencen en 7 días', value: d.due_soon ?? 0, color: 'var(--mod-fg)', href: '/panel/tareas?filter=due_soon' },
+    { label: 'Sin responsable', value: d.unassigned ?? 0, color: 'var(--text-2)', href: '/panel/tareas?filter=unassigned' },
   ]
 
   return (
@@ -77,12 +77,19 @@ export default async function PanelPage() {
           <div className="w-full">
             {/* KPIs */}
             <div className="kpi-grid">
-              {kpis.map((k) => (
-                <div className="kpi" key={k.label}>
-                  <div className="kpi-num" style={{ color: k.color }}>{k.value}</div>
-                  <div className="kpi-label">{k.label}</div>
-                </div>
-              ))}
+              {kpis.map((k) =>
+                k.href ? (
+                  <Link className="kpi kpi-link" key={k.label} href={k.href} title={`Ver ${k.label.toLowerCase()}`}>
+                    <div className="kpi-num" style={{ color: k.color }}>{k.value}</div>
+                    <div className="kpi-label">{k.label}</div>
+                  </Link>
+                ) : (
+                  <div className="kpi" key={k.label}>
+                    <div className="kpi-num" style={{ color: k.color }}>{k.value}</div>
+                    <div className="kpi-label">{k.label}</div>
+                  </div>
+                )
+              )}
             </div>
 
             {/* Progreso + prioridad + carga */}
@@ -165,18 +172,22 @@ export default async function PanelPage() {
                   const prog = p.total > 0 ? Math.round((p.done / p.total) * 100) : 0
                   const st = projectStatusOf(p.status)
                   return (
-                    <Link href={`/projects/${p.id}`} key={p.id} className="dproj-row">
-                      <span className="dproj-name">{p.name}</span>
+                    <div key={p.id} className="dproj-row">
+                      <Link href={`/projects/${p.id}`} className="dproj-name" style={{ textDecoration: 'none', color: 'inherit' }}>{p.name}</Link>
                       <span className={`pstatus ${st.cls}`}>{st.label}</span>
                       <span className="dproj-bar">
                         <span className="bar" style={{ flex: 1 }}><span className="bar-fill" style={{ width: `${prog}%`, background: 'var(--brand-600)' }} /></span>
                         <span className="dproj-pct">{prog}%</span>
                       </span>
                       <span className="dproj-meta">{p.done}/{p.total}</span>
-                      <span className="dproj-meta" style={{ color: p.overdue > 0 ? 'var(--urgent-fg)' : 'var(--text-3)' }}>
-                        {p.overdue > 0 ? `${p.overdue} vencidas` : '—'}
-                      </span>
-                    </Link>
+                      {p.overdue > 0 ? (
+                        <Link href={`/projects/${p.id}?view=lista&overdue=1`} className="dproj-meta dproj-overdue" title="Ver las tareas vencidas">
+                          {p.overdue} vencidas
+                        </Link>
+                      ) : (
+                        <span className="dproj-meta" style={{ color: 'var(--text-3)' }}>—</span>
+                      )}
+                    </div>
                   )
                 })}
               </div>

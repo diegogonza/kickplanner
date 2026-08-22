@@ -30,6 +30,32 @@ export function displayName(m: { full_name?: string | null; email: string }): st
   return m.full_name?.trim() || m.email
 }
 
+const MESES = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic']
+const DIAS = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado']
+const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1)
+
+// Fecha corta estilo Asana para las tarjetas: "Hoy", "Ayer", "Mañana",
+// día de la semana si está dentro de los próximos 6 días, o "11 mayo".
+export function formatDueShort(iso: string): { label: string; overdue: boolean } {
+  const [y, m, d] = iso.split('-').map(Number)
+  const due = new Date(y, m - 1, d)
+  due.setHours(0, 0, 0, 0)
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+  const diff = Math.round((due.getTime() - today.getTime()) / 86400000)
+
+  let label: string
+  if (diff === 0) label = 'Hoy'
+  else if (diff === 1) label = 'Mañana'
+  else if (diff === -1) label = 'Ayer'
+  else if (diff > 1 && diff < 7) label = cap(DIAS[due.getDay()])
+  else {
+    label = `${d} ${MESES[due.getMonth()]}`
+    if (due.getFullYear() !== today.getFullYear()) label += ` ${due.getFullYear()}`
+  }
+  return { label, overdue: diff < 0 }
+}
+
 export const STATUSES: { key: Status; label: string; color: string }[] = [
   { key: 'todo', label: 'Por hacer', color: 'var(--info-fg)' },
   { key: 'doing', label: 'En curso', color: 'var(--mod-fg)' },

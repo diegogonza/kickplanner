@@ -6,6 +6,7 @@ import { type Task } from '@/app/projects/statuses'
 import { toggleComplete, deleteTask } from '@/app/projects/actions'
 import PrioritySelect from '@/app/components/priority-select'
 import DueDateInput from '@/app/components/due-date-input'
+import { useTaskContextMenu } from '@/app/components/task-context-menu'
 
 export type MyTask = Task & { project_id: string; project_name: string }
 
@@ -27,6 +28,7 @@ const GRID = '26px minmax(0, 1fr) 150px 116px 122px 32px'
 
 export default function MyTasksList({ tasks }: { tasks: MyTask[] }) {
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set())
+  const { onContextMenu, menu } = useTaskContextMenu()
   const toggle = (key: string) =>
     setCollapsed((prev) => {
       const next = new Set(prev)
@@ -99,7 +101,7 @@ export default function MyTasksList({ tasks }: { tasks: MyTask[] }) {
                   const done = t.status === 'done'
                   const overdue = !!t.due_date && !done && parseDue(t.due_date) < today
                   return (
-                    <div key={t.id} className={`lrow ${done ? 'done' : ''}`}>
+                    <div key={t.id} className={`lrow ${done ? 'done' : ''}`} onContextMenu={(e) => onContextMenu(e, { id: t.id, projectId: t.project_id })}>
                       <form action={toggleComplete}>
                         <input type="hidden" name="id" value={t.id} />
                         <input type="hidden" name="project_id" value={t.project_id} />
@@ -154,6 +156,7 @@ export default function MyTasksList({ tasks }: { tasks: MyTask[] }) {
           </div>
         )
       })}
+      {menu}
     </div>
   )
 }

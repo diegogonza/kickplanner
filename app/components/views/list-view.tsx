@@ -8,6 +8,7 @@ import AddTaskRow from '@/app/components/add-task-row'
 import AssigneeSelect from '@/app/components/assignee-select'
 import PrioritySelect from '@/app/components/priority-select'
 import DueDateInput from '@/app/components/due-date-input'
+import { useTaskContextMenu } from '@/app/components/task-context-menu'
 
 function parseDue(s: string): Date {
   const [y, m, d] = s.split('-').map(Number)
@@ -23,6 +24,9 @@ export default function ListView({
   subtaskCounts = {},
   childrenByParent = {},
   hideDone = false,
+  overdueOnly = false,
+  overdueTasks = [],
+  clearOverdueHref = '',
 }: {
   projectId: string
   view: string
@@ -32,9 +36,13 @@ export default function ListView({
   subtaskCounts?: Record<string, number>
   childrenByParent?: Record<string, Task[]>
   hideDone?: boolean
+  overdueOnly?: boolean
+  overdueTasks?: Task[]
+  clearOverdueHref?: string
 }) {
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set())
   const [expanded, setExpanded] = useState<Set<string>>(new Set())
+  const { onContextMenu, menu } = useTaskContextMenu()
 
   const toggleSet = (setter: typeof setCollapsed, key: string) =>
     setter((prev) => {
@@ -49,17 +57,138 @@ export default function ListView({
   const today = new Date()
   today.setHours(0, 0, 0, 0)
 
+  // Fila de tarea reutilizada por el modo normal y el modo "vencidas".
+  const TaskRow = ({
+    task,
+    expandable = false,
+    isOpen = false,
+    onToggle,
+    subs = 0,
+  }: {
+    task: Task
+    expandable?: boolean
+    isOpen?: boolean
+    onToggle?: () => void
+    subs?: number
+  }) => {
+    const done = task.status === 'done'
+    const overdue = !!task.due_date && !done && parseDue(task.due_date) < today
+    return (
+      <div className={`lrow ${done ? 'done' : ''}`} onContextMenu={(e) => onContextMenu(e, { id: task.id, projectId })}>
+        {/* 1. Check */}
+        <form action={toggleComplete}>
+          <input type="hidden" name="id" value={task.id} />
+          <input type="hidden" name="project_id" value={projectId} />
+          <input type="hidden" name="status" value={task.status} />
+          <button
+            type="submit"
+            className={`task-check ${done ? 'done' : ''}`}
+            style={{ width: 20, height: 20, flex: '0 0 20px' }}
+            title={done ? 'Marcar como pendiente' : 'Marcar como completada'}
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M20 6L9 17l-5-5" />
+            </svg>
+          </button>
+        </form>
+
+        {/* 2. Nombre (chevron opcional + título + conteo de subtareas) */}
+        <div className="lname">
+          {expandable && (
+            <button
+              type="button"
+              className={`lexp ${isOpen ? 'open' : ''}`}
+              onClick={onToggle}
+              aria-expanded={isOpen}
+              title={isOpen ? 'Ocultar subtareas' : 'Ver subtareas'}
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M6 9l6 6 6-6" />
+              </svg>
+            </button>
+          )}
+          <Link href={hrefFor(task.id)} className="title">
+            {task.title}
+          </Link>
+          {subs > 0 && (
+            <span className="lsub" title={`${subs} subtarea(s)`}>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M9 6h11M9 12h11M9 18h11M4 6v.01M4 12v.01M4 18v.01" />
+              </svg>
+              {subs}
+            </span>
+          )}
+        </div>
+
+        {/* 3. Responsable */}
+        <AssigneeSelect taskId={task.id} projectId={projectId} current={task.assignee_id} members={members} />
+
+        {/* 4. Prioridad */}
+        <PrioritySelect taskId={task.id} projectId={projectId} current={task.priority} />
+
+        {/* 5. Fecha de entrega */}
+        <div className={overdue ? 'overdue-cell' : ''} title={overdue ? 'Vencida' : undefined}>
+          <DueDateInput taskId={task.id} projectId={projectId} value={task.due_date} />
+        </div>
+
+        {/* 6. Eliminar (aparece al pasar el cursor) */}
+        <form action={deleteTask}>
+          <input type="hidden" name="id" value={task.id} />
+          <input type="hidden" name="project_id" value={projectId} />
+          <button type="submit" className="btn-ghost ldel" title="Eliminar tarea">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6" />
+            </svg>
+          </button>
+        </form>
+      </div>
+    )
+  }
+
+  const Head = () => (
+    <div className="lt-head">
+      <span aria-hidden />
+      <span>Nombre</span>
+      <span>Responsable</span>
+      <span>Prioridad</span>
+      <span>Fecha de entrega</span>
+      <span aria-hidden />
+    </div>
+  )
+
+  // Modo "vencidas": lista plana de todas las tareas vencidas (incl. subtareas)
+  if (overdueOnly) {
+    return (
+      <div className="ltable">
+        <div className="filter-bar">
+          <span>Filtrado por <b>tareas vencidas</b> · {overdueTasks.length}</span>
+          <Link href={clearOverdueHref} className="filter-clear">Quitar filtro</Link>
+        </div>
+        <Head />
+        <div className="lgroup">
+          <div className="lrows">
+            {overdueTasks.length === 0 ? (
+              <div className="lrow">
+                <span />
+                <span className="lname"><span className="title" style={{ color: 'var(--text-3)' }}>No hay tareas vencidas 🎉</span></span>
+              </div>
+            ) : (
+              overdueTasks.map((task) => (
+                <div key={task.id}>
+                  <TaskRow task={task} />
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+        {menu}
+      </div>
+    )
+  }
+
   return (
     <div className="ltable">
-      {/* Encabezado de columnas (sticky) */}
-      <div className="lt-head">
-        <span aria-hidden />
-        <span>Nombre</span>
-        <span>Responsable</span>
-        <span>Prioridad</span>
-        <span>Fecha de entrega</span>
-        <span aria-hidden />
-      </div>
+      <Head />
 
       {STATUSES.map((section) => {
         if (hideDone && section.key === 'done') return null
@@ -85,89 +214,18 @@ export default function ListView({
             {!isCollapsed && (
               <div className="lrows">
                 {items.map((task) => {
-                  const done = task.status === 'done'
-                  const subs = subtaskCounts[task.id] ?? 0
                   const isOpen = expanded.has(task.id)
                   const children = childrenByParent[task.id] ?? []
-                  const overdue = !!task.due_date && !done && parseDue(task.due_date) < today
 
                   return (
                     <div key={task.id}>
-                      <div className={`lrow ${done ? 'done' : ''}`}>
-                        {/* 1. Check */}
-                        <form action={toggleComplete}>
-                          <input type="hidden" name="id" value={task.id} />
-                          <input type="hidden" name="project_id" value={projectId} />
-                          <input type="hidden" name="status" value={task.status} />
-                          <button
-                            type="submit"
-                            className={`task-check ${done ? 'done' : ''}`}
-                            style={{ width: 20, height: 20, flex: '0 0 20px' }}
-                            title={done ? 'Marcar como pendiente' : 'Marcar como completada'}
-                          >
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-                              <path d="M20 6L9 17l-5-5" />
-                            </svg>
-                          </button>
-                        </form>
-
-                        {/* 2. Nombre (chevron expandir + título + conteo) */}
-                        <div className="lname">
-                          <button
-                            type="button"
-                            className={`lexp ${isOpen ? 'open' : ''}`}
-                            onClick={() => toggleSet(setExpanded, task.id)}
-                            aria-expanded={isOpen}
-                            title={isOpen ? 'Ocultar subtareas' : 'Ver subtareas'}
-                          >
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                              <path d="M6 9l6 6 6-6" />
-                            </svg>
-                          </button>
-                          <Link href={hrefFor(task.id)} className="title">
-                            {task.title}
-                          </Link>
-                          {subs > 0 && (
-                            <span className="lsub" title={`${subs} subtarea(s)`}>
-                              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                <path d="M9 6h11M9 12h11M9 18h11M4 6v.01M4 12v.01M4 18v.01" />
-                              </svg>
-                              {subs}
-                            </span>
-                          )}
-                        </div>
-
-                        {/* 3. Responsable (editable inline) */}
-                        <AssigneeSelect
-                          taskId={task.id}
-                          projectId={projectId}
-                          current={task.assignee_id}
-                          members={members}
-                        />
-
-                        {/* 4. Prioridad (editable inline) */}
-                        <PrioritySelect
-                          taskId={task.id}
-                          projectId={projectId}
-                          current={task.priority}
-                        />
-
-                        {/* 5. Fecha de entrega (editable inline) */}
-                        <div className={overdue ? 'overdue-cell' : ''} title={overdue ? 'Vencida' : undefined}>
-                          <DueDateInput taskId={task.id} projectId={projectId} value={task.due_date} />
-                        </div>
-
-                        {/* 6. Eliminar (aparece al pasar el cursor) */}
-                        <form action={deleteTask}>
-                          <input type="hidden" name="id" value={task.id} />
-                          <input type="hidden" name="project_id" value={projectId} />
-                          <button type="submit" className="btn-ghost ldel" title="Eliminar tarea">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                              <path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6" />
-                            </svg>
-                          </button>
-                        </form>
-                      </div>
+                      <TaskRow
+                        task={task}
+                        expandable
+                        isOpen={isOpen}
+                        onToggle={() => toggleSet(setExpanded, task.id)}
+                        subs={subtaskCounts[task.id] ?? 0}
+                      />
 
                       {/* Subtareas expandidas */}
                       {isOpen && (
@@ -175,7 +233,7 @@ export default function ListView({
                           {children.map((sub, i) => {
                             const subDone = sub.status === 'done'
                             return (
-                              <div key={sub.id} className={`lsubrow ${subDone ? 'done' : ''}`}>
+                              <div key={sub.id} className={`lsubrow ${subDone ? 'done' : ''}`} onContextMenu={(e) => onContextMenu(e, { id: sub.id, projectId })}>
                                 <span className="num">{i + 1}</span>
                                 <form action={toggleComplete}>
                                   <input type="hidden" name="id" value={sub.id} />
@@ -222,6 +280,7 @@ export default function ListView({
           </div>
         )
       })}
+      {menu}
     </div>
   )
 }

@@ -4,8 +4,9 @@ import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/utils/supabase/client'
-import { STATUSES, PRIORITIES, type Task, type Status, type Member } from '@/app/projects/statuses'
+import { STATUSES, PRIORITIES, formatDueShort, type Task, type Status, type Member } from '@/app/projects/statuses'
 import Avatar from '@/app/components/avatar'
+import { useTaskContextMenu } from '@/app/components/task-context-menu'
 
 const TASK_COLS =
   'id, title, status, priority, due_date, parent_id, description, assignee_id, created_at'
@@ -29,6 +30,7 @@ export default function BoardView({
 }) {
   const supabase = createClient()
   const router = useRouter()
+  const { onContextMenu, menu } = useTaskContextMenu()
 
   const [items, setItems] = useState<Task[]>(tasks)
   // Sincronizar con los datos frescos del servidor (ej. prioridad puesta en el panel)
@@ -107,11 +109,13 @@ export default function BoardView({
                 const prio = PRIORITIES.find((p) => p.key === task.priority)
                 const subs = subtaskCounts[task.id] ?? 0
                 const done = task.status === 'done'
+                const due = task.due_date ? formatDueShort(task.due_date) : null
                 return (
                   <div
                     key={task.id}
-                    className={`task-mini ${dragId === task.id ? 'dragging' : ''}`}
+                    className={`task-mini ${done ? 'done' : ''} ${dragId === task.id ? 'dragging' : ''}`}
                     draggable
+                    onContextMenu={(e) => onContextMenu(e, { id: task.id, projectId })}
                     onDragStart={() => setDragId(task.id)}
                     onDragEnd={() => {
                       setDragId(null)
@@ -127,7 +131,7 @@ export default function BoardView({
                       </div>
                     )}
                     <div className="task-mini-body">
-                    <div className="flex items-start gap-2">
+                    <div className="flex items-start gap-3">
                       <button
                         type="button"
                         className={`task-check ${done ? 'done' : ''}`}
@@ -151,15 +155,7 @@ export default function BoardView({
                     </div>
 
                     <div className="row">
-                      <div className="flex items-center gap-2">
-                        {subs > 0 && (
-                          <span className="subcount" title={`${subs} subtareas`}>
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                              <path d="M9 6h11M9 12h11M9 18h11M4 6h.01M4 12h.01M4 18h.01" />
-                            </svg>
-                            {subs}
-                          </span>
-                        )}
+                      <div className="task-meta">
                         {task.assignee_id && memberMap[task.assignee_id] && (
                           <Avatar
                             name={memberMap[task.assignee_id].full_name}
@@ -168,17 +164,32 @@ export default function BoardView({
                             size={22}
                           />
                         )}
+                        {due && (
+                          <span className={`task-due ${due.overdue && !done ? 'overdue' : ''}`} title="Fecha de entrega">
+                            {due.label}
+                          </span>
+                        )}
                       </div>
-                      <button
-                        type="button"
-                        className="btn-ghost"
-                        title="Eliminar tarea"
-                        onClick={() => remove(task.id)}
-                      >
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                          <path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6" />
-                        </svg>
-                      </button>
+                      <div className="task-meta-end">
+                        {subs > 0 && (
+                          <span className="subcount" title={`${subs} subtareas`}>
+                            {subs}
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                              <path d="M9 6h11M9 12h11M9 18h11M4 6h.01M4 12h.01M4 18h.01" />
+                            </svg>
+                          </span>
+                        )}
+                        <button
+                          type="button"
+                          className="btn-ghost task-del"
+                          title="Eliminar tarea"
+                          onClick={() => remove(task.id)}
+                        >
+                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6" />
+                          </svg>
+                        </button>
+                      </div>
                     </div>
                     </div>
                   </div>
@@ -207,6 +218,7 @@ export default function BoardView({
           </div>
         )
       })}
+      {menu}
     </div>
   )
 }

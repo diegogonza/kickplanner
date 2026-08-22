@@ -31,12 +31,13 @@ export default async function ProjectPage({
   searchParams,
 }: {
   params: Promise<{ id: string }>
-  searchParams: Promise<{ view?: string; task?: string; hide?: string }>
+  searchParams: Promise<{ view?: string; task?: string; hide?: string; overdue?: string }>
 }) {
   const { id } = await params
-  const { view, task: taskParam, hide } = await searchParams
+  const { view, task: taskParam, hide, overdue: overdueParam } = await searchParams
   const active = TABS.some((t) => t.key === view) ? view! : 'lista'
   const hideDone = hide === 'done'
+  const overdueOnly = overdueParam === '1'
 
   const supabase = await createClient()
   const {
@@ -87,6 +88,19 @@ export default async function ProjectPage({
   const allTop = (tasks ?? []) as Task[]
   const list = hideDone ? allTop.filter((t) => t.status !== 'done') : allTop
   const closeHref = `/projects/${id}?view=${active}${hideDone ? '&hide=done' : ''}`
+
+  // Filtro "vencidas": todas las tareas del proyecto (incl. subtareas) vencidas y sin completar
+  let overdueTasks: Task[] = []
+  if (overdueOnly) {
+    const { data: od } = await supabase
+      .from('tasks')
+      .select(TASK_COLS)
+      .eq('project_id', id)
+      .lt('due_date', todayStr)
+      .neq('status', 'done')
+      .order('due_date', { ascending: true })
+    overdueTasks = (od ?? []) as Task[]
+  }
 
   // Subtareas del proyecto: conteo (tablero) + agrupadas por padre (expandir en la lista)
   const { data: subRows } = await supabase
@@ -252,7 +266,7 @@ export default async function ProjectPage({
               )}
               <b>{project.name}</b>
             </div>
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-3 proj-headline">
               <h1 className="page-title" style={{ margin: 0 }}>{project.name}</h1>
               <span className={`ptype ${ptype.cls}`} title={`Proyecto ${ptype.label}`}>{ptype.label}</span>
               <ProjectStatus projectId={project.id} status={project.status} overdue={overdue} history={history} />
@@ -315,6 +329,9 @@ export default async function ProjectPage({
               subtaskCounts={subtaskCounts}
               childrenByParent={childrenByParent}
               hideDone={hideDone}
+              overdueOnly={overdueOnly}
+              overdueTasks={overdueTasks}
+              clearOverdueHref={`/projects/${project.id}?view=lista`}
             />
           )}
           {active === 'tablero' && (

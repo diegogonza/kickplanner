@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import Link from 'next/link'
 import { setProjectStatus } from '@/app/projects/actions'
 import { PROJECT_STATUSES, projectStatusOf, displayName } from '@/app/projects/statuses'
 import Avatar from '@/app/components/avatar'
@@ -65,13 +66,13 @@ export default function ProjectStatus({
       </button>
 
       {overdue > 0 && !open && (
-        <span className="risk-hint" title="Tareas vencidas en este proyecto">
+        <Link className="risk-hint" href={`/projects/${projectId}?view=lista&overdue=1`} title="Ver las tareas vencidas de este proyecto">
           <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
             <path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
             <path d="M12 9v4M12 17h.01" />
           </svg>
           {overdue} {overdue === 1 ? 'tarea vencida' : 'tareas vencidas'}
-        </span>
+        </Link>
       )}
 
       {open && (

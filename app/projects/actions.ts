@@ -235,6 +235,113 @@ export async function deleteTask(formData: FormData) {
   revalidatePath('/mis-tareas')
 }
 
+// Duplica una tarea con sus subtareas y etiquetas. La tarea duplicada queda
+// "por hacer"; las subtareas conservan su estado original (como en Asana).
+type DupFields = {
+  title: string
+  description: string | null
+  priority: string | null
+  due_date: string | null
+  assignee_id: string | null
+  drive_url: string | null
+  status: string
+  parent_id: string | null
+  project_id: string
+}
+const DUP_FIELDS = 'title, description, priority, due_date, assignee_id, drive_url, status, parent_id, project_id'
+
+export async function duplicateTask(formData: FormData) {
+  const id = formData.get('id') as string
+  const projectId = (formData.get('project_id') as string) || ''
+  if (!id) return
+
+  const supabase = await createClient()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+
+  const { data: srcRaw } = await supabase.from('tasks').select(DUP_FIELDS).eq('id', id).single()
+  if (!srcRaw) return
+  const src = srcRaw as DupFields
+
+  // Posición al final entre sus hermanas
+  let posQuery = supabase.from('tasks').select('position').eq('project_id', src.project_id)
+  posQuery = src.parent_id ? posQuery.eq('parent_id', src.parent_id) : posQuery.is('parent_id', null)
+  const { data: last } = await posQuery.order('position', { ascending: false, nullsFirst: false }).limit(1).maybeSingle()
+  const rootPos = (last?.position ?? 0) + 1
+
+  // Copia un nivel de hermanas en un solo insert (mapeo estable por position) y
+  // luego recurre por sus subtareas. Devuelve el mapa idOriginal -> idNuevo.
+  const copyLevel = async (
+    sources: (DupFields & { id: string })[],
+    newParentId: string | null,
+    startPos: number,
+    forceTodo: boolean
+  ): Promise<Record<string, string>> => {
+    const rows = sources.map((s, i) => ({
+      title: s.title,
+      description: s.description,
+      priority: s.priority,
+      due_date: s.due_date,
+      assignee_id: s.assignee_id,
+      drive_url: s.drive_url,
+      project_id: s.project_id,
+      parent_id: newParentId,
+      status: forceTodo ? 'todo' : s.status,
+      position: startPos + i,
+      created_by: user?.id,
+    }))
+    const { data: inserted } = await supabase.from('tasks').insert(rows).select('id, position')
+    const srcIdToNew: Record<string, string> = {}
+    if (!inserted) return srcIdToNew
+    const posToNew: Record<number, string> = {}
+    for (const r of inserted as { id: string; position: number }[]) posToNew[r.position] = r.id
+    sources.forEach((s, i) => {
+      srcIdToNew[s.id] = posToNew[startPos + i]
+    })
+
+    // Etiquetas de todo el nivel en un solo insert
+    const srcIds = sources.map((s) => s.id)
+    const { data: tagRows } = await supabase.from('task_tags').select('task_id, tag_id').in('task_id', srcIds)
+    if (tagRows && tagRows.length > 0) {
+      await supabase.from('task_tags').insert(
+        tagRows
+          .filter((t) => srcIdToNew[t.task_id])
+          .map((t) => ({ task_id: srcIdToNew[t.task_id], tag_id: t.tag_id }))
+      )
+    }
+
+    // Subtareas de todo el nivel (una consulta), agrupadas por padre original
+    const { data: kids } = await supabase
+      .from('tasks')
+      .select(`id, ${DUP_FIELDS}`)
+      .in('parent_id', srcIds)
+      .order('position', { ascending: true, nullsFirst: false })
+      .order('created_at', { ascending: true })
+    if (kids && kids.length > 0) {
+      const byParent = new Map<string, (DupFields & { id: string })[]>()
+      for (const k of kids as (DupFields & { id: string })[]) {
+        const arr = byParent.get(k.parent_id as string) ?? []
+        arr.push(k)
+        byParent.set(k.parent_id as string, arr)
+      }
+      for (const [srcParent, group] of byParent) {
+        await copyLevel(group, srcIdToNew[srcParent], 1, false)
+      }
+    }
+    return srcIdToNew
+  }
+
+  const rootMap = await copyLevel([{ ...src, id }], src.parent_id, rootPos, true)
+  const newId = rootMap[id]
+  if (newId) {
+    await supabase.from('task_activity').insert({ task_id: newId, type: 'created', meta: {} })
+  }
+
+  revalidatePath(`/projects/${projectId || src.project_id}`)
+  revalidatePath('/mis-tareas')
+}
+
 // ---------- DETALLE DE TAREA ----------
 
 export async function setPriority(formData: FormData) {
@@ -392,5 +499,27 @@ export async function removeTag(formData: FormData) {
     .eq('task_id', taskId)
     .eq('tag_id', tagId)
 
+  revalidatePath(`/projects/${projectId}`)
+}
+
+// Mueve una tarea entre columnas de la vista Etiquetas: quita la etiqueta de
+// origen (si viene de una) y agrega la de destino (si va a una). "__none__"
+// representa la columna "Sin etiqueta".
+export async function moveTaskTag(formData: FormData) {
+  const taskId = formData.get('task_id') as string
+  const projectId = formData.get('project_id') as string
+  const fromTag = (formData.get('from_tag_id') as string) || ''
+  const toTag = (formData.get('to_tag_id') as string) || ''
+  if (!taskId || fromTag === toTag) return
+
+  const supabase = await createClient()
+  if (fromTag) {
+    await supabase.from('task_tags').delete().eq('task_id', taskId).eq('tag_id', fromTag)
+  }
+  if (toTag) {
+    await supabase
+      .from('task_tags')
+      .upsert({ task_id: taskId, tag_id: toTag }, { onConflict: 'task_id,tag_id', ignoreDuplicates: true })
+  }
   revalidatePath(`/projects/${projectId}`)
 }
