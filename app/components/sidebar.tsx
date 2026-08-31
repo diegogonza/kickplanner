@@ -2,7 +2,7 @@ import Link from 'next/link'
 import { signout } from '@/app/login/actions'
 import { createClient } from '@/utils/supabase/server'
 import Avatar from '@/app/components/avatar'
-import { displayName } from '@/app/projects/statuses'
+import { displayName, FINANCE_USER_ID } from '@/app/projects/statuses'
 
 export default async function Sidebar({
   active = 'projects',
@@ -35,6 +35,7 @@ export default async function Sidebar({
     unread = count ?? 0
   }
   const name = displayName({ full_name: fullName, email })
+  const canSeePayments = user?.id === FINANCE_USER_ID
 
   return (
     <aside className="sidebar">
@@ -96,13 +97,15 @@ export default async function Sidebar({
           </svg>
           Clientes
         </Link>
-        <Link className={`nav-item ${active === 'pagos' ? 'active' : ''}`} href="/pagos">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <rect x="2" y="5" width="20" height="14" rx="2" />
-            <path d="M2 10h20M6 15h4" />
-          </svg>
-          Pagos
-        </Link>
+        {canSeePayments && (
+          <Link className={`nav-item ${active === 'pagos' ? 'active' : ''}`} href="/pagos">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <rect x="2" y="5" width="20" height="14" rx="2" />
+              <path d="M2 10h20M6 15h4" />
+            </svg>
+            Pagos
+          </Link>
+        )}
 
         <div className="nav-label">Plantillas</div>
         <Link className={`nav-item ${active === 'plantillas' ? 'active' : ''}`} href="/plantillas">

@@ -30,6 +30,9 @@ export function displayName(m: { full_name?: string | null; email: string }): st
   return m.full_name?.trim() || m.email
 }
 
+// Acceso a la sección de Pagos: por ahora solo Diego González
+export const FINANCE_USER_ID = 'e676f0e8-5e19-4db2-8295-01974d3ced39'
+
 // Formato de moneda (COP/USD), sin decimales
 export function money(amount: number, currency: string): string {
   try {
