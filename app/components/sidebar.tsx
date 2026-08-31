@@ -8,7 +8,7 @@ export default async function Sidebar({
   active = 'projects',
 }: {
   email?: string
-  active?: 'projects' | 'clientes' | 'plantillas' | 'portfolios' | 'teams' | 'mis-tareas' | 'notificaciones' | 'panel'
+  active?: 'projects' | 'clientes' | 'plantillas' | 'portfolios' | 'teams' | 'mis-tareas' | 'notificaciones' | 'panel' | 'pagos'
 }) {
   const supabase = await createClient()
   const {
@@ -38,8 +38,8 @@ export default async function Sidebar({
 
   return (
     <aside className="sidebar">
-      <div className="nav-label" style={{ marginTop: 0 }}>Espacio de trabajo</div>
       <nav className="flex flex-col gap-1">
+        <div className="nav-label" style={{ marginTop: 0 }}>Gestión (PM)</div>
         <Link className={`nav-item ${active === 'panel' ? 'active' : ''}`} href="/panel">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <path d="M3 3v18h18" />
@@ -70,19 +70,6 @@ export default async function Sidebar({
           </svg>
           Proyectos
         </Link>
-        <Link className={`nav-item ${active === 'clientes' ? 'active' : ''}`} href="/clientes">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
-            <circle cx="12" cy="7" r="4" />
-          </svg>
-          Clientes
-        </Link>
-        <Link className={`nav-item ${active === 'plantillas' ? 'active' : ''}`} href="/plantillas">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M4 4h16v4H4zM4 12h10v8H4zM17 12h3v8h-3z" />
-          </svg>
-          Plantillas
-        </Link>
         <Link className={`nav-item ${active === 'portfolios' ? 'active' : ''}`} href="/portfolios">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <rect x="3" y="3" width="7" height="7" rx="1" />
@@ -99,6 +86,30 @@ export default async function Sidebar({
             <path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75" />
           </svg>
           Equipos
+        </Link>
+
+        <div className="nav-label">Clientes y cobros</div>
+        <Link className={`nav-item ${active === 'clientes' ? 'active' : ''}`} href="/clientes">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+            <circle cx="12" cy="7" r="4" />
+          </svg>
+          Clientes
+        </Link>
+        <Link className={`nav-item ${active === 'pagos' ? 'active' : ''}`} href="/pagos">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <rect x="2" y="5" width="20" height="14" rx="2" />
+            <path d="M2 10h20M6 15h4" />
+          </svg>
+          Pagos
+        </Link>
+
+        <div className="nav-label">Plantillas</div>
+        <Link className={`nav-item ${active === 'plantillas' ? 'active' : ''}`} href="/plantillas">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M4 4h16v4H4zM4 12h10v8H4zM17 12h3v8h-3z" />
+          </svg>
+          Plantillas
         </Link>
       </nav>
 

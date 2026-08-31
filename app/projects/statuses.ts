@@ -30,6 +30,19 @@ export function displayName(m: { full_name?: string | null; email: string }): st
   return m.full_name?.trim() || m.email
 }
 
+// Formato de moneda (COP/USD), sin decimales
+export function money(amount: number, currency: string): string {
+  try {
+    return new Intl.NumberFormat(currency === 'USD' ? 'en-US' : 'es-CO', {
+      style: 'currency',
+      currency,
+      maximumFractionDigits: 0,
+    }).format(amount)
+  } catch {
+    return `${amount}`
+  }
+}
+
 const MESES = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic']
 const DIAS = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado']
 const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1)

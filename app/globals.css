@@ -3311,9 +3311,23 @@ a.risk-hint:hover {
 .projtable-head,
 .projtable-row {
   display: grid;
-  grid-template-columns: 28px minmax(0, 1fr) 140px 168px 60px 140px 124px 116px 32px;
+  grid-template-columns: 28px minmax(0, 1fr) 116px 116px 112px 148px 52px 126px 110px 100px 32px;
   align-items: center;
   gap: 12px;
+}
+.projtable-fee {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+  white-space: nowrap;
+}
+.projtable-fee-unit {
+  font-size: 10.5px;
+  font-weight: 500;
+  color: var(--text-3);
 }
 .projtable-head {
   padding: 9px 14px;
@@ -3555,6 +3569,269 @@ a.risk-hint:hover {
   font: inherit;
   text-decoration: underline;
   padding: 0;
+}
+
+/* ---------- Sección Pagos ---------- */
+.pay-filter {
+  display: inline-flex;
+  gap: 4px;
+  padding: 4px;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: var(--r-full);
+  align-self: flex-start;
+}
+.pay-filter-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 0;
+  background: transparent;
+  border-radius: var(--r-full);
+  padding: 6px 14px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-2);
+  cursor: pointer;
+}
+.pay-filter-btn:hover { color: var(--text); }
+.pay-filter-btn.on {
+  background: var(--surface);
+  color: var(--brand-700);
+  font-weight: 600;
+  box-shadow: var(--shadow-sm);
+}
+.pay-filter-count {
+  font-size: 11px;
+  color: var(--text-3);
+  background: var(--surface-2, #eef0f3);
+  border-radius: var(--r-full);
+  padding: 0 6px;
+  min-width: 18px;
+  text-align: center;
+}
+.pay-filter-btn.on .pay-filter-count { color: var(--brand-700); }
+.pay-cur-label {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: var(--text-3);
+  margin-bottom: 8px;
+}
+.projtable-head.paytable-row,
+.projtable-row.paytable-row {
+  grid-template-columns: minmax(0, 1fr) 108px 128px 118px 132px 78px 130px 112px;
+}
+.pay-model {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 9px;
+  border-radius: var(--r-full);
+  font-size: 11px;
+  font-weight: 600;
+}
+.pay-model.seo { background: var(--brand-50); color: var(--brand-700); }
+.pay-model.web { background: #e6f4f1; color: #0d9488; }
+
+/* Cuota Web editable */
+.pay-inst {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md, 8px);
+  flex-wrap: wrap;
+}
+.pay-inst-edit {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.pay-inst .field { padding: 5px 8px; font-size: 12.5px; }
+.pay-inst-note { flex: 1 1 160px; min-width: 120px; }
+.pay-inst-amt { width: 120px; }
+.pay-inst-date { width: 150px; }
+.pay-inst-del {
+  border: 0;
+  background: transparent;
+  color: var(--text-3);
+  cursor: pointer;
+  font-size: 14px;
+  padding: 4px 6px;
+}
+.pay-inst-del:hover { color: var(--urgent-fg); }
+.pay-inst-add {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border: 1px dashed var(--border-strong);
+  border-radius: var(--r-md, 8px);
+  flex-wrap: wrap;
+}
+
+/* Aviso: las cuotas no cuadran con el total */
+.pay-warn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background: #fbedd6;
+  color: #b9740b;
+  border-radius: var(--r-md, 8px);
+  font-size: 12.5px;
+  font-weight: 500;
+}
+.pay-warn svg { flex: 0 0 auto; }
+.pay-warn-dot {
+  margin-left: 6px;
+  color: #b9740b;
+  font-size: 12px;
+}
+
+/* Cambiar fee + historial */
+.pay-feebox {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px 12px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md, 8px);
+  margin-bottom: 4px;
+}
+.pay-fee-form {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.pay-fee-label { font-size: 12.5px; font-weight: 600; color: var(--text-2); }
+.pay-fee-eff {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--text-3);
+}
+.pay-fee-history {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  border-top: 1px dashed var(--border);
+  padding-top: 6px;
+  font-size: 12px;
+  color: var(--text-2);
+}
+.pay-expand {
+  padding: 4px 10px;
+  font-size: 12px;
+}
+.pay-cycles {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px 14px 14px 14px;
+  background: var(--panel);
+  border-bottom: 1px solid var(--border);
+}
+.pay-cycle {
+  display: grid;
+  grid-template-columns: 120px 210px 130px 1fr auto;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 12px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md, 8px);
+  font-size: 13px;
+}
+.pay-cycle.current {
+  border-color: var(--brand-400);
+  box-shadow: inset 3px 0 0 var(--brand-600);
+  background: var(--brand-50);
+}
+.pay-cycle-seq { font-weight: 600; color: var(--text); display: inline-flex; align-items: center; gap: 6px; }
+.pay-tag-actual {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--brand-700);
+  background: #fff;
+  border: 1px solid var(--brand-300, var(--brand-400));
+  border-radius: var(--r-full);
+  padding: 1px 6px;
+}
+.pay-cycle-due { color: var(--text-3); white-space: nowrap; }
+.pay-cycle-amt { font-weight: 600; color: var(--text); }
+.pay-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 10px;
+  border-radius: var(--r-full);
+  font-size: 11.5px;
+  font-weight: 600;
+  justify-self: start;
+}
+.pay-badge.paid { background: var(--low-bg); color: var(--low-fg); }
+.pay-badge.pending { background: #eceef2; color: var(--text-2); }
+.pay-badge.overdue { background: #fbedd6; color: #b9740b; }
+.pay-action-pay {
+  border: 0;
+  background: var(--brand-600);
+  color: #fff;
+  border-radius: var(--r-md, 8px);
+  padding: 5px 12px;
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.pay-action-pay:hover { background: var(--brand-700); }
+.pay-action-undo {
+  border: 1px solid var(--border-strong);
+  background: transparent;
+  color: var(--text-3);
+  border-radius: var(--r-md, 8px);
+  padding: 5px 12px;
+  font-size: 12.5px;
+  cursor: pointer;
+}
+.pay-action-undo:hover { color: var(--text); border-color: var(--text-3); }
+
+/* ---------- Antigüedad del cliente ---------- */
+.proj-age {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.25;
+  min-width: 0;
+}
+.proj-age-month {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+}
+.proj-age-days {
+  font-size: 11px;
+  color: var(--text-3);
+  white-space: nowrap;
+}
+.proj-age-empty {
+  border: 1px dashed var(--border-strong);
+  background: transparent;
+  border-radius: var(--r-md, 8px);
+  padding: 4px 10px;
+  font-size: 12px;
+  color: var(--text-3);
+  cursor: pointer;
+}
+.proj-age-empty:hover {
+  border-color: var(--brand-400);
+  color: var(--brand-700);
 }
 
 /* ---------- Agrupar por encargado ---------- */

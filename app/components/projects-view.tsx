@@ -15,6 +15,7 @@ import {
   projectStatusOf as statusOf,
   PROJECT_TYPES,
   projectTypeOf,
+  money,
 } from '@/app/projects/statuses'
 import Avatar from '@/app/components/avatar'
 
@@ -35,11 +36,33 @@ export type ProjectOverview = {
   manager_id: string | null
   manager: string | null
   manager_avatar: string | null
+  start_date: string | null
+  fee: number | null
+  currency: string
 }
 
 type Member = { user_id: string; email: string; full_name: string | null; avatar_url: string | null }
 
 const memberName = (m: Member) => m.full_name?.trim() || m.email
+
+// Antigüedad del cliente: días activo y "mes" del contrato (bloques de 30 días)
+function ageInfo(start: string | null): { month: number; days: number } | null {
+  if (!start) return null
+  const [y, m, d] = start.split('-').map(Number)
+  const s = new Date(y, m - 1, d)
+  s.setHours(0, 0, 0, 0)
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+  const days = Math.floor((today.getTime() - s.getTime()) / 86400000)
+  if (days < 0) return { month: 1, days: 0 }
+  return { month: Math.floor(days / 30) + 1, days }
+}
+
+function fmtDate(iso: string): string {
+  const [y, m, d] = iso.split('-').map(Number)
+  return new Date(y, m - 1, d).toLocaleDateString('es', { day: 'numeric', month: 'short', year: 'numeric' })
+}
+
 
 function activeAgo(iso: string): string {
   const secs = Math.floor((Date.now() - new Date(iso).getTime()) / 1000)
@@ -225,6 +248,23 @@ export default function ProjectsView({
     return <span className={`ptype ${t.cls}`} title={`Proyecto ${t.label}`}>{t.label}</span>
   }
 
+  const AgeCell = ({ p }: { p: ProjectOverview }) => {
+    const a = ageInfo(p.start_date)
+    if (!a) {
+      return (
+        <button type="button" className="proj-age-empty" onClick={() => setEditing(p)} title="Definir fecha de inicio">
+          Definir inicio
+        </button>
+      )
+    }
+    return (
+      <span className="proj-age" title={`Inicio: ${fmtDate(p.start_date!)}`}>
+        <b className="proj-age-month">Mes {a.month}</b>
+        <span className="proj-age-days">{a.days} {a.days === 1 ? 'día' : 'días'} activo</span>
+      </span>
+    )
+  }
+
   const StarBtn = ({ p }: { p: ProjectOverview }) => (
     <form action={toggleFavorite}>
       <input type="hidden" name="project_id" value={p.id} />
@@ -259,6 +299,17 @@ export default function ProjectsView({
         <span className="name">{p.name}</span>
       </Link>
       <span className="projtable-cell projtable-muted">{p.client ?? '—'}</span>
+      <span className="projtable-cell projtable-fee">
+        {p.fee != null ? (
+          <>
+            {money(p.fee, p.currency)}
+            <span className="projtable-fee-unit">{p.type === 'web' ? 'total' : '/mes'}</span>
+          </>
+        ) : (
+          <span className="projtable-muted">—</span>
+        )}
+      </span>
+      <span className="projtable-cell"><AgeCell p={p} /></span>
       <span className="projtable-cell"><ManagerCell p={p} /></span>
       <span className="projtable-cell"><TypeBadge p={p} /></span>
       <span className="projtable-cell"><StatusPill p={p} /></span>
@@ -356,6 +407,8 @@ export default function ProjectsView({
                 <span />
                 <span>Nombre</span>
                 <span>Cliente</span>
+                <span>Fee</span>
+                <span>Antigüedad</span>
                 <span>Encargado</span>
                 <span>Tipo</span>
                 <span>Estado</span>
@@ -400,6 +453,16 @@ export default function ProjectsView({
                   <option value="">Sin encargado</option>
                   {members.map((m) => <option key={m.user_id} value={m.user_id}>{memberName(m)}</option>)}
                 </select>
+                <label className="k">Fecha de inicio</label>
+                <input type="date" name="start_date" className="field" defaultValue="" />
+                <label className="k">Fee (mensual si SEO · total si Web)</label>
+                <div className="flex gap-2">
+                  <input type="number" name="fee" className="field" placeholder="0" style={{ flex: 1 }} min="0" step="any" />
+                  <select name="currency" className="field" defaultValue="COP" style={{ width: 96 }}>
+                    <option value="COP">COP</option>
+                    <option value="USD">USD</option>
+                  </select>
+                </div>
                 <textarea name="description" className="field" placeholder="Descripción (opcional)" rows={3} />
                 <label className="k">Tipo de proyecto</label>
                 <select name="type" className="field" value={createType} onChange={(e) => setCreateType(e.target.value)}>
@@ -443,6 +506,16 @@ export default function ProjectsView({
                   <option value="">Sin encargado</option>
                   {members.map((m) => <option key={m.user_id} value={m.user_id}>{memberName(m)}</option>)}
                 </select>
+                <label className="k">Fecha de inicio</label>
+                <input type="date" name="start_date" className="field" defaultValue={editing.start_date ?? ''} />
+                <label className="k">Fee (mensual si SEO · total si Web)</label>
+                <div className="flex gap-2">
+                  <input type="number" name="fee" className="field" placeholder="0" defaultValue={editing.fee ?? ''} style={{ flex: 1 }} min="0" step="any" />
+                  <select name="currency" className="field" defaultValue={editing.currency ?? 'COP'} style={{ width: 96 }}>
+                    <option value="COP">COP</option>
+                    <option value="USD">USD</option>
+                  </select>
+                </div>
                 <textarea name="description" className="field" defaultValue={editing.description ?? ''} placeholder="Descripción (opcional)" rows={3} />
                 <label className="k">Tipo de proyecto</label>
                 <select name="type" className="field" defaultValue={editing.type}>
