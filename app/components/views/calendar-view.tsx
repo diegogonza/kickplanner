@@ -28,8 +28,15 @@ function weekStartOf(d: Date): Date {
   return addDays(new Date(d.getFullYear(), d.getMonth(), d.getDate()), -dow)
 }
 
+// Tono de respaldo si un proyecto no tuviera color_hue asignado
+function hashHue(seed: string): number {
+  let h = 0
+  for (let i = 0; i < seed.length; i++) h = (h * 31 + seed.charCodeAt(i)) >>> 0
+  return h % 360
+}
+
 type Mode = 'month' | 'week'
-type CalTask = Task & { project_id?: string }
+type CalTask = Task & { project_id?: string; project_name?: string; project_hue?: number | null }
 
 export default function CalendarView({
   projectId,
@@ -37,12 +44,14 @@ export default function CalendarView({
   tasks,
   memberMap = {},
   hideDone = false,
+  groupByProject = false,
 }: {
   projectId: string
   view: string
   tasks: CalTask[]
   memberMap?: Record<string, Member>
   hideDone?: boolean
+  groupByProject?: boolean
 }) {
   const router = useRouter()
   const [, startTransition] = useTransition()
@@ -201,6 +210,50 @@ export default function CalendarView({
           const items = byDay.get(key) ?? []
           const shown = items.slice(0, maxChips)
           const extra = items.length - shown.length
+          const grouped = groupByProject && mode === 'week'
+
+          // Agrupa por proyecto (preservando el orden de aparición)
+          const groups = new Map<string, CalTask[]>()
+          if (grouped) {
+            for (const t of items) {
+              const gname = t.project_name ?? 'Proyecto'
+              const arr = groups.get(gname)
+              if (arr) arr.push(t)
+              else groups.set(gname, [t])
+            }
+          }
+
+          const renderChip = (t: CalTask) => {
+            const done = t.status === 'done'
+            const member = t.assignee_id ? memberMap[t.assignee_id] : undefined
+            const who = member ? displayName(member) : undefined
+            return (
+              <div
+                key={t.id}
+                className={`cal-chip ${done ? 'done' : ''} ${drag?.id === t.id ? 'dragging' : ''}`}
+                title={who ? `${t.title} · ${who}` : t.title}
+                onContextMenu={(e) => onContextMenu(e, { id: t.id, projectId: t.project_id ?? projectId })}
+                draggable
+                onDragStart={(e) => {
+                  setDrag({ id: t.id, pid: t.project_id })
+                  e.dataTransfer.effectAllowed = 'move'
+                  e.dataTransfer.setData('text/plain', t.id)
+                }}
+                onDragEnd={() => {
+                  setDrag(null)
+                  setOverKey(null)
+                }}
+                onClick={() => router.push(hrefFor(t))}
+              >
+                {member ? (
+                  <Avatar name={member.full_name} email={member.email} url={member.avatar_url} size={16} />
+                ) : (
+                  <span className="cal-dotmark" style={{ background: chipColor(t) }} />
+                )}
+                <span className="cal-chip-title">{t.title}</span>
+              </div>
+            )
+          }
 
           return (
             <div
@@ -215,38 +268,26 @@ export default function CalendarView({
             >
               <div className="cal-daynum">{cell.getDate()}</div>
               <div className="cal-chips">
-                {shown.map((t) => {
-                  const done = t.status === 'done'
-                  const member = t.assignee_id ? memberMap[t.assignee_id] : undefined
-                  const who = member ? displayName(member) : undefined
-                  return (
-                    <div
-                      key={t.id}
-                      className={`cal-chip ${done ? 'done' : ''} ${drag?.id === t.id ? 'dragging' : ''}`}
-                      title={who ? `${t.title} · ${who}` : t.title}
-                      onContextMenu={(e) => onContextMenu(e, { id: t.id, projectId: t.project_id ?? projectId })}
-                      draggable
-                      onDragStart={(e) => {
-                        setDrag({ id: t.id, pid: t.project_id })
-                        e.dataTransfer.effectAllowed = 'move'
-                        e.dataTransfer.setData('text/plain', t.id)
-                      }}
-                      onDragEnd={() => {
-                        setDrag(null)
-                        setOverKey(null)
-                      }}
-                      onClick={() => router.push(hrefFor(t))}
-                    >
-                      {member ? (
-                        <Avatar name={member.full_name} email={member.email} url={member.avatar_url} size={16} />
-                      ) : (
-                        <span className="cal-dotmark" style={{ background: chipColor(t) }} />
-                      )}
-                      <span className="cal-chip-title">{t.title}</span>
-                    </div>
-                  )
-                })}
-                {extra > 0 && <span className="cal-more">+{extra} más</span>}
+                {grouped ? (
+                  Array.from(groups.entries()).map(([gname, list]) => {
+                    const hue = list[0]?.project_hue ?? hashHue(gname)
+                    return (
+                      <div key={gname} className="cal-group" style={{ background: `hsl(${hue} 72% 95%)` }}>
+                        <div className="cal-group-head">
+                          <span className="cal-group-dot" style={{ background: `hsl(${hue} 58% 52%)` }} />
+                          <span className="cal-group-name" title={gname}>{gname}</span>
+                          <span className="cal-group-count">{list.length}</span>
+                        </div>
+                        {list.map(renderChip)}
+                      </div>
+                    )
+                  })
+                ) : (
+                  <>
+                    {shown.map(renderChip)}
+                    {extra > 0 && <span className="cal-more">+{extra} más</span>}
+                  </>
+                )}
               </div>
             </div>
           )

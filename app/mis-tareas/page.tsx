@@ -7,17 +7,23 @@ import CalendarView from '@/app/components/views/calendar-view'
 import type { Task } from '@/app/projects/statuses'
 
 const COLS =
-  'id, title, status, priority, due_date, parent_id, description, assignee_id, drive_url, created_at, project_id, projects(name)'
+  'id, title, status, priority, due_date, parent_id, description, assignee_id, drive_url, created_at, project_id, projects(name, color_hue)'
 
 const TABS = [
   { key: 'lista', label: 'Lista' },
   { key: 'calendario', label: 'Calendario' },
 ]
 
-function projectName(row: { projects: { name: string } | { name: string }[] | null }): string {
+type ProjRel = { name: string; color_hue: number | null } | { name: string; color_hue: number | null }[] | null
+function projectName(row: { projects: ProjRel }): string {
   const p = row.projects
   if (!p) return 'Proyecto'
   return Array.isArray(p) ? (p[0]?.name ?? 'Proyecto') : p.name
+}
+function projectHue(row: { projects: ProjRel }): number | null {
+  const p = row.projects
+  if (!p) return null
+  return (Array.isArray(p) ? p[0]?.color_hue : p.color_hue) ?? null
 }
 
 export default async function MyTasksPage({
@@ -40,12 +46,14 @@ export default async function MyTasksPage({
     .eq('assignee_id', user.id)
     .order('due_date', { ascending: true, nullsFirst: false })
 
-  const rows = (data ?? []) as unknown as (MyTask & {
-    projects: { name: string } | { name: string }[] | null
-  })[]
+  const rows = (data ?? []) as unknown as (MyTask & { projects: ProjRel })[]
 
   const listTasks: MyTask[] = rows.map((r) => ({ ...r, project_name: projectName(r) }))
-  const calTasks = rows as unknown as (Task & { project_id: string })[]
+  const calTasks = rows.map((r) => ({ ...r, project_name: projectName(r), project_hue: projectHue(r) })) as unknown as (Task & {
+    project_id: string
+    project_name: string
+    project_hue: number | null
+  })[]
   const pending = rows.filter((t) => t.status !== 'done').length
 
   return (
@@ -87,7 +95,7 @@ export default async function MyTasksPage({
               <MyTasksList tasks={listTasks} />
             </div>
           ) : (
-            <CalendarView projectId="" view="calendario" tasks={calTasks} />
+            <CalendarView projectId="" view="calendario" tasks={calTasks} groupByProject />
           )}
         </div>
       </div>
