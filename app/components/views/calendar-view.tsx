@@ -2,17 +2,13 @@
 
 import { useOptimistic, useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
-import { PRIORITIES, STATUSES, displayName, type Task, type Member } from '@/app/projects/statuses'
+import { PRIORITIES, STATUSES, displayName, parseDue, type Task, type Member } from '@/app/projects/statuses'
 import { updateDueDate } from '@/app/projects/actions'
 import Avatar from '@/app/components/avatar'
 import { useTaskContextMenu } from '@/app/components/task-context-menu'
 
 const WEEKDAYS = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom']
 
-function parseDue(s: string): Date {
-  const [y, m, d] = s.split('-').map(Number)
-  return new Date(y, m - 1, d)
-}
 function dayKey(d: Date): string {
   return `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`
 }

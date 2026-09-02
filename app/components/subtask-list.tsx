@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/utils/supabase/client'
-import { displayName, type Task, type Member } from '@/app/projects/statuses'
+import { displayName, isOverdue, type Task, type Member } from '@/app/projects/statuses'
 import Avatar from '@/app/components/avatar'
 
 export default function SubtaskList({
@@ -59,6 +59,13 @@ export default function SubtaskList({
     setAssignOpen(null)
     setItems((prev) => prev.map((t) => (t.id === id ? { ...t, assignee_id: userId } : t)))
     await supabase.rpc('set_task_assignee', { p_task_id: id, p_assignee: userId })
+    router.refresh()
+  }
+
+  const setDue = async (id: string, date: string) => {
+    const due = date || null
+    setItems((prev) => prev.map((t) => (t.id === id ? { ...t, due_date: due } : t)))
+    await supabase.from('tasks').update({ due_date: due }).eq('id', id)
     router.refresh()
   }
 
@@ -164,6 +171,16 @@ export default function SubtaskList({
                 <path d="M7 17L17 7M8 7h9v9" />
               </svg>
             </Link>
+
+            <div className={`subrow-due ${sub.due_date ? 'has-date' : ''} ${isOverdue(sub.due_date, done) ? 'overdue' : ''}`}>
+              <input
+                type="date"
+                value={sub.due_date ?? ''}
+                onChange={(e) => setDue(sub.id, e.target.value)}
+                title="Fecha de entrega"
+                aria-label="Fecha de entrega de la subtarea"
+              />
+            </div>
 
             <div className="subrow-assignee dropdown">
               <button

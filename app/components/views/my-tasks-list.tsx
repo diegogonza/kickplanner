@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
-import { type Task } from '@/app/projects/statuses'
+import { isOverdue, parseDue, type Task } from '@/app/projects/statuses'
 import { toggleComplete, deleteTask } from '@/app/projects/actions'
 import PrioritySelect from '@/app/components/priority-select'
 import DueDateInput from '@/app/components/due-date-input'
@@ -19,10 +19,6 @@ const BUCKETS: { key: BucketKey; label: string; color: string }[] = [
   { key: 'completadas', label: 'Completadas', color: 'var(--low-fg)' },
 ]
 
-function parseDue(s: string): Date {
-  const [y, m, d] = s.split('-').map(Number)
-  return new Date(y, m - 1, d)
-}
 
 const GRID = '26px minmax(0, 1fr) 150px 116px 122px 32px'
 
@@ -99,7 +95,7 @@ export default function MyTasksList({ tasks }: { tasks: MyTask[] }) {
               <div className="lrows">
                 {items.map((t) => {
                   const done = t.status === 'done'
-                  const overdue = !!t.due_date && !done && parseDue(t.due_date) < today
+                  const overdue = isOverdue(t.due_date, done)
                   return (
                     <div key={t.id} className={`lrow ${done ? 'done' : ''}`} onContextMenu={(e) => onContextMenu(e, { id: t.id, projectId: t.project_id })}>
                       <form action={toggleComplete}>

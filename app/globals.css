@@ -962,7 +962,7 @@ body {
 
 .desc-area {
   width: 100%;
-  min-height: 90px;
+  min-height: 140px;
   resize: vertical;
   background: var(--surface);
   border: 1px solid var(--border-strong);
@@ -4255,9 +4255,47 @@ a.risk-hint:hover {
   background: var(--border);
   color: var(--text);
 }
-.subrow-assignee {
+.subrow-due {
   flex: 0 0 auto;
   margin-left: auto;
+}
+.subrow-due input {
+  border: 1px solid transparent;
+  background: transparent;
+  border-radius: 6px;
+  font-family: inherit;
+  font-size: 12px;
+  color: var(--text-3);
+  padding: 3px 6px;
+  width: 134px;
+  cursor: pointer;
+  color-scheme: light;
+  opacity: 0.45;
+  transition: opacity 0.12s ease, border-color 0.12s ease;
+}
+/* Con fecha, o al pasar el cursor por la fila / enfocar: se muestra completa */
+.subrow-due.has-date input,
+.subrow:hover .subrow-due input,
+.subrow-due input:focus {
+  opacity: 1;
+}
+.subrow-due input:hover {
+  border-color: var(--border-strong);
+}
+.subrow-due input:focus {
+  outline: 0;
+  border-color: var(--brand-400);
+  box-shadow: 0 0 0 2px var(--brand-100);
+  color: var(--text-2);
+}
+.subrow-due.has-date input {
+  color: var(--text-2);
+}
+.subrow-due.overdue input {
+  color: var(--urgent-fg);
+}
+.subrow-assignee {
+  flex: 0 0 auto;
   position: relative;
 }
 .subrow-assignee-btn {

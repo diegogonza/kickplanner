@@ -366,6 +366,7 @@ export default async function ProjectPage({
       {panelTask && (
         <TaskPanel closeHref={closeHref}>
           <TaskDetail
+            key={panelTask.id}
             task={panelTask}
             subtasks={subtasks}
             tags={panelTags}

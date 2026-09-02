@@ -2,18 +2,13 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
-import { STATUSES, type Task, type Member } from '@/app/projects/statuses'
+import { STATUSES, isOverdue, type Task, type Member } from '@/app/projects/statuses'
 import { toggleComplete, deleteTask, createTask } from '@/app/projects/actions'
 import AddTaskRow from '@/app/components/add-task-row'
 import AssigneeSelect from '@/app/components/assignee-select'
 import PrioritySelect from '@/app/components/priority-select'
 import DueDateInput from '@/app/components/due-date-input'
 import { useTaskContextMenu } from '@/app/components/task-context-menu'
-
-function parseDue(s: string): Date {
-  const [y, m, d] = s.split('-').map(Number)
-  return new Date(y, m - 1, d)
-}
 
 export default function ListView({
   projectId,
@@ -54,9 +49,6 @@ export default function ListView({
 
   const hrefFor = (id: string) => `/projects/${projectId}?view=${view}${hideDone ? '&hide=done' : ''}&task=${id}`
 
-  const today = new Date()
-  today.setHours(0, 0, 0, 0)
-
   // Fila de tarea reutilizada por el modo normal y el modo "vencidas".
   const TaskRow = ({
     task,
@@ -72,7 +64,7 @@ export default function ListView({
     subs?: number
   }) => {
     const done = task.status === 'done'
-    const overdue = !!task.due_date && !done && parseDue(task.due_date) < today
+    const overdue = isOverdue(task.due_date, done)
     return (
       <div className={`lrow ${done ? 'done' : ''}`} onContextMenu={(e) => onContextMenu(e, { id: task.id, projectId })}>
         {/* 1. Check */}

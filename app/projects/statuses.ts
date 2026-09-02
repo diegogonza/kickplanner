@@ -33,6 +33,21 @@ export function displayName(m: { full_name?: string | null; email: string }): st
 // Acceso a la sección de Pagos: por ahora solo Diego González
 export const FINANCE_USER_ID = 'e676f0e8-5e19-4db2-8295-01974d3ced39'
 
+// ---------- Fechas ----------
+// Fecha de hoy en formato YYYY-MM-DD (UTC, coherente con current_date de la BD)
+export function todayISO(): string {
+  return new Date().toISOString().slice(0, 10)
+}
+// Convierte 'YYYY-MM-DD' a Date local (para cálculos de calendario)
+export function parseDue(iso: string): Date {
+  const [y, m, d] = iso.split('-').map(Number)
+  return new Date(y, m - 1, d)
+}
+// ¿La tarea está vencida? (tiene fecha, no está hecha y venció antes de hoy)
+export function isOverdue(due: string | null, done: boolean): boolean {
+  return !!due && !done && due < todayISO()
+}
+
 // Formato de moneda (COP/USD), sin decimales
 export function money(amount: number, currency: string): string {
   try {
