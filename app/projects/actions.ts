@@ -22,6 +22,7 @@ export async function createProject(formData: FormData) {
   const startDate = (formData.get('start_date') as string) || null
   const fee = formData.get('fee') ? Number(formData.get('fee')) : null
   const currency = (formData.get('currency') as string) || 'COP'
+  const url = ((formData.get('url') as string) ?? '').trim() || null
 
   const supabase = await createClient()
   const { data: newId, error } = await supabase.rpc('create_project', { p_name: name })
@@ -29,7 +30,7 @@ export async function createProject(formData: FormData) {
     console.error('createProject:', error?.message)
     return
   }
-  await supabase.from('projects').update({ client_id: clientId, description, type, manager_id: managerId, start_date: startDate, fee, currency }).eq('id', newId)
+  await supabase.from('projects').update({ client_id: clientId, description, type, manager_id: managerId, start_date: startDate, fee, currency, url }).eq('id', newId)
   // Fija el estado inicial y lo registra en el historial (sin nota)
   await supabase.rpc('set_project_status', {
     p_project_id: newId,
@@ -61,11 +62,12 @@ export async function updateProject(formData: FormData) {
   const startDate = (formData.get('start_date') as string) || null
   const fee = formData.get('fee') ? Number(formData.get('fee')) : null
   const currency = (formData.get('currency') as string) || 'COP'
+  const url = ((formData.get('url') as string) ?? '').trim() || null
 
   const supabase = await createClient()
   await supabase
     .from('projects')
-    .update({ name, client_id: clientId, description, manager_id: managerId, start_date: startDate, fee, currency, ...(type ? { type } : {}) })
+    .update({ name, client_id: clientId, description, manager_id: managerId, start_date: startDate, fee, currency, url, ...(type ? { type } : {}) })
     .eq('id', id)
   // Si cambió el estado desde el modal de edición, se registra en el historial
   if (status) {
@@ -73,6 +75,18 @@ export async function updateProject(formData: FormData) {
   }
   revalidatePath('/')
   revalidatePath('/panel')
+  revalidatePath(`/projects/${id}`)
+}
+
+// Edición en línea de la URL del proyecto (desde la tabla de Proyectos)
+export async function setProjectUrl(formData: FormData) {
+  const id = formData.get('id') as string
+  if (!id) return
+  const url = ((formData.get('url') as string) ?? '').trim() || null
+
+  const supabase = await createClient()
+  await supabase.from('projects').update({ url }).eq('id', id)
+  revalidatePath('/')
   revalidatePath(`/projects/${id}`)
 }
 

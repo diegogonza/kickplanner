@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation'
 import { createClient } from '@/utils/supabase/server'
 import Sidebar from './components/sidebar'
 import ProjectsView, { type ProjectOverview } from './components/projects-view'
+import NewProjectTrigger from './components/new-project-trigger'
 
 export default async function Home({
   searchParams,
@@ -43,6 +44,7 @@ export default async function Home({
               <span className="count-badge">{projects.length}</span>
             </h1>
           </div>
+          <NewProjectTrigger />
         </header>
 
         <div className="flex-1 overflow-y-auto px-6 py-6">

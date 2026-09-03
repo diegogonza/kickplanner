@@ -1,12 +1,13 @@
 'use client'
 
-import { Fragment, useMemo, useState } from 'react'
+import { Fragment, useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import {
   createProject,
   updateProject,
   setProjectStatus,
   setProjectManager,
+  setProjectUrl,
   toggleFavorite,
   deleteProject,
 } from '@/app/projects/actions'
@@ -39,11 +40,20 @@ export type ProjectOverview = {
   start_date: string | null
   fee: number | null
   currency: string
+  url: string | null
 }
 
 type Member = { user_id: string; email: string; full_name: string | null; avatar_url: string | null }
 
 const memberName = (m: Member) => m.full_name?.trim() || m.email
+
+// Paleta pastel (tintes suaves) para las píldoras de estado
+const STATUS_PASTEL: Record<string, { bg: string; fg: string }> = {
+  upcoming: { bg: '#E6F1FB', fg: '#0C447C' },
+  on_track: { bg: '#E1F5EE', fg: '#0F6E56' },
+  at_risk: { bg: '#FAEEDA', fg: '#854F0B' },
+  on_hold: { bg: '#ECEEF2', fg: '#444441' },
+}
 
 // Antigüedad del cliente: días activo y "mes" del contrato (bloques de 30 días)
 function ageInfo(start: string | null): { month: number; days: number } | null {
@@ -104,18 +114,33 @@ export default function ProjectsView({
   const [statusOpen, setStatusOpen] = useState<string | null>(null)
   const [managerOpen, setManagerOpen] = useState<string | null>(null)
   const [groupBy, setGroupBy] = useState(false)
+  const [advancedOpen, setAdvancedOpen] = useState(false)
+
+  // El botón "Iniciar un nuevo proyecto" vive en el header y abre este modal por evento
+  useEffect(() => {
+    const open = () => setCreateOpen(true)
+    window.addEventListener('open-new-project', open)
+    return () => window.removeEventListener('open-new-project', open)
+  }, [])
 
   // Filtros por columna (estilo data table), aplicados en cliente
   const [fName, setFName] = useState('')
   const [fClient, setFClient] = useState('')
   const [fManager, setFManager] = useState('')
   const [fType, setFType] = useState('')
-  const [fStatus, setFStatus] = useState('')
+  const [statusSel, setStatusSel] = useState<Set<string>>(new Set())
   const [fOverdue, setFOverdue] = useState('')
 
-  const anyFilter = !!(fName.trim() || fClient || fManager || fType || fStatus || fOverdue)
+  const toggleStatus = (key: string) =>
+    setStatusSel((prev) => {
+      const n = new Set(prev)
+      n.has(key) ? n.delete(key) : n.add(key)
+      return n
+    })
+
+  const anyFilter = !!(fName.trim() || fClient || fManager || fType || statusSel.size > 0 || fOverdue)
   const clearFilters = () => {
-    setFName(''); setFClient(''); setFManager(''); setFType(''); setFStatus(''); setFOverdue('')
+    setFName(''); setFClient(''); setFManager(''); setFType(''); setStatusSel(new Set()); setFOverdue('')
   }
 
   const filtered = useMemo(() => {
@@ -129,12 +154,27 @@ export default function ProjectsView({
         if (fManager === '__none__' ? p.manager_id != null : p.manager_id !== fManager) return false
       }
       if (fType && p.type !== fType) return false
-      if (fStatus && p.status !== fStatus) return false
+      if (statusSel.size > 0 && !statusSel.has(p.status)) return false
       if (fOverdue === 'with' && !(p.overdue > 0)) return false
       if (fOverdue === 'without' && p.overdue > 0) return false
       return true
     })
-  }, [projects, fName, fClient, fManager, fType, fStatus, fOverdue])
+  }, [projects, fName, fClient, fManager, fType, statusSel, fOverdue])
+
+  // Base para el conteo de las píldoras: todo menos el filtro de estado
+  const baseForCounts = useMemo(() => {
+    const q = fName.trim().toLowerCase()
+    return projects.filter((p) => {
+      if (q && !p.name.toLowerCase().includes(q)) return false
+      if (fClient) { if (fClient === '__none__' ? p.client_id != null : p.client_id !== fClient) return false }
+      if (fManager) { if (fManager === '__none__' ? p.manager_id != null : p.manager_id !== fManager) return false }
+      if (fType && p.type !== fType) return false
+      if (fOverdue === 'with' && !(p.overdue > 0)) return false
+      if (fOverdue === 'without' && p.overdue > 0) return false
+      return true
+    })
+  }, [projects, fName, fClient, fManager, fType, fOverdue])
+  const statusCount = (key: string) => (key === '' ? baseForCounts.length : baseForCounts.filter((p) => p.status === key).length)
 
   // Agrupa por encargado (respetando el orden original dentro de cada grupo)
   const groups = useMemo(() => {
@@ -248,6 +288,33 @@ export default function ProjectsView({
     return <span className={`ptype ${t.cls}`} title={`Proyecto ${t.label}`}>{t.label}</span>
   }
 
+  const UrlCell = ({ p }: { p: ProjectOverview }) => (
+    <form action={setProjectUrl} className="proj-url">
+      <input type="hidden" name="id" value={p.id} />
+      <input
+        name="url"
+        defaultValue={p.url ?? ''}
+        placeholder="Agregar URL…"
+        className="proj-url-input"
+        autoComplete="off"
+        onBlur={(e) => e.currentTarget.form?.requestSubmit()}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter') {
+            e.preventDefault()
+            e.currentTarget.blur()
+          }
+        }}
+      />
+      {p.url && (
+        <a href={p.url} target="_blank" rel="noopener noreferrer" className="proj-url-open" title="Abrir en pestaña nueva">
+          <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6M15 3h6v6M10 14L21 3" />
+          </svg>
+        </a>
+      )}
+    </form>
+  )
+
   const AgeCell = ({ p }: { p: ProjectOverview }) => {
     const a = ageInfo(p.start_date)
     if (!a) {
@@ -299,6 +366,7 @@ export default function ProjectsView({
         <span className="name">{p.name}</span>
       </Link>
       <span className="projtable-cell projtable-muted">{p.client ?? '—'}</span>
+      <span className="projtable-cell"><UrlCell p={p} /></span>
       <span className="projtable-cell projtable-fee">
         {p.fee != null ? (
           <>
@@ -323,25 +391,6 @@ export default function ProjectsView({
 
   return (
     <div>
-      {/* Toolbar */}
-      <div className="proj-toolbar">
-        <button type="button" className="btn btn-primary" onClick={() => setCreateOpen(true)}>
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 5v14M5 12h14" /></svg>
-          Iniciar un nuevo proyecto
-        </button>
-        <button
-          type="button"
-          className={`btn btn-outline proj-groupbtn ${groupBy ? 'on' : ''}`}
-          onClick={() => setGroupBy((v) => !v)}
-          title="Agrupar proyectos por encargado"
-        >
-          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01" />
-          </svg>
-          {groupBy ? 'Sin agrupar' : 'Agrupar por encargado'}
-        </button>
-      </div>
-
       {projects.length === 0 ? (
         <div className="card text-center" style={{ padding: 'var(--space-10)' }}>
           <p className="card-title mb-1">Aún no tienes proyectos</p>
@@ -349,7 +398,7 @@ export default function ProjectsView({
         </div>
       ) : (
         <>
-          {/* Barra de filtros por columna (data table) */}
+          {/* Barra de filtros: buscador + Advanced Search + píldoras de estado */}
           <div className="projfilters">
             <div className="projfilter projfilter-search">
               <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -358,43 +407,87 @@ export default function ProjectsView({
               <input
                 value={fName}
                 onChange={(e) => setFName(e.target.value)}
-                placeholder="Buscar por nombre…"
+                placeholder="Buscar proyectos…"
                 autoComplete="off"
               />
             </div>
-            <select className="projfilter-sel" value={fClient} onChange={(e) => setFClient(e.target.value)} title="Cliente">
-              <option value="">Cliente: todos</option>
-              {clients.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
-              <option value="__none__">Sin cliente</option>
-            </select>
-            <select className="projfilter-sel" value={fManager} onChange={(e) => setFManager(e.target.value)} title="Encargado">
-              <option value="">Encargado: todos</option>
-              {members.map((m) => <option key={m.user_id} value={m.user_id}>{memberName(m)}</option>)}
-              <option value="__none__">Sin encargado</option>
-            </select>
-            <select className="projfilter-sel" value={fType} onChange={(e) => setFType(e.target.value)} title="Tipo">
-              <option value="">Tipo: todos</option>
-              {PROJECT_TYPES.map((t) => <option key={t.key} value={t.key}>{t.label}</option>)}
-            </select>
-            <select className="projfilter-sel" value={fStatus} onChange={(e) => setFStatus(e.target.value)} title="Estado">
-              <option value="">Estado: todos</option>
-              {STATUSES.map((s) => <option key={s.key} value={s.key}>{s.label}</option>)}
-            </select>
-            <select className="projfilter-sel" value={fOverdue} onChange={(e) => setFOverdue(e.target.value)} title="Vencidas">
-              <option value="">Vencidas: todas</option>
-              <option value="with">Con vencidas</option>
-              <option value="without">Sin vencidas</option>
-            </select>
-            {anyFilter && (
-              <button type="button" className="projfilter-clear" onClick={clearFilters}>
-                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6L6 18M6 6l12 12" /></svg>
-                Limpiar
+            <button
+              type="button"
+              className={`proj-advanced-toggle ${advancedOpen || fClient || fManager || fType || fOverdue ? 'on' : ''}`}
+              onClick={() => setAdvancedOpen((o) => !o)}
+            >
+              Advanced Search
+            </button>
+
+            <div className="proj-pills">
+              <button
+                type="button"
+                className={`proj-pill proj-pill-all ${statusSel.size === 0 ? 'on' : ''}`}
+                onClick={() => setStatusSel(new Set())}
+                title="Ver todos los estados"
+              >
+                Todos <span className="proj-pill-count">{statusCount('')}</span>
               </button>
-            )}
-            <span className="projfilter-count">
-              {filtered.length} de {projects.length}
-            </span>
+              {STATUSES.map((s) => {
+                const pastel = STATUS_PASTEL[s.key] ?? { bg: '#ECEEF2', fg: '#444441' }
+                return (
+                  <button
+                    key={s.key}
+                    type="button"
+                    className={`proj-pill ${statusSel.has(s.key) ? 'on' : ''}`}
+                    style={{ background: pastel.bg, color: pastel.fg }}
+                    onClick={() => toggleStatus(s.key)}
+                    aria-pressed={statusSel.has(s.key)}
+                  >
+                    {s.label} <span className="proj-pill-count">{statusCount(s.key)}</span>
+                  </button>
+                )
+              })}
+              <button
+                type="button"
+                className={`proj-groupbtn ${groupBy ? 'on' : ''}`}
+                onClick={() => setGroupBy((v) => !v)}
+                title="Agrupar proyectos por encargado"
+              >
+                <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01" />
+                </svg>
+                {groupBy ? 'Sin agrupar' : 'Agrupar por encargado'}
+              </button>
+            </div>
           </div>
+
+          {/* Filtros avanzados (se despliegan con Advanced Search) */}
+          {advancedOpen && (
+            <div className="projfilters proj-advanced">
+              <select className="projfilter-sel" value={fClient} onChange={(e) => setFClient(e.target.value)} title="Cliente">
+                <option value="">Cliente: todos</option>
+                {clients.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+                <option value="__none__">Sin cliente</option>
+              </select>
+              <select className="projfilter-sel" value={fManager} onChange={(e) => setFManager(e.target.value)} title="Encargado">
+                <option value="">Encargado: todos</option>
+                {members.map((m) => <option key={m.user_id} value={m.user_id}>{memberName(m)}</option>)}
+                <option value="__none__">Sin encargado</option>
+              </select>
+              <select className="projfilter-sel" value={fType} onChange={(e) => setFType(e.target.value)} title="Tipo">
+                <option value="">Tipo: todos</option>
+                {PROJECT_TYPES.map((t) => <option key={t.key} value={t.key}>{t.label}</option>)}
+              </select>
+              <select className="projfilter-sel" value={fOverdue} onChange={(e) => setFOverdue(e.target.value)} title="Vencidas">
+                <option value="">Vencidas: todas</option>
+                <option value="with">Con vencidas</option>
+                <option value="without">Sin vencidas</option>
+              </select>
+              {anyFilter && (
+                <button type="button" className="projfilter-clear" onClick={clearFilters}>
+                  <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6L6 18M6 6l12 12" /></svg>
+                  Limpiar
+                </button>
+              )}
+              <span className="projfilter-count">{filtered.length} de {projects.length}</span>
+            </div>
+          )}
 
           {filtered.length === 0 ? (
             <div className="card text-center" style={{ padding: 'var(--space-8)' }}>
@@ -407,6 +500,7 @@ export default function ProjectsView({
                 <span />
                 <span>Nombre</span>
                 <span>Cliente</span>
+                <span>URL</span>
                 <span>Fee</span>
                 <span>Antigüedad</span>
                 <span>Encargado</span>
@@ -463,6 +557,8 @@ export default function ProjectsView({
                     <option value="USD">USD</option>
                   </select>
                 </div>
+                <label className="k">URL del proyecto</label>
+                <input name="url" className="field" placeholder="https://…" autoComplete="off" />
                 <textarea name="description" className="field" placeholder="Descripción (opcional)" rows={3} />
                 <label className="k">Tipo de proyecto</label>
                 <select name="type" className="field" value={createType} onChange={(e) => setCreateType(e.target.value)}>
@@ -516,6 +612,8 @@ export default function ProjectsView({
                     <option value="USD">USD</option>
                   </select>
                 </div>
+                <label className="k">URL del proyecto</label>
+                <input name="url" className="field" placeholder="https://…" defaultValue={editing.url ?? ''} autoComplete="off" />
                 <textarea name="description" className="field" defaultValue={editing.description ?? ''} placeholder="Descripción (opcional)" rows={3} />
                 <label className="k">Tipo de proyecto</label>
                 <select name="type" className="field" defaultValue={editing.type}>
