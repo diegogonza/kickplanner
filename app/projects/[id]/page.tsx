@@ -317,7 +317,7 @@ export default async function ProjectPage({
           </Link>
         </div>
 
-        <div className="flex-1 overflow-y-auto px-6 py-6">
+        <div className="viewscroll flex-1 overflow-y-auto px-6">
           {active === 'resumen' && <Overview tasks={list} />}
           {active === 'lista' && (
             <ListView

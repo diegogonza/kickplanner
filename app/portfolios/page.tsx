@@ -36,7 +36,7 @@ export default async function PortfoliosPage() {
           <NewPortfolioButton />
         </header>
 
-        <div className="flex-1 overflow-y-auto px-6 py-6">
+        <div className="viewscroll flex-1 overflow-y-auto px-6">
           <div className="w-full">
             {list.length === 0 ? (
               <div className="card text-center" style={{ padding: 'var(--space-10)' }}>

@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation'
 import { createClient } from '@/utils/supabase/server'
 import Sidebar from '@/app/components/sidebar'
 import Avatar from '@/app/components/avatar'
+import StickyTable from '@/app/components/sticky-table'
 import { displayName } from '@/app/projects/statuses'
 
 type SearchTask = {
@@ -177,7 +178,7 @@ export default async function SearchPage({
           </div>
         )}
 
-        <div className="flex-1 overflow-y-auto px-6 py-6">
+        <div className="viewscroll flex-1 overflow-y-auto px-6">
           <div className="w-full">
             {tasks.length === 0 ? (
               <div className="card text-center" style={{ padding: 'var(--space-10)' }}>
@@ -185,7 +186,7 @@ export default async function SearchPage({
                 <p className="card-desc">No encontramos tareas que coincidan con tu búsqueda.</p>
               </div>
             ) : (
-                <div className="ltable" style={{ ['--lt-grid' as string]: GRID }}>
+                <StickyTable className="ltable" style={{ ['--lt-grid' as string]: GRID }}>
                   <div className="lt-head">
                     <span aria-hidden />
                     <span>Nombre de la tarea</span>
@@ -237,7 +238,7 @@ export default async function SearchPage({
                       </div>
                     </div>
                   ))}
-                </div>
+                </StickyTable>
             )}
           </div>
         </div>

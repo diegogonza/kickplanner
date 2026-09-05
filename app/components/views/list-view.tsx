@@ -9,6 +9,7 @@ import AssigneeSelect from '@/app/components/assignee-select'
 import PrioritySelect from '@/app/components/priority-select'
 import DueDateInput from '@/app/components/due-date-input'
 import { useTaskContextMenu } from '@/app/components/task-context-menu'
+import { useStickyHead } from '@/app/components/use-sticky-head'
 
 export default function ListView({
   projectId,
@@ -38,6 +39,7 @@ export default function ListView({
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set())
   const [expanded, setExpanded] = useState<Set<string>>(new Set())
   const { onContextMenu, menu } = useTaskContextMenu()
+  const { sentinelRef, stuckClass } = useStickyHead()
 
   const toggleSet = (setter: typeof setCollapsed, key: string) =>
     setter((prev) => {
@@ -137,6 +139,9 @@ export default function ListView({
     )
   }
 
+  // Ojo: `Head` se redefine en cada render, así que React desmonta y remonta su
+  // subárbol. El centinela NO puede vivir acá dentro (el ref se dispararía con
+  // null/nodo en bucle); va suelto en el contenedor .ltable.
   const Head = () => (
     <div className="lt-head">
       <span aria-hidden />
@@ -151,11 +156,12 @@ export default function ListView({
   // Modo "vencidas": lista plana de todas las tareas vencidas (incl. subtareas)
   if (overdueOnly) {
     return (
-      <div className="ltable">
+      <div className={`ltable ${stuckClass}`}>
         <div className="filter-bar">
           <span>Filtrado por <b>tareas vencidas</b> · {overdueTasks.length}</span>
           <Link href={clearOverdueHref} className="filter-clear">Quitar filtro</Link>
         </div>
+        <div ref={sentinelRef} className="sticky-sentinel" aria-hidden="true" />
         <Head />
         <div className="lgroup">
           <div className="lrows">
@@ -179,7 +185,8 @@ export default function ListView({
   }
 
   return (
-    <div className="ltable">
+    <div className={`ltable ${stuckClass}`}>
+      <div ref={sentinelRef} className="sticky-sentinel" aria-hidden="true" />
       <Head />
 
       {STATUSES.map((section) => {

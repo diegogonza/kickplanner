@@ -1,13 +1,13 @@
 'use client'
 
 import { Fragment, useEffect, useMemo, useState } from 'react'
+import { useStickyHead } from './use-sticky-head'
 import Link from 'next/link'
 import {
   createProject,
   updateProject,
   setProjectStatus,
   setProjectManager,
-  setProjectUrl,
   toggleFavorite,
   deleteProject,
 } from '@/app/projects/actions'
@@ -17,6 +17,7 @@ import {
   PROJECT_TYPES,
   projectTypeOf,
   money,
+  moneyCompact,
 } from '@/app/projects/statuses'
 import Avatar from '@/app/components/avatar'
 
@@ -54,6 +55,28 @@ const STATUS_PASTEL: Record<string, { bg: string; fg: string }> = {
   at_risk: { bg: '#FAEEDA', fg: '#854F0B' },
   on_hold: { bg: '#ECEEF2', fg: '#444441' },
 }
+
+// Pasos del asistente de creación de proyecto
+const CREATE_STEPS = [
+  {
+    key: 'basico',
+    label: 'Lo esencial',
+    title: 'Empecemos por lo básico',
+    desc: 'Cómo se llama el proyecto, para quién es y quién lo lidera.',
+  },
+  {
+    key: 'comercial',
+    label: 'Términos',
+    title: 'Condiciones comerciales',
+    desc: 'Cuándo arranca, cuánto vale y dónde vive el sitio.',
+  },
+  {
+    key: 'config',
+    label: 'Puesta en marcha',
+    title: 'Listo para arrancar',
+    desc: 'Plantilla de tareas, estado inicial y notas del arranque.',
+  },
+]
 
 // Antigüedad del cliente: días activo y "mes" del contrato (bloques de 30 días)
 function ageInfo(start: string | null): { month: number; days: number } | null {
@@ -109,6 +132,21 @@ export default function ProjectsView({
   const [createType, setCreateType] = useState('seo')
   const tplFor = (type: string) => templates.filter((t) => t.type === type || t.type === 'general')
   const [createOpen, setCreateOpen] = useState(false)
+  const [step, setStep] = useState(0)
+  const [createName, setCreateName] = useState('')
+  const isLastStep = step === CREATE_STEPS.length - 1
+  // Solo el nombre es obligatorio; validamos a mano porque los pasos ocultos
+  // romperían la validación nativa de HTML (campos required no enfocables).
+  const canAdvance = step !== 0 || createName.trim().length > 0
+  const closeCreate = () => {
+    setCreateOpen(false)
+    setStep(0)
+    setCreateName('')
+    setCreateType('seo')
+  }
+  const goNext = () => {
+    if (canAdvance && !isLastStep) setStep((s) => s + 1)
+  }
   const [editing, setEditing] = useState<ProjectOverview | null>(null)
   const [menuOpen, setMenuOpen] = useState<string | null>(null)
   const [statusOpen, setStatusOpen] = useState<string | null>(null)
@@ -118,7 +156,11 @@ export default function ProjectsView({
 
   // El botón "Iniciar un nuevo proyecto" vive en el header y abre este modal por evento
   useEffect(() => {
-    const open = () => setCreateOpen(true)
+    const open = () => {
+      setStep(0)
+      setCreateName('')
+      setCreateOpen(true)
+    }
     window.addEventListener('open-new-project', open)
     return () => window.removeEventListener('open-new-project', open)
   }, [])
@@ -176,6 +218,8 @@ export default function ProjectsView({
   }, [projects, fName, fClient, fManager, fType, fOverdue])
   const statusCount = (key: string) => (key === '' ? baseForCounts.length : baseForCounts.filter((p) => p.status === key).length)
 
+  const { sentinelRef, stuckClass } = useStickyHead()
+
   // Agrupa por encargado (respetando el orden original dentro de cada grupo)
   const groups = useMemo(() => {
     const map = new Map<string, { key: string; name: string; avatar: string | null; items: ProjectOverview[] }>()
@@ -232,14 +276,10 @@ export default function ProjectsView({
         title={p.manager ? `Encargado: ${p.manager}` : 'Sin encargado'}
       >
         {p.manager_id ? (
-          <>
-            <Avatar name={p.manager} url={p.manager_avatar} size={22} />
-            <span className="proj-manager-name">{p.manager}</span>
-          </>
+          <Avatar name={p.manager} url={p.manager_avatar} size={26} />
         ) : (
           <span className="proj-manager-none">
             <span className="proj-manager-dot" />
-            Sin encargado
           </span>
         )}
       </button>
@@ -274,12 +314,16 @@ export default function ProjectsView({
 
   const RiskHint = ({ p }: { p: ProjectOverview }) =>
     p.overdue > 0 ? (
-      <Link className="risk-hint" href={`/projects/${p.id}?view=lista&overdue=1`} title="Ver las tareas vencidas de este proyecto">
+      <Link
+        className="risk-hint"
+        href={`/projects/${p.id}?view=lista&overdue=1`}
+        title={`${p.overdue} ${p.overdue === 1 ? 'tarea vencida' : 'tareas vencidas'} · ver`}
+      >
         <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
           <path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
           <path d="M12 9v4M12 17h.01" />
         </svg>
-        {p.overdue} {p.overdue === 1 ? 'tarea vencida' : 'tareas vencidas'}
+        {p.overdue}
       </Link>
     ) : null
 
@@ -288,32 +332,27 @@ export default function ProjectsView({
     return <span className={`ptype ${t.cls}`} title={`Proyecto ${t.label}`}>{t.label}</span>
   }
 
-  const UrlCell = ({ p }: { p: ProjectOverview }) => (
-    <form action={setProjectUrl} className="proj-url">
-      <input type="hidden" name="id" value={p.id} />
-      <input
-        name="url"
-        defaultValue={p.url ?? ''}
-        placeholder="Agregar URL…"
-        className="proj-url-input"
-        autoComplete="off"
-        onBlur={(e) => e.currentTarget.form?.requestSubmit()}
-        onKeyDown={(e) => {
-          if (e.key === 'Enter') {
-            e.preventDefault()
-            e.currentTarget.blur()
-          }
-        }}
-      />
-      {p.url && (
-        <a href={p.url} target="_blank" rel="noopener noreferrer" className="proj-url-open" title="Abrir en pestaña nueva">
-          <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6M15 3h6v6M10 14L21 3" />
-          </svg>
-        </a>
-      )}
-    </form>
-  )
+  const UrlCell = ({ p }: { p: ProjectOverview }) =>
+    p.url ? (
+      <a href={p.url} target="_blank" rel="noopener noreferrer" className="proj-url-icon" title={`Abrir ${p.url}`}>
+        <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6M15 3h6v6M10 14L21 3" />
+        </svg>
+      </a>
+    ) : (
+      <button
+        type="button"
+        className="proj-url-icon none"
+        onClick={() => setEditing(p)}
+        title="Sin web definida · clic para agregarla"
+      >
+        <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <circle cx="12" cy="12" r="9" />
+          <path d="M3.6 9h16.8M3.6 15h16.8M12 3a15 15 0 0 1 0 18M12 3a15 15 0 0 0 0 18" />
+          <path d="M4 4l16 16" />
+        </svg>
+      </button>
+    )
 
   const AgeCell = ({ p }: { p: ProjectOverview }) => {
     const a = ageInfo(p.start_date)
@@ -362,15 +401,18 @@ export default function ProjectsView({
   const Row = ({ p }: { p: ProjectOverview }) => (
     <div className="projtable-row">
       <StarBtn p={p} />
+      <span className="projtable-cell"><UrlCell p={p} /></span>
       <Link href={`/projects/${p.id}`} className="projtable-name">
         <span className="name">{p.name}</span>
       </Link>
       <span className="projtable-cell projtable-muted">{p.client ?? '—'}</span>
-      <span className="projtable-cell"><UrlCell p={p} /></span>
-      <span className="projtable-cell projtable-fee">
+      <span
+        className="projtable-cell projtable-fee"
+        title={p.fee != null ? `${money(p.fee, p.currency)} ${p.type === 'web' ? 'total' : '/ mes'}` : undefined}
+      >
         {p.fee != null ? (
           <>
-            {money(p.fee, p.currency)}
+            {moneyCompact(p.fee, p.currency)}
             <span className="projtable-fee-unit">{p.type === 'web' ? 'total' : '/mes'}</span>
           </>
         ) : (
@@ -378,7 +420,7 @@ export default function ProjectsView({
         )}
       </span>
       <span className="projtable-cell"><AgeCell p={p} /></span>
-      <span className="projtable-cell"><ManagerCell p={p} /></span>
+      <span className="projtable-cell projtable-center"><ManagerCell p={p} /></span>
       <span className="projtable-cell"><TypeBadge p={p} /></span>
       <span className="projtable-cell"><StatusPill p={p} /></span>
       <span className="projtable-cell">
@@ -495,15 +537,16 @@ export default function ProjectsView({
               <p className="card-desc">Ningún proyecto coincide con los filtros. <button type="button" className="linklike" onClick={clearFilters}>Limpiar filtros</button></p>
             </div>
           ) : (
-            <div className="projtable">
+            <div className={`projtable ${stuckClass}`}>
+              <div ref={sentinelRef} className="sticky-sentinel" aria-hidden="true" />
               <div className="projtable-head">
+                <span />
                 <span />
                 <span>Nombre</span>
                 <span>Cliente</span>
-                <span>URL</span>
                 <span>Fee</span>
                 <span>Antigüedad</span>
-                <span>Encargado</span>
+                <span className="projtable-center">Encargado</span>
                 <span>Tipo</span>
                 <span>Estado</span>
                 <span>Vencidas</span>
@@ -528,55 +571,158 @@ export default function ProjectsView({
         </>
       )}
 
-      {/* Modal crear */}
+      {/* Modal crear: asistente en 3 pasos.
+          Todos los campos siguen montados (solo se ocultan con [hidden]) para que
+          el FormData del submit final llegue completo. */}
       {createOpen && (
-        <div className="modal-overlay" onClick={() => setCreateOpen(false)}>
-          <div className="modal" role="dialog" aria-modal="true" onClick={(e) => e.stopPropagation()}>
-            <h2>Crear proyecto</h2>
-            <p className="modal-sub">Datos básicos del proyecto.</p>
-            <form action={async (fd) => { await createProject(fd); setCreateOpen(false) }}>
-              <div className="flex flex-col gap-3">
-                <input name="name" className="field" placeholder="Nombre del proyecto" autoFocus autoComplete="off" required />
-                <label className="k">Cliente</label>
-                <select name="client_id" className="field" defaultValue="">
-                  <option value="">Sin cliente</option>
-                  {clients.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
-                </select>
-                <label className="k">Encargado</label>
-                <select name="manager_id" className="field" defaultValue="">
-                  <option value="">Sin encargado</option>
-                  {members.map((m) => <option key={m.user_id} value={m.user_id}>{memberName(m)}</option>)}
-                </select>
-                <label className="k">Fecha de inicio</label>
-                <input type="date" name="start_date" className="field" defaultValue="" />
-                <label className="k">Fee (mensual si SEO · total si Web)</label>
-                <div className="flex gap-2">
-                  <input type="number" name="fee" className="field" placeholder="0" style={{ flex: 1 }} min="0" step="any" />
-                  <select name="currency" className="field" defaultValue="COP" style={{ width: 96 }}>
-                    <option value="COP">COP</option>
-                    <option value="USD">USD</option>
-                  </select>
-                </div>
-                <label className="k">URL del proyecto</label>
-                <input name="url" className="field" placeholder="https://…" autoComplete="off" />
-                <textarea name="description" className="field" placeholder="Descripción (opcional)" rows={3} />
-                <label className="k">Tipo de proyecto</label>
-                <select name="type" className="field" value={createType} onChange={(e) => setCreateType(e.target.value)}>
-                  {PROJECT_TYPES.map((t) => <option key={t.key} value={t.key}>{t.label}</option>)}
-                </select>
-                <label className="k">Plantilla (opcional)</label>
-                <select name="template_id" className="field" defaultValue="" key={createType}>
-                  <option value="">Sin plantilla</option>
-                  {tplFor(createType).map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}
-                </select>
-                <label className="k">Estado</label>
-                <select name="status" className="field" defaultValue="upcoming">
-                  {STATUSES.map((s) => <option key={s.key} value={s.key}>{s.label}</option>)}
-                </select>
+        <div className="modal-overlay" onClick={closeCreate}>
+          <div className="modal wizard" role="dialog" aria-modal="true" onClick={(e) => e.stopPropagation()}>
+            <aside className="wizard-aside">
+              <div className="wizard-glow" />
+              <div className="wizard-aside-inner">
+                <span className="wizard-kicker">Nuevo proyecto</span>
+                <h2 className="wizard-headline">{CREATE_STEPS[step].title}</h2>
+                <p className="wizard-desc">{CREATE_STEPS[step].desc}</p>
+                <ol className="wizard-steps">
+                  {CREATE_STEPS.map((s, i) => (
+                    <li key={s.key} className={`wizard-step${i === step ? ' is-active' : ''}${i < step ? ' is-done' : ''}`}>
+                      <span className="wizard-step-dot">
+                        {i < step ? (
+                          <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M20 6 9 17l-5-5" />
+                          </svg>
+                        ) : (
+                          i + 1
+                        )}
+                      </span>
+                      {s.label}
+                    </li>
+                  ))}
+                </ol>
               </div>
-              <div className="modal-actions">
-                <button type="button" className="btn btn-outline" onClick={() => setCreateOpen(false)}>Cancelar</button>
-                <button type="submit" className="btn btn-primary">Crear proyecto</button>
+            </aside>
+
+            <form
+              className="wizard-form"
+              action={async (fd) => { await createProject(fd); closeCreate() }}
+              onKeyDown={(e) => {
+                // Enter avanza de paso en vez de enviar el formulario a medias
+                if (e.key === 'Enter' && !isLastStep && (e.target as HTMLElement).tagName !== 'TEXTAREA') {
+                  e.preventDefault()
+                  goNext()
+                }
+              }}
+            >
+              <div className="wizard-body">
+                {/* Paso 1 · Lo esencial */}
+                <div className="wizard-panel" hidden={step !== 0}>
+                  <div className="wizard-field">
+                    <label className="k" htmlFor="wz-name">Nombre del proyecto</label>
+                    <input
+                      id="wz-name"
+                      name="name"
+                      className="field"
+                      placeholder="Ej: Vitaliah · SEO"
+                      autoComplete="off"
+                      autoFocus
+                      value={createName}
+                      onChange={(e) => setCreateName(e.target.value)}
+                    />
+                  </div>
+                  <div className="wizard-grid">
+                    <div className="wizard-field">
+                      <label className="k">Cliente</label>
+                      <select name="client_id" className="field" defaultValue="">
+                        <option value="">Sin cliente</option>
+                        {clients.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+                      </select>
+                    </div>
+                    <div className="wizard-field">
+                      <label className="k">Encargado</label>
+                      <select name="manager_id" className="field" defaultValue="">
+                        <option value="">Sin encargado</option>
+                        {members.map((m) => <option key={m.user_id} value={m.user_id}>{memberName(m)}</option>)}
+                      </select>
+                    </div>
+                  </div>
+                  <div className="wizard-field">
+                    <label className="k">Tipo de proyecto</label>
+                    <select name="type" className="field" value={createType} onChange={(e) => setCreateType(e.target.value)}>
+                      {PROJECT_TYPES.map((t) => <option key={t.key} value={t.key}>{t.label}</option>)}
+                    </select>
+                  </div>
+                </div>
+
+                {/* Paso 2 · Términos */}
+                <div className="wizard-panel" hidden={step !== 1}>
+                  <div className="wizard-grid">
+                    <div className="wizard-field">
+                      <label className="k">Fecha de inicio</label>
+                      <input type="date" name="start_date" className="field" defaultValue="" />
+                    </div>
+                    <div className="wizard-field">
+                      <label className="k">Moneda</label>
+                      <select name="currency" className="field" defaultValue="COP">
+                        <option value="COP">COP</option>
+                        <option value="USD">USD</option>
+                      </select>
+                    </div>
+                  </div>
+                  <div className="wizard-field">
+                    <label className="k">Fee {createType === 'web' ? '(total del proyecto)' : '(mensual)'}</label>
+                    <input type="number" name="fee" className="field" placeholder="0" min="0" step="any" />
+                    <p className="wizard-help">
+                      {createType === 'web'
+                        ? 'Se dividirá en cuotas desde la sección de Pagos.'
+                        : 'Se cobra por mes anticipado en el aniversario de la fecha de inicio.'}
+                    </p>
+                  </div>
+                  <div className="wizard-field">
+                    <label className="k">URL del proyecto</label>
+                    <input name="url" className="field" placeholder="https://…" autoComplete="off" />
+                  </div>
+                </div>
+
+                {/* Paso 3 · Puesta en marcha */}
+                <div className="wizard-panel" hidden={step !== 2}>
+                  <div className="wizard-grid">
+                    <div className="wizard-field">
+                      <label className="k">Plantilla (opcional)</label>
+                      <select name="template_id" className="field" defaultValue="" key={createType}>
+                        <option value="">Sin plantilla</option>
+                        {tplFor(createType).map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}
+                      </select>
+                    </div>
+                    <div className="wizard-field">
+                      <label className="k">Estado inicial</label>
+                      <select name="status" className="field" defaultValue="upcoming">
+                        {STATUSES.map((s) => <option key={s.key} value={s.key}>{s.label}</option>)}
+                      </select>
+                    </div>
+                  </div>
+                  <div className="wizard-field">
+                    <label className="k">Descripción (opcional)</label>
+                    <textarea name="description" className="field" placeholder="Contexto, alcance, acuerdos…" rows={4} />
+                  </div>
+                </div>
+              </div>
+
+              <div className="wizard-footer">
+                <span className="wizard-progress">Paso {step + 1} de {CREATE_STEPS.length}</span>
+                <div className="wizard-actions">
+                  {step === 0 ? (
+                    <button type="button" className="btn btn-outline" onClick={closeCreate}>Cancelar</button>
+                  ) : (
+                    <button type="button" className="btn btn-outline" onClick={() => setStep((s) => s - 1)}>Atrás</button>
+                  )}
+                  {isLastStep ? (
+                    <button type="submit" className="btn btn-primary" disabled={!canAdvance}>Crear proyecto</button>
+                  ) : (
+                    <button type="button" className="btn btn-primary" onClick={goNext} disabled={!canAdvance}>
+                      Siguiente
+                    </button>
+                  )}
+                </div>
               </div>
             </form>
           </div>

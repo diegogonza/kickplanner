@@ -71,7 +71,7 @@ export default async function TemplateEditorPage({
           </div>
         </header>
 
-        <div className="flex-1 overflow-y-auto px-6 py-6">
+        <div className="viewscroll flex-1 overflow-y-auto px-6">
           <div className="w-full">
             <TemplateEditor templateId={template.id} templateName={template.name} tasks={tasks} tagsByTask={tagsByTask} allTags={allTags} people={people} />
           </div>

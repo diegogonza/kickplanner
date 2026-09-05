@@ -73,7 +73,7 @@ export default async function PanelPage() {
           </div>
         </header>
 
-        <div className="flex-1 overflow-y-auto px-6 py-6">
+        <div className="viewscroll flex-1 overflow-y-auto px-6">
           <div className="w-full">
             {/* KPIs */}
             <div className="kpi-grid">

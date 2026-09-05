@@ -56,7 +56,7 @@ export default async function TeamPage({
           <AddProjectToTeam teamId={team.id} available={available} />
         </header>
 
-        <div className="flex-1 overflow-y-auto px-6 py-6">
+        <div className="viewscroll flex-1 overflow-y-auto px-6">
           <div className="mx-auto grid max-w-4xl gap-6 lg:grid-cols-[1fr_320px]">
             {/* Proyectos del equipo */}
             <div>

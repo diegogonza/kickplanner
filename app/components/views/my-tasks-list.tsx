@@ -7,6 +7,7 @@ import { toggleComplete, deleteTask } from '@/app/projects/actions'
 import PrioritySelect from '@/app/components/priority-select'
 import DueDateInput from '@/app/components/due-date-input'
 import { useTaskContextMenu } from '@/app/components/task-context-menu'
+import { useStickyHead } from '@/app/components/use-sticky-head'
 
 export type MyTask = Task & { project_id: string; project_name: string }
 
@@ -25,6 +26,7 @@ const GRID = '26px minmax(0, 1fr) 150px 116px 122px 32px'
 export default function MyTasksList({ tasks }: { tasks: MyTask[] }) {
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set())
   const { onContextMenu, menu } = useTaskContextMenu()
+  const { sentinelRef, stuckClass } = useStickyHead()
   const toggle = (key: string) =>
     setCollapsed((prev) => {
       const next = new Set(prev)
@@ -61,7 +63,8 @@ export default function MyTasksList({ tasks }: { tasks: MyTask[] }) {
   }
 
   return (
-    <div className="ltable" style={{ ['--lt-grid' as string]: GRID }}>
+    <div className={`ltable ${stuckClass}`} style={{ ['--lt-grid' as string]: GRID }}>
+      <div ref={sentinelRef} className="sticky-sentinel" aria-hidden="true" />
       <div className="lt-head">
         <span aria-hidden />
         <span>Nombre</span>

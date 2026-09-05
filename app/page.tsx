@@ -47,7 +47,7 @@ export default async function Home({
           <NewProjectTrigger />
         </header>
 
-        <div className="flex-1 overflow-y-auto px-6 py-6">
+        <div className="viewscroll flex-1 overflow-y-auto overflow-x-auto px-6">
           <div className="w-full">
             {activeClientName && (
               <div className="filter-bar">

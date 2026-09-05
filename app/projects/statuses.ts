@@ -61,6 +61,24 @@ export function money(amount: number, currency: string): string {
   }
 }
 
+/**
+ * Versión abreviada para tablas: solo COP se compacta (2.500.000 → $2.5M),
+ * porque es la única moneda donde los ceros vuelven la columna ilegible.
+ * El resto de monedas usa el formato completo.
+ */
+export function moneyCompact(amount: number, currency: string): string {
+  if (currency !== 'COP') return money(amount, currency)
+  const abs = Math.abs(amount)
+  const sign = amount < 0 ? '-' : ''
+  const fmt = (n: number) => {
+    const s = n.toFixed(1)
+    return s.endsWith('.0') ? s.slice(0, -2) : s
+  }
+  if (abs >= 1_000_000) return `${sign}$${fmt(abs / 1_000_000)}M`
+  if (abs >= 1_000) return `${sign}$${fmt(abs / 1_000)}K`
+  return `${sign}$${abs}`
+}
+
 const MESES = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic']
 const DIAS = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado']
 const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1)

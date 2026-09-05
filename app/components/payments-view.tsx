@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { money } from '@/app/projects/statuses'
+import { useStickyHead } from './use-sticky-head'
 import {
   markPaymentPaid,
   markPaymentPending,
@@ -51,6 +52,7 @@ export default function PaymentsView({
   }
   const [open, setOpen] = useState<Set<string>>(new Set())
   const [modelFilter, setModelFilter] = useState<'all' | 'seo' | 'web'>('all')
+  const { sentinelRef, stuckClass } = useStickyHead()
   const toggle = (id: string) =>
     setOpen((prev) => {
       const n = new Set(prev)
@@ -118,7 +120,8 @@ export default function PaymentsView({
         </div>
       ))}
 
-      <div className="projtable">
+      <div className={`projtable ${stuckClass}`}>
+        <div ref={sentinelRef} className="sticky-sentinel" aria-hidden="true" />
         <div className="projtable-head paytable-row">
           <span>Cliente</span>
           <span>Modelo</span>

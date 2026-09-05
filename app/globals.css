@@ -25,8 +25,14 @@
   /* Texto */
   --text: #1e1f2b;
   --text-2: #4a4c5a;
-  --text-3: #8a8d9f;
+  --text-3: #6b6e80; /* 4.6:1 sobre blanco (antes #8a8d9f, 3.0:1) */
   --text-inv: #ffffff;
+
+  /* Encabezados de tabla: gris sólido frío, en la misma familia que --bg y
+     --panel pero un par de pasos más marcado para despegarse de las filas. */
+  --thead-bg: #e7e9f0;
+  --thead-fg: #3b3d4a; /* 8.4:1 sobre --thead-bg */
+  --thead-border: #d6d9e3;
 
   /* Estado / prioridad */
   --low-fg: #1f9d62;
@@ -460,6 +466,57 @@ body {
   color: var(--text-3);
 }
 
+/* ---------- ENCABEZADOS DE TABLA FIJOS AL HACER SCROLL ---------- */
+/* `position: sticky` se ancla al *content box* del contenedor de scroll: si ese
+   contenedor tuviera padding vertical, el encabezado se fijaría más abajo del
+   borde visible y las filas se verían pasar por esa franja. Por eso el aire
+   vertical de las vistas se pone como pseudo-elementos (contenido que scrollea)
+   y no como padding del scroller. */
+.viewscroll::before,
+.viewscroll::after {
+  content: '';
+  display: block;
+  height: var(--space-6, 24px);
+}
+
+:root {
+  --thead-py: 8px; /* aire vertical de los encabezados de tabla */
+}
+/* Pegado arriba: un poco más de aire. La variable la leen los encabezados y
+   también los encabezados de grupo, que se anclan debajo. */
+.is-stuck {
+  --thead-py: 15px;
+  --projtable-head-h: 46px;
+}
+
+/* Centinela de 1px que va justo encima del encabezado (ver useStickyHead) */
+.sticky-sentinel {
+  height: 1px;
+  margin-bottom: -1px;
+}
+
+.projtable-head,
+.lt-head {
+  position: sticky;
+  top: 0;
+  z-index: 8;
+  background: var(--thead-bg);
+  color: var(--thead-fg);
+  border-bottom: 1px solid var(--thead-border);
+  transition: height 0.16s ease, padding 0.16s ease, box-shadow 0.16s ease;
+}
+.projtable-head > *,
+.lt-head > * {
+  color: inherit;
+}
+.is-stuck > .projtable-head,
+.is-stuck > .lt-head {
+  border-top-left-radius: 0;
+  border-top-right-radius: 0;
+  /* sombra apenas insinuada: separa sin pesar */
+  box-shadow: 0 4px 10px -8px rgba(16, 24, 40, 0.18);
+}
+
 /* ---------- MODAL ---------- */
 .modal-overlay {
   position: fixed;
@@ -495,6 +552,196 @@ body {
   justify-content: flex-end;
   gap: 10px;
   margin-top: var(--space-5);
+}
+
+/* ---------- ASISTENTE POR PASOS (crear proyecto) ---------- */
+.modal.wizard {
+  display: grid;
+  grid-template-columns: 272px minmax(0, 1fr);
+  width: min(880px, calc(100vw - 32px));
+  max-width: none;
+  max-height: calc(100vh - 32px);
+  padding: 0;
+  overflow: hidden;
+}
+.wizard-aside {
+  position: relative;
+  overflow: hidden;
+  background: #14100f;
+  color: #fff;
+}
+/* Resplandor cálido inferior, como en la referencia */
+.wizard-glow {
+  position: absolute;
+  left: -20%;
+  right: -20%;
+  bottom: -45%;
+  height: 78%;
+  background: radial-gradient(
+    ellipse at 50% 100%,
+    rgba(253, 95, 92, 0.95) 0%,
+    rgba(253, 138, 92, 0.55) 38%,
+    rgba(253, 95, 92, 0) 72%
+  );
+  filter: blur(14px);
+  pointer-events: none;
+}
+.wizard-aside-inner {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  padding: 26px 24px;
+}
+.wizard-kicker {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.5);
+}
+.wizard-headline {
+  margin: 14px 0 8px;
+  font-size: 24px;
+  line-height: 1.2;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: #fff;
+}
+.wizard-desc {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.5;
+  color: rgba(255, 255, 255, 0.62);
+}
+.wizard-steps {
+  list-style: none;
+  margin: auto 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.wizard-step {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.42);
+  transition: color 0.18s ease;
+}
+.wizard-step-dot {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  flex: 0 0 auto;
+  border-radius: var(--r-full);
+  border: 1px solid rgba(255, 255, 255, 0.24);
+  font-size: 11px;
+  font-weight: 700;
+  transition: all 0.18s ease;
+}
+.wizard-step.is-active {
+  color: #fff;
+  font-weight: 600;
+}
+.wizard-step.is-active .wizard-step-dot {
+  background: #fff;
+  border-color: #fff;
+  color: #14100f;
+}
+.wizard-step.is-done {
+  color: rgba(255, 255, 255, 0.78);
+}
+.wizard-step.is-done .wizard-step-dot {
+  background: rgba(255, 255, 255, 0.18);
+  border-color: rgba(255, 255, 255, 0.4);
+  color: #fff;
+}
+
+.wizard-form {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 460px;
+}
+.wizard-body {
+  flex: 1 1 auto;
+  padding: 28px 28px 8px;
+  overflow-y: auto;
+}
+.wizard-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.wizard-panel[hidden] {
+  display: none;
+}
+.wizard-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+.wizard-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+.wizard-help {
+  margin: 2px 0 0;
+  font-size: 11.5px;
+  line-height: 1.45;
+  color: var(--text-3);
+}
+.wizard-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 16px 28px;
+  border-top: 1px solid var(--border);
+  background: var(--panel);
+}
+.wizard-progress {
+  font-size: 12px;
+  color: var(--text-3);
+}
+.wizard-actions {
+  display: flex;
+  gap: 10px;
+}
+.wizard-actions .btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+@media (max-width: 720px) {
+  .modal.wizard {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .wizard-aside-inner {
+    padding: 20px;
+  }
+  .wizard-headline {
+    font-size: 20px;
+  }
+  .wizard-steps {
+    flex-direction: row;
+    flex-wrap: wrap;
+    margin-top: 18px;
+  }
+  .wizard-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .wizard-form {
+    min-height: 0;
+  }
 }
 
 /* ---------- PESTAÑAS (vistas del proyecto) ---------- */
@@ -1278,19 +1525,15 @@ body {
   grid-template-columns: var(--lt-grid);
   align-items: center;
   gap: 12px;
-  padding: 8px 12px;
-  position: sticky;
-  top: 0;
-  z-index: 3;
-  background: var(--bg);
-  border-bottom: 1px solid var(--border-strong);
+  padding: var(--thead-py) 12px;
+  border-top-left-radius: var(--r-md);
+  border-top-right-radius: var(--r-md);
 }
 .lt-head span {
   font-size: 11px;
   font-weight: 600;
   letter-spacing: 0.05em;
   text-transform: uppercase;
-  color: var(--text-3);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -3263,6 +3506,11 @@ body {
 a.risk-hint:hover {
   filter: brightness(0.95);
 }
+/* Versión compacta dentro de la tabla de proyectos: solo icono + número */
+.projtable-row .risk-hint {
+  gap: 3px;
+  padding: 3px 7px;
+}
 .dproj-overdue {
   color: var(--urgent-fg);
   text-decoration: none;
@@ -3354,62 +3602,105 @@ a.risk-hint:hover {
 }
 
 /* ---- Vista de proyectos en tabla (una columna por campo) ---- */
+:root {
+  --projtable-head-h: 34px;
+}
 .projtable {
   border: 1px solid var(--border);
+  /* el encabezado es oscuro: que el borde superior no lo delinee en claro */
+  border-top-color: var(--thead-bg);
   border-radius: var(--r-lg, 12px);
   background: var(--surface);
-  overflow: hidden;
-  overflow-x: auto;
+  /* visible (no "hidden"/"auto") para que el encabezado sticky se ancle al
+     scroll de la página y no a la propia tabla; el scroll horizontal lo maneja
+     el contenedor de la vista. */
+  overflow: visible;
+}
+/* Las filas se declaran como capa propia por debajo (z-index 0) para que ningún
+   contenido de la fila —avatares, píldoras, botones posicionados— se pinte
+   encima del encabezado al deslizar. */
+.projtable-row {
+  position: relative;
+  z-index: 0;
+}
+/* Excepción: la fila con un desplegable abierto sí debe pasar por encima */
+.projtable-row:has(.dropdown-menu) {
+  z-index: 30;
+}
+/* Mismo criterio para las filas de las vistas de lista */
+.lrow {
+  position: relative;
+  z-index: 0;
+}
+.lrow:has(.dropdown-menu) {
+  z-index: 30;
+}
+/* Con overflow visible hay que redondear las esquinas a mano */
+.projtable-head {
+  border-top-left-radius: var(--r-lg, 12px);
+  border-top-right-radius: var(--r-lg, 12px);
+}
+.projtable-row:last-child {
+  border-bottom-left-radius: var(--r-lg, 12px);
+  border-bottom-right-radius: var(--r-lg, 12px);
 }
 .projtable-head,
 .projtable-row {
   display: grid;
-  grid-template-columns: 28px minmax(150px, 1fr) 108px 150px 108px 108px 138px 50px 118px 104px 94px 32px;
+  /* fav · url · nombre · cliente · fee · antigüedad · encargado · tipo · estado · vencidas · actividad · menú
+     Cada ancho mínimo está calculado para que quepa la etiqueta del encabezado sin solaparse. */
+  grid-template-columns:
+    24px 24px minmax(180px, 1fr) 96px 78px 92px 84px 54px 108px 72px 82px 26px;
   align-items: center;
-  gap: 12px;
+  gap: 16px;
+  /* Suma de columnas + gaps: si no cabe, la tabla scrollea en horizontal
+     en vez de aplastar las columnas y solapar los encabezados */
+  min-width: 1100px;
 }
-/* Celda de URL editable */
-.proj-url {
-  display: flex;
-  align-items: center;
-  gap: 4px;
+/* Ninguna celda puede desbordar su columna (los dropdowns siguen visibles) */
+.projtable-head > *,
+.projtable-row > * {
   min-width: 0;
 }
-.proj-url-input {
-  flex: 1 1 auto;
-  min-width: 0;
-  border: 1px solid transparent;
-  border-radius: 6px;
-  background: transparent;
-  font-family: inherit;
-  font-size: 12.5px;
-  color: var(--brand-700);
-  padding: 4px 6px;
+.projtable-head > span {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
 }
-.proj-url-input::placeholder {
-  color: var(--text-3);
+/* Celdas de texto: cortar con puntos suspensivos en vez de invadir la vecina */
+.projtable-row > span.projtable-muted,
+.projtable-row > span.proj-active {
+  display: block;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
 }
-.proj-url-input:hover {
-  border-color: var(--border-strong);
-}
-.proj-url-input:focus {
-  outline: 0;
-  border-color: var(--brand-400);
-  box-shadow: 0 0 0 2px var(--brand-100);
-}
-.proj-url-open {
-  flex: 0 0 auto;
+/* Celda de URL: solo icono (abre la web o invita a definirla) */
+.proj-url-icon {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   width: 24px;
   height: 24px;
   border-radius: 6px;
-  color: var(--text-3);
+  border: 0;
+  background: transparent;
+  color: var(--brand-600);
+  cursor: pointer;
+  transition: background 0.12s ease, color 0.12s ease;
 }
-.proj-url-open:hover {
+.proj-url-icon:hover {
   background: var(--brand-50);
   color: var(--brand-700);
+}
+.proj-url-icon.none {
+  color: var(--text-3);
+  opacity: 0.65;
+}
+.proj-url-icon.none:hover {
+  background: var(--panel);
+  color: var(--text-2);
+  opacity: 1;
 }
 .projtable-fee {
   display: flex;
@@ -3426,14 +3717,14 @@ a.risk-hint:hover {
   color: var(--text-3);
 }
 .projtable-head {
-  padding: 9px 14px;
+  /* alto fijo para poder anclar debajo los encabezados de grupo */
+  height: var(--projtable-head-h);
+  box-sizing: border-box;
+  padding: 0 14px;
   font-size: 11px;
-  font-weight: 700;
+  font-weight: 600;
   text-transform: uppercase;
-  letter-spacing: 0.04em;
-  color: var(--text-3);
-  background: var(--panel);
-  border-bottom: 1px solid var(--border);
+  letter-spacing: 0.05em;
 }
 .projtable-row {
   padding: 11px 14px;
@@ -3467,6 +3758,13 @@ a.risk-hint:hover {
   align-items: center;
   min-width: 0;
 }
+/* Columnas de solo-icono (encargado): contenido y etiqueta centrados */
+.projtable-row > .projtable-center {
+  justify-content: center;
+}
+.projtable-head > .projtable-center {
+  text-align: center;
+}
 .projtable-cell.proj-active {
   font-size: 11.5px;
 }
@@ -3480,18 +3778,21 @@ a.risk-hint:hover {
 
 /* ---------- Encargado del proyecto ---------- */
 .proj-manager {
+  display: flex;
+  align-items: center;
   min-width: 0;
   max-width: 100%;
 }
 .proj-manager-btn {
-  display: inline-flex;
+  display: flex;
   align-items: center;
+  justify-content: center;
   gap: 7px;
   max-width: 100%;
   border: 1px solid transparent;
   border-radius: var(--r-full);
   background: transparent;
-  padding: 3px 8px 3px 3px;
+  padding: 2px;
   cursor: pointer;
   font-size: 13px;
   color: var(--text-2);
@@ -3500,15 +3801,10 @@ a.risk-hint:hover {
   border-color: var(--border-strong);
   background: var(--surface);
 }
-.proj-manager-name {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
 .proj-manager-none {
-  display: inline-flex;
+  display: flex;
   align-items: center;
-  gap: 7px;
+  justify-content: center;
   color: var(--text-3);
 }
 .proj-manager-dot {
@@ -3779,6 +4075,8 @@ a.risk-hint:hover {
 .projtable-head.paytable-row,
 .projtable-row.paytable-row {
   grid-template-columns: minmax(0, 1fr) 108px 128px 118px 132px 78px 130px 112px;
+  min-width: 0;
+  gap: 12px;
 }
 .pay-model {
   display: inline-flex;
@@ -4024,6 +4322,10 @@ a.risk-hint:hover {
   background: var(--panel);
   border-bottom: 1px solid var(--border);
   border-top: 1px solid var(--border);
+  /* Se queda justo debajo del encabezado de columnas */
+  position: sticky;
+  top: var(--projtable-head-h);
+  z-index: 7;
 }
 .projgroup:first-of-type {
   border-top: 0;

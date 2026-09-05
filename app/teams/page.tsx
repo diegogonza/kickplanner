@@ -30,7 +30,7 @@ export default async function TeamsPage() {
           </div>
         </header>
 
-        <div className="flex-1 overflow-y-auto px-6 py-6">
+        <div className="viewscroll flex-1 overflow-y-auto px-6">
           <div className="w-full">
             <div className="grid gap-3 sm:grid-cols-2">
               {list.map((t) => (

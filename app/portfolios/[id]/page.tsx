@@ -102,7 +102,7 @@ export default async function PortfolioPage({
           </div>
         </header>
 
-        <div className="flex-1 overflow-y-auto px-6 py-6">
+        <div className="viewscroll flex-1 overflow-y-auto px-6">
           {rows.length === 0 ? (
             <div className="w-full">
               <div className="card text-center" style={{ padding: 'var(--space-10)' }}>
