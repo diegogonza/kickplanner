@@ -2,10 +2,16 @@
 
 import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
 import { createClient } from '@/utils/supabase/client'
-import { displayName, isOverdue, type Task, type Member } from '@/app/projects/statuses'
+import { displayName, type Task, type Member } from '@/app/projects/statuses'
 import Avatar from '@/app/components/avatar'
+import Popover from '@/app/components/popover'
+import DueDateField from '@/app/components/due-date-field'
+
+// Firma estable de los datos del servidor: solo resincronizamos cuando algo
+// cambió de verdad, no en cada re-render del modal (evita pisar lo optimista).
+const signature = (rows: Task[]) =>
+  rows.map((s) => `${s.id}:${s.status}:${s.title}:${s.due_date}:${s.assignee_id}:${s.position}`).join('|')
 
 export default function SubtaskList({
   parentId,
@@ -13,41 +19,59 @@ export default function SubtaskList({
   view,
   subtasks,
   members,
+  onStats,
+  onDirty,
 }: {
   parentId: string
   projectId: string
   view: string
   subtasks: Task[]
   members: Member[]
+  onStats?: (done: number, total: number) => void
+  onDirty?: () => void
 }) {
   const supabase = createClient()
-  const router = useRouter()
 
-  const [items, setItems] = useState<Task[]>(subtasks)
-  useEffect(() => setItems(subtasks), [subtasks])
+  // Se resincroniza durante el render (no en un efecto) y solo cuando los datos
+  // del servidor cambiaron de verdad: así lo optimista nunca se pisa solo.
+  const sig = signature(subtasks)
+  const [state, setState] = useState<{ sig: string; items: Task[] }>({ sig, items: subtasks })
+  if (state.sig !== sig) setState({ sig, items: subtasks })
+  const items = state.items
+  const setItems = (fn: (prev: Task[]) => Task[]) => setState((s) => ({ ...s, items: fn(s.items) }))
+
+  // Progreso hacia el modal (la barra vive en el encabezado de la sección)
+  const done = items.filter((t) => t.status === 'done').length
+  const total = items.length
+  useEffect(() => {
+    onStats?.(done, total)
+  }, [done, total, onStats])
 
   const [dragId, setDragId] = useState<string | null>(null)
   const [overId, setOverId] = useState<string | null>(null)
   const [assignOpen, setAssignOpen] = useState<string | null>(null)
   const [newTitle, setNewTitle] = useState('')
   const timers = useRef<Record<string, ReturnType<typeof setTimeout>>>({})
+  // Un solo popover abierto a la vez: un ancla estable evita recalcular en cada render
+  const assignAnchor = useRef<HTMLButtonElement | null>(null)
 
   const hrefFor = (id: string) => `/projects/${projectId}?view=${view}&task=${id}`
+  const touch = () => onDirty?.()
 
-  // ---- Mutaciones (cliente del navegador + refresh) ----
+  // ---- Mutaciones optimistas (el modal refresca una sola vez, al cerrar) ----
   const toggle = async (s: Task) => {
     const next = s.status === 'done' ? 'todo' : 'done'
     setItems((prev) => prev.map((t) => (t.id === s.id ? { ...t, status: next } : t)))
+    touch()
     await supabase.from('tasks').update({ status: next }).eq('id', s.id)
     await supabase.from('task_activity').insert({ task_id: s.id, type: 'status', meta: { to: next } })
-    router.refresh()
   }
 
   const saveTitle = async (id: string, title: string) => {
     const t = title.trim()
     if (!t) return
+    touch()
     await supabase.from('tasks').update({ title: t }).eq('id', id)
-    router.refresh()
   }
   const onTitleChange = (id: string, title: string) => {
     setItems((prev) => prev.map((t) => (t.id === id ? { ...t, title } : t)))
@@ -58,22 +82,23 @@ export default function SubtaskList({
   const setAssignee = async (id: string, userId: string | null) => {
     setAssignOpen(null)
     setItems((prev) => prev.map((t) => (t.id === id ? { ...t, assignee_id: userId } : t)))
+    touch()
     await supabase.rpc('set_task_assignee', { p_task_id: id, p_assignee: userId })
-    router.refresh()
   }
 
-  const setDue = async (id: string, date: string) => {
+  const setDue = async (id: string, date: string | null) => {
     const due = date || null
     setItems((prev) => prev.map((t) => (t.id === id ? { ...t, due_date: due } : t)))
+    touch()
     await supabase.from('tasks').update({ due_date: due }).eq('id', id)
-    router.refresh()
+    await supabase.from('task_activity').insert({ task_id: id, type: 'due', meta: { to: due } })
   }
 
   const persistOrder = async (ordered: Task[]) => {
+    touch()
     await Promise.all(
       ordered.map((t, i) => supabase.from('tasks').update({ position: i + 1 }).eq('id', t.id))
     )
-    router.refresh()
   }
 
   const onDrop = (targetId: string) => {
@@ -87,7 +112,7 @@ export default function SubtaskList({
     if (fromIdx < 0 || toIdx < 0) return
     const [moved] = cur.splice(fromIdx, 1)
     cur.splice(toIdx, 0, moved)
-    setItems(cur)
+    setItems(() => cur)
     persistOrder(cur)
   }
 
@@ -95,23 +120,33 @@ export default function SubtaskList({
     const title = newTitle.trim()
     if (!title) return
     setNewTitle('')
+    touch()
     const {
       data: { user },
     } = await supabase.auth.getUser()
     const maxPos = items.reduce((m, t) => Math.max(m, t.position ?? 0), 0)
     const { data } = await supabase
       .from('tasks')
-      .insert({ title, project_id: projectId, parent_id: parentId, status: 'todo', position: maxPos + 1, created_by: user?.id })
-      .select('id')
+      .insert({
+        title,
+        project_id: projectId,
+        parent_id: parentId,
+        status: 'todo',
+        position: maxPos + 1,
+        created_by: user?.id,
+      })
+      .select('id, title, status, priority, due_date, parent_id, description, assignee_id, drive_url, created_at, position')
       .single()
-    if (data) await supabase.from('task_activity').insert({ task_id: data.id, type: 'created', meta: {} })
-    router.refresh()
+    if (!data) return
+    // Aparece al instante: ya no hace falta recargar el proyecto entero
+    setItems((prev) => [...prev, data as Task])
+    await supabase.from('task_activity').insert({ task_id: data.id, type: 'created', meta: {} })
   }
 
   return (
     <div className="flex flex-col gap-1">
       {items.map((sub) => {
-        const done = sub.status === 'done'
+        const subDone = sub.status === 'done'
         const who = members.find((m) => m.user_id === sub.assignee_id)
         return (
           <div
@@ -146,8 +181,8 @@ export default function SubtaskList({
 
             <button
               type="button"
-              className={`task-check ${done ? 'done' : ''}`}
-              title={done ? 'Marcar como pendiente' : 'Marcar como completada'}
+              className={`task-check ${subDone ? 'done' : ''}`}
+              title={subDone ? 'Marcar como pendiente' : 'Marcar como completada'}
               onClick={() => toggle(sub)}
             >
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
@@ -163,7 +198,7 @@ export default function SubtaskList({
                 if (timers.current[sub.id]) clearTimeout(timers.current[sub.id])
                 saveTitle(sub.id, e.target.value)
               }}
-              style={{ textDecoration: done ? 'line-through' : 'none', color: done ? 'var(--text-3)' : 'var(--text-2)' }}
+              style={{ textDecoration: subDone ? 'line-through' : 'none', color: subDone ? 'var(--text-3)' : 'var(--text-2)' }}
             />
 
             <Link href={hrefFor(sub.id)} className="subrow-open" title="Abrir subtarea">
@@ -172,21 +207,20 @@ export default function SubtaskList({
               </svg>
             </Link>
 
-            <div className={`subrow-due ${sub.due_date ? 'has-date' : ''} ${isOverdue(sub.due_date, done) ? 'overdue' : ''}`}>
-              <input
-                type="date"
-                value={sub.due_date ?? ''}
-                onChange={(e) => setDue(sub.id, e.target.value)}
-                title="Fecha de entrega"
-                aria-label="Fecha de entrega de la subtarea"
-              />
+            <div className="subrow-due">
+              <DueDateField value={sub.due_date} onChange={(v) => setDue(sub.id, v)} done={subDone} />
             </div>
 
-            <div className="subrow-assignee dropdown">
+            <div className="subrow-assignee">
               <button
                 type="button"
                 className="subrow-assignee-btn"
-                onClick={() => setAssignOpen(assignOpen === sub.id ? null : sub.id)}
+                aria-haspopup="menu"
+                aria-expanded={assignOpen === sub.id}
+                onClick={(e) => {
+                  assignAnchor.current = e.currentTarget
+                  setAssignOpen(assignOpen === sub.id ? null : sub.id)
+                }}
                 title={who ? `Responsable: ${displayName(who)}` : 'Sin responsable'}
               >
                 {who ? (
@@ -199,24 +233,29 @@ export default function SubtaskList({
                   </span>
                 )}
               </button>
-              {assignOpen === sub.id && (
-                <div className="dropdown-menu" style={{ right: 0, left: 'auto', minWidth: 210, maxHeight: 240, overflowY: 'auto' }}>
-                  <div className="dropdown-label">Responsable</div>
-                  {members.map((m) => (
-                    <button key={m.user_id} type="button" className="dropdown-item" onClick={() => setAssignee(sub.id, m.user_id)}>
-                      <span className="flex items-center gap-2">
-                        <Avatar name={m.full_name} email={m.email} url={m.avatar_url} size={22} />
-                        {displayName(m)}
-                      </span>
-                    </button>
-                  ))}
-                  {sub.assignee_id && (
-                    <button type="button" className="dropdown-item" style={{ color: 'var(--text-3)' }} onClick={() => setAssignee(sub.id, null)}>
-                      Quitar responsable
-                    </button>
-                  )}
-                </div>
-              )}
+
+              <Popover
+                open={assignOpen === sub.id}
+                onClose={() => setAssignOpen(null)}
+                anchor={assignAnchor}
+                align="right"
+                minWidth={220}
+              >
+                <div className="dropdown-label">Responsable</div>
+                {members.map((m) => (
+                  <button key={m.user_id} type="button" className="dropdown-item" onClick={() => setAssignee(sub.id, m.user_id)}>
+                    <span className="flex items-center gap-2">
+                      <Avatar name={m.full_name} email={m.email} url={m.avatar_url} size={22} />
+                      {displayName(m)}
+                    </span>
+                  </button>
+                ))}
+                {sub.assignee_id && (
+                  <button type="button" className="dropdown-item" style={{ color: 'var(--text-3)' }} onClick={() => setAssignee(sub.id, null)}>
+                    Quitar responsable
+                  </button>
+                )}
+              </Popover>
             </div>
           </div>
         )

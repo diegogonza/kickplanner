@@ -1,65 +1,114 @@
 'use client'
 
-import { useState } from 'react'
+import { useRef, useState, useTransition } from 'react'
 import { setAssignee } from '@/app/projects/actions'
 import { displayName, type Member } from '@/app/projects/statuses'
 import Avatar from '@/app/components/avatar'
+import Popover from '@/app/components/popover'
 
+/**
+ * Selector de responsable.
+ * - Sin `onChange`: persiste solo, con la server action (vista Lista).
+ * - Con `onChange`: delega en el padre (el modal maneja su propio estado).
+ */
 export default function AssigneeSelect({
   taskId,
   projectId,
   current,
   members,
+  onChange,
 }: {
   taskId: string
   projectId: string
   current: string | null
   members: Member[]
+  onChange?: (userId: string | null) => void
 }) {
   const [open, setOpen] = useState(false)
+  const [q, setQ] = useState('')
+  const [, startTransition] = useTransition()
+  const btnRef = useRef<HTMLButtonElement>(null)
   const cur = members.find((m) => m.user_id === current)
 
+  const apply = (userId: string | null) => {
+    setOpen(false)
+    setQ('')
+    if (onChange) {
+      onChange(userId)
+      return
+    }
+    const fd = new FormData()
+    fd.set('id', taskId)
+    fd.set('project_id', projectId)
+    fd.set('assignee_id', userId ?? '')
+    startTransition(() => {
+      setAssignee(fd)
+    })
+  }
+
+  const query = q.trim().toLowerCase()
+  const shown = query
+    ? members.filter((m) => displayName(m).toLowerCase().includes(query) || m.email.toLowerCase().includes(query))
+    : members
+
   return (
-    <div className="dropdown">
-      <button type="button" className="dropdown-trigger" onClick={() => setOpen((o) => !o)}>
+    <>
+      <button
+        ref={btnRef}
+        type="button"
+        className="dropdown-trigger"
+        aria-haspopup="menu"
+        aria-expanded={open}
+        onClick={() => setOpen((o) => !o)}
+      >
         {cur ? (
           <span className="flex items-center gap-2">
             <Avatar name={cur.full_name} email={cur.email} url={cur.avatar_url} size={24} />
             <span className="text-[13px]" style={{ color: 'var(--text)' }}>{displayName(cur)}</span>
           </span>
         ) : (
-          <span className="text-[13px]" style={{ color: 'var(--text-3)' }}>Sin responsable</span>
+          <span className="flex items-center gap-2">
+            <span className="ava-empty" aria-hidden>
+              <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="8" r="4" /><path d="M4 21a8 8 0 0 1 16 0" />
+              </svg>
+            </span>
+            <span className="text-[13px]" style={{ color: 'var(--text-3)' }}>Sin responsable</span>
+          </span>
         )}
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
           <path d="M6 9l6 6 6-6" />
         </svg>
       </button>
 
-      {open && (
-        <div className="dropdown-menu" style={{ minWidth: 220, maxHeight: 240, overflowY: 'auto' }}>
-          {members.map((m) => (
-            <form key={m.user_id} action={setAssignee} onSubmit={() => setOpen(false)}>
-              <input type="hidden" name="id" value={taskId} />
-              <input type="hidden" name="project_id" value={projectId} />
-              <input type="hidden" name="assignee_id" value={m.user_id} />
-              <button type="submit" className="dropdown-item">
-                <span className="flex items-center gap-2">
-                  <Avatar name={m.full_name} email={m.email} url={m.avatar_url} size={22} />
-                  {displayName(m)}
-                </span>
-              </button>
-            </form>
-          ))}
-          {current && (
-            <form action={setAssignee} onSubmit={() => setOpen(false)}>
-              <input type="hidden" name="id" value={taskId} />
-              <input type="hidden" name="project_id" value={projectId} />
-              <input type="hidden" name="assignee_id" value="" />
-              <button type="submit" className="dropdown-item">Quitar responsable</button>
-            </form>
-          )}
-        </div>
-      )}
-    </div>
+      <Popover open={open} onClose={() => setOpen(false)} anchor={btnRef} minWidth={230}>
+        {members.length > 6 && (
+          <input
+            className="pop-search"
+            value={q}
+            autoFocus
+            onChange={(e) => setQ(e.target.value)}
+            placeholder="Buscar persona…"
+            aria-label="Buscar persona"
+          />
+        )}
+        {shown.map((m) => (
+          <button key={m.user_id} type="button" className="dropdown-item" onClick={() => apply(m.user_id)}>
+            <span className="flex items-center gap-2">
+              <Avatar name={m.full_name} email={m.email} url={m.avatar_url} size={22} />
+              {displayName(m)}
+            </span>
+          </button>
+        ))}
+        {shown.length === 0 && (
+          <div className="dropdown-item" style={{ cursor: 'default' }}>Sin resultados</div>
+        )}
+        {current && (
+          <button type="button" className="dropdown-item" style={{ color: 'var(--text-3)' }} onClick={() => apply(null)}>
+            Quitar responsable
+          </button>
+        )}
+      </Popover>
+    </>
   )
 }

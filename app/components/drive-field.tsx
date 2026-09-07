@@ -52,11 +52,11 @@ export default function DriveField({
             onChange={(e) => setUrl(e.target.value)}
             autoComplete="off"
           />
-          <button type="submit" className="btn btn-primary">Guardar</button>
+          <button type="submit" className="btn btn-tertiary">Guardar</button>
           {value && (
             <button
               type="button"
-              className="btn btn-outline"
+              className="btn btn-quiet"
               onClick={() => {
                 setUrl(value)
                 setError(null)

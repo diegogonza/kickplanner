@@ -1,24 +1,56 @@
 'use client'
 
-import { useState } from 'react'
+import { useRef, useState, useTransition } from 'react'
 import { PRIORITIES, type Priority } from '@/app/projects/statuses'
 import { setPriority } from '@/app/projects/actions'
+import Popover from '@/app/components/popover'
 
+/**
+ * Selector de prioridad.
+ * - Sin `onChange`: persiste solo, con la server action (vista Lista, Mis tareas).
+ * - Con `onChange`: delega en el padre (el modal maneja su propio estado).
+ */
 export default function PrioritySelect({
   taskId,
   projectId,
   current,
+  onChange,
 }: {
   taskId: string
   projectId: string
   current: Priority | null
+  onChange?: (value: Priority | null) => void
 }) {
   const [open, setOpen] = useState(false)
+  const [, startTransition] = useTransition()
+  const btnRef = useRef<HTMLButtonElement>(null)
   const cur = PRIORITIES.find((p) => p.key === current)
 
+  const apply = (value: Priority | null) => {
+    setOpen(false)
+    if (onChange) {
+      onChange(value)
+      return
+    }
+    const fd = new FormData()
+    fd.set('id', taskId)
+    fd.set('project_id', projectId)
+    fd.set('priority', value ?? '')
+    startTransition(() => {
+      setPriority(fd)
+    })
+  }
+
   return (
-    <div className="dropdown">
-      <button type="button" className="dropdown-trigger" onClick={() => setOpen((o) => !o)}>
+    <>
+      <button
+        ref={btnRef}
+        type="button"
+        className="dropdown-trigger"
+        aria-haspopup="menu"
+        aria-expanded={open}
+        onClick={() => setOpen((o) => !o)}
+      >
         {cur ? (
           <span className={`pill ${cur.pill}`}>{cur.label}</span>
         ) : (
@@ -31,30 +63,18 @@ export default function PrioritySelect({
         </svg>
       </button>
 
-      {open && (
-        <div className="dropdown-menu">
-          {PRIORITIES.map((p) => (
-            <form key={p.key} action={setPriority} onSubmit={() => setOpen(false)}>
-              <input type="hidden" name="id" value={taskId} />
-              <input type="hidden" name="project_id" value={projectId} />
-              <input type="hidden" name="priority" value={p.key} />
-              <button type="submit" className="dropdown-item">
-                <span className={`pill ${p.pill}`}>{p.label}</span>
-              </button>
-            </form>
-          ))}
-          {current && (
-            <form action={setPriority} onSubmit={() => setOpen(false)}>
-              <input type="hidden" name="id" value={taskId} />
-              <input type="hidden" name="project_id" value={projectId} />
-              <input type="hidden" name="priority" value="" />
-              <button type="submit" className="dropdown-item">
-                Sin prioridad
-              </button>
-            </form>
-          )}
-        </div>
-      )}
-    </div>
+      <Popover open={open} onClose={() => setOpen(false)} anchor={btnRef} minWidth={190}>
+        {PRIORITIES.map((p) => (
+          <button key={p.key} type="button" className="dropdown-item" onClick={() => apply(p.key)}>
+            <span className={`pill ${p.pill}`}>{p.label}</span>
+          </button>
+        ))}
+        {current && (
+          <button type="button" className="dropdown-item" style={{ color: 'var(--text-3)' }} onClick={() => apply(null)}>
+            Sin prioridad
+          </button>
+        )}
+      </Popover>
+    </>
   )
 }

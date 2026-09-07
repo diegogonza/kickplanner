@@ -494,7 +494,14 @@ export async function addComment(formData: FormData) {
 
   const supabase = await createClient()
   // RPC: crea comentario + menciones + notificaciones + actividad
-  await supabase.rpc('post_comment', { p_task_id: taskId, p_body: body, p_mentions: mentions })
+  const { error } = await supabase.rpc('post_comment', {
+    p_task_id: taskId,
+    p_body: body,
+    p_mentions: mentions,
+  })
+  // Se propaga: el compositor devuelve el texto y avisa en vez de dar por
+  // guardado un comentario que nunca llegó.
+  if (error) throw new Error(error.message)
   revalidatePath(`/projects/${projectId}`)
 }
 
@@ -503,21 +510,36 @@ export async function deleteComment(formData: FormData) {
   const projectId = formData.get('project_id') as string
 
   const supabase = await createClient()
-  await supabase.from('comments').delete().eq('id', id)
+  // .select() confirma qué se borró: con RLS, borrar un comentario ajeno no da
+  // error, simplemente afecta 0 filas. Sin esta comprobación el cliente lo
+  // ocultaba como si hubiera funcionado y reaparecía al refrescar.
+  const { data, error } = await supabase.from('comments').delete().eq('id', id).select('id')
+  if (error) throw new Error(error.message)
+  if (!data || data.length === 0) throw new Error('No se pudo eliminar el comentario')
   revalidatePath(`/projects/${projectId}`)
 }
 
-export async function removeTag(formData: FormData) {
-  const taskId = formData.get('task_id') as string
-  const tagId = formData.get('tag_id') as string
+// Edita un comentario propio. El RPC valida la autoría, re-sincroniza las
+// menciones (agrega las nuevas, quita las que ya no están) y notifica solo a
+// quien no estaba mencionado antes.
+export async function editComment(formData: FormData) {
+  const id = formData.get('id') as string
   const projectId = formData.get('project_id') as string
+  const body = (formData.get('body') as string)?.trim()
+  if (!id || !body) return
+
+  const mentions = ((formData.get('mentions') as string) ?? '')
+    .split(',')
+    .map((x) => x.trim())
+    .filter(Boolean)
 
   const supabase = await createClient()
-  await supabase
-    .from('task_tags')
-    .delete()
-    .eq('task_id', taskId)
-    .eq('tag_id', tagId)
+  const { error } = await supabase.rpc('edit_comment', {
+    p_comment_id: id,
+    p_body: body,
+    p_mentions: mentions,
+  })
+  if (error) throw new Error(error.message)
 
   revalidatePath(`/projects/${projectId}`)
 }

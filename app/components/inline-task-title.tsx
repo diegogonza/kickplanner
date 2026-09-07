@@ -1,39 +1,44 @@
 'use client'
 
-import { useRef, useState } from 'react'
-import { useRouter } from 'next/navigation'
-import { createClient } from '@/utils/supabase/client'
+import { useEffect, useRef } from 'react'
 
-// Título de la tarea editable con autoguardado (sin botón / formulario)
-export default function InlineTaskTitle({ taskId, initial }: { taskId: string; initial: string }) {
-  const supabase = createClient()
-  const router = useRouter()
-  const [val, setVal] = useState(initial)
-  const timer = useRef<ReturnType<typeof setTimeout> | null>(null)
-  const lastSaved = useRef(initial)
+/**
+ * Título de la tarea editable. Es un textarea de una línea que crece solo, así
+ * un título largo se ve entero en vez de recortarse (sobre todo en móvil).
+ * El estado y el guardado con debounce viven en el modal.
+ */
+export default function InlineTaskTitle({
+  value,
+  onChange,
+  id,
+}: {
+  value: string
+  onChange: (value: string) => void
+  id?: string
+}) {
+  const ref = useRef<HTMLTextAreaElement>(null)
 
-  const save = async (v: string) => {
-    const t = v.trim()
-    if (!t || t === lastSaved.current) return
-    lastSaved.current = t
-    await supabase.from('tasks').update({ title: t }).eq('id', taskId)
-    router.refresh()
-  }
-
-  const onChange = (v: string) => {
-    setVal(v)
-    if (timer.current) clearTimeout(timer.current)
-    timer.current = setTimeout(() => save(v), 600)
-  }
+  useEffect(() => {
+    const el = ref.current
+    if (!el) return
+    el.style.height = 'auto'
+    el.style.height = `${el.scrollHeight}px`
+  }, [value])
 
   return (
-    <input
+    <textarea
+      id={id}
+      ref={ref}
+      rows={1}
       className="panel-title-input"
-      value={val}
+      value={value}
       onChange={(e) => onChange(e.target.value)}
-      onBlur={(e) => {
-        if (timer.current) clearTimeout(timer.current)
-        save(e.target.value)
+      onKeyDown={(e) => {
+        // Enter confirma: el título es de una sola línea
+        if (e.key === 'Enter') {
+          e.preventDefault()
+          e.currentTarget.blur()
+        }
       }}
       placeholder="Título de la tarea"
       aria-label="Título de la tarea"

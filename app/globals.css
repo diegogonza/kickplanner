@@ -22,6 +22,12 @@
   --border: #ecedf1;
   --border-strong: #e1e3ea;
 
+  /* Indicador de foco, único para toda la app. Los componentes NO definen su
+     propio estilo de foco: usan la regla global :focus-visible de más abajo.
+     Es --text-2, la tinta secundaria de la app: un valor que ya existe en el
+     sistema, no un gris inventado. */
+  --focus: #4a4c5a;
+
   /* Texto */
   --text: #1e1f2b;
   --text-2: #4a4c5a;
@@ -135,6 +141,35 @@ body {
   border-color: var(--text-3);
   background: #fcfcfd;
 }
+/* Terciario: solo texto, sin fondo ni borde. Para acciones de confirmación
+   dentro de un bloque que ya tiene su propio contenedor, donde un botón sólido
+   pesa de más. Mantiene el coral de marca como señal de acción.
+   El !important replica la convención de .btn-primary: en este sistema los
+   colores de botón se fijan así para que ninguna utilidad los pise. */
+.btn-tertiary {
+  background: transparent !important;
+  color: var(--brand-600) !important;
+  border-color: transparent;
+  box-shadow: none;
+}
+.btn-tertiary:hover {
+  background: var(--brand-50) !important;
+  color: var(--brand-700) !important;
+}
+
+/* Acompaña al terciario: el secundario baja a texto para no pesar más que la
+   acción principal. */
+.btn-quiet {
+  background: transparent;
+  color: var(--text-3);
+  border-color: transparent;
+  box-shadow: none;
+}
+.btn-quiet:hover {
+  background: var(--panel);
+  color: var(--text-2);
+}
+
 .btn-ghost {
   background: transparent;
   color: var(--text-3);
@@ -163,13 +198,8 @@ body {
   padding: 9px 12px;
   color: var(--text-3);
 }
-.input:focus-within {
-  border-color: var(--brand-400);
-  box-shadow: 0 0 0 3px var(--brand-100);
-}
 .input input {
   border: 0;
-  outline: 0;
   background: transparent;
   font-family: inherit;
   font-size: 13px;
@@ -285,7 +315,6 @@ body {
 .nav-search input {
   background: transparent;
   border: 0;
-  outline: 0;
   color: var(--nav-text);
   font-family: inherit;
   font-size: 13px;
@@ -293,9 +322,6 @@ body {
 }
 .nav-search input::placeholder {
   color: var(--nav-muted);
-}
-.nav-search:focus-within {
-  border-color: var(--brand-400);
 }
 .brand-mark {
   width: 30px;
@@ -456,11 +482,6 @@ body {
   font-family: inherit;
   font-size: 14px;
   color: var(--text);
-  outline: none;
-}
-.field:focus {
-  border-color: var(--brand-400);
-  box-shadow: 0 0 0 3px var(--brand-100);
 }
 .field::placeholder {
   color: var(--text-3);
@@ -962,7 +983,6 @@ body {
   border: 1px dashed transparent;
 }
 .add-row:focus-within {
-  border-color: var(--brand-300);
   background: var(--surface);
 }
 .add-row svg {
@@ -972,7 +992,6 @@ body {
 }
 .add-row input {
   border: 0;
-  outline: 0;
   background: transparent;
   font-family: inherit;
   font-size: 13px;
@@ -1039,7 +1058,7 @@ body {
 }
 .panel {
   width: 100%;
-  max-width: 960px;
+  max-width: 1120px;
   max-height: 92vh;
   background: var(--surface);
   border-radius: var(--r-xl);
@@ -1207,23 +1226,36 @@ body {
   margin: var(--space-5) 0 var(--space-2);
 }
 
+/* Descripción sin caja: crece con el contenido y se resalta al interactuar.
+   Antes era un recuadro fijo de 140px que quedaba mayormente vacío. */
+.desc-wrap {
+  position: relative;
+}
 .desc-area {
-  width: 100%;
-  min-height: 140px;
-  resize: vertical;
-  background: var(--surface);
-  border: 1px solid var(--border-strong);
+  display: block;
+  width: calc(100% + 16px);
+  margin-left: -8px;
+  /* Área de escritura cómoda: arranca en 220px (medido sobre la referencia que
+     pasó el usuario) y crece con el contenido. Aplica igual a tareas y
+     subtareas, porque la subtarea se abre en este mismo modal
+     (?task=<id de la subtarea>). */
+  min-height: 220px;
+  resize: none;
+  overflow: hidden;
+  background: transparent;
+  border: 1px solid transparent;
   border-radius: var(--r-md);
-  padding: 10px 12px;
+  padding: 8px;
   font-family: inherit;
   font-size: 13.5px;
-  color: var(--text);
-  outline: none;
+  line-height: 1.65;
+  color: var(--text-2);
+  transition: background 0.12s ease;
 }
-.desc-area:focus {
-  border-color: var(--brand-400);
-  box-shadow: 0 0 0 3px var(--brand-100);
+.desc-area:hover {
+  background: var(--panel);
 }
+/* Sin regla :focus propia: el foco lo marca la global :focus-visible */
 
 .subtask-link {
   flex: 1;
@@ -1313,9 +1345,6 @@ body {
   border-color: var(--border-strong);
 }
 .cell-input:focus {
-  border-color: var(--brand-400);
-  box-shadow: 0 0 0 3px var(--brand-100);
-  outline: none;
   background: var(--surface);
 }
 
@@ -1399,6 +1428,33 @@ body {
   width: 2px;
   background: var(--border-strong);
 }
+/* Separador de día: la píldora tapa la línea vertical del feed y ancla la
+   conversación en el tiempo sin agregar otra columna de metadatos. */
+.act-dia {
+  position: relative;
+  display: flex;
+  justify-content: center;
+  margin: 2px 0 14px;
+}
+.act-feed > .act-dia:first-child {
+  margin-top: 0;
+}
+.act-dia span {
+  padding: 2px 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--r-full);
+  background: var(--surface);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  color: var(--text-3);
+  text-transform: capitalize;
+}
+/* En la columna lateral el fondo es --panel: la píldora lo acompaña. */
+.tm-side-feed .act-dia span {
+  background: var(--panel);
+}
+
 .act {
   position: relative;
   display: flex;
@@ -1459,8 +1515,45 @@ body {
   word-break: break-word;
   margin: 0;
 }
-.act-del {
+.act-acciones {
   margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  opacity: 0;
+  transition: opacity 0.12s ease;
+}
+.act:hover .act-acciones,
+.act-acciones:focus-within {
+  opacity: 1;
+}
+.act-acciones .btn-ghost {
+  padding: 5px;
+}
+.act-acciones .btn-ghost svg {
+  width: 14px;
+  height: 14px;
+}
+/* Comentario recién enviado: atenuado hasta que el servidor confirma */
+.act.is-pendiente .act-card {
+  opacity: 0.6;
+}
+/* Editor embebido dentro de la tarjeta del comentario */
+.act-card .comment-editor {
+  margin-top: 6px;
+}
+.act-card .ce-box {
+  border-radius: 10px;
+}
+.ce-acciones {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding-bottom: 5px;
+}
+.ce-acciones .btn {
+  padding: 6px 10px;
+  font-size: 12.5px;
 }
 .act-empty {
   color: var(--text-3);
@@ -1477,14 +1570,9 @@ body {
   border-radius: var(--r-full);
   padding: 7px 8px 7px 12px;
 }
-.comment-composer:focus-within {
-  border-color: var(--brand-400);
-  box-shadow: 0 0 0 3px var(--brand-100);
-}
 .comment-composer input {
   flex: 1;
   border: 0;
-  outline: 0;
   background: transparent;
   font-family: inherit;
   font-size: 13px;
@@ -1748,7 +1836,6 @@ body {
   border-color: var(--border-strong);
 }
 .lrow .field:focus {
-  border-color: var(--brand-400);
   background: var(--surface);
 }
 .lrow .overdue-cell .field {
@@ -2560,8 +2647,6 @@ body {
   border-color: var(--border);
 }
 .tpl-title:focus {
-  outline: none;
-  border-color: var(--brand-400);
   background: var(--surface);
 }
 .tpl-select,
@@ -2906,8 +2991,6 @@ body {
   border-color: var(--border);
 }
 .tmodal-title:focus {
-  outline: none;
-  border-color: var(--brand-400);
   background: var(--surface);
 }
 .tmodal-main .k {
@@ -3034,8 +3117,6 @@ body {
   border-color: var(--border);
 }
 .tm2-title:focus {
-  outline: none;
-  border-color: var(--brand-400);
   background: var(--surface);
 }
 .tm2-props {
@@ -3958,13 +4039,8 @@ a.risk-hint:hover {
   color: var(--text-3);
   min-width: 220px;
 }
-.projfilter-search:focus-within {
-  border-color: var(--brand-400);
-  box-shadow: 0 0 0 3px var(--brand-100);
-}
 .projfilter-search input {
   border: 0;
-  outline: 0;
   background: transparent;
   font-family: inherit;
   font-size: 13px;
@@ -3987,11 +4063,6 @@ a.risk-hint:hover {
 }
 .projfilter-sel:hover {
   border-color: var(--brand-400);
-}
-.projfilter-sel:focus {
-  outline: 0;
-  border-color: var(--brand-400);
-  box-shadow: 0 0 0 3px var(--brand-100);
 }
 .projfilter-clear {
   display: inline-flex;
@@ -4424,7 +4495,6 @@ a.risk-hint:hover {
 .app-search input {
   background: transparent;
   border: 0;
-  outline: 0;
   color: var(--nav-text);
   font-family: inherit;
   font-size: 13.5px;
@@ -4432,9 +4502,6 @@ a.risk-hint:hover {
 }
 .app-search input::placeholder {
   color: var(--nav-muted);
-}
-.app-search:focus-within {
-  border-color: var(--brand-400);
 }
 
 /* ---------- BÚSQUEDA ---------- */
@@ -4457,7 +4524,6 @@ a.risk-hint:hover {
 .search-refine input {
   background: transparent;
   border: 0;
-  outline: 0;
   color: var(--nav-text);
   font-family: inherit;
   font-size: 13px;
@@ -4465,9 +4531,6 @@ a.risk-hint:hover {
 }
 .search-refine input::placeholder {
   color: var(--nav-muted);
-}
-.search-refine:focus-within {
-  border-color: var(--brand-400);
 }
 
 .search-group {
@@ -4569,9 +4632,21 @@ a.risk-hint:hover {
 .dproj-meta { font-size: 12.5px; color: var(--text-3); white-space: nowrap; }
 
 /* ---------- ACCESIBILIDAD ---------- */
+/* La navegación oscura invierte el token: una tinta oscura ahí quedaría
+   invisible (1.1:1 sobre #232428, muy por debajo del mínimo de 3:1).
+   Al ser una custom property, la heredan todos los enfocables de adentro. */
+.sidebar,
+.topbar,
+.app-topbar,
+.tabs {
+  --focus: #d7dae3;
+}
+
 :focus-visible {
-  outline: 2px solid var(--brand-500);
-  outline-offset: 2px;
+  /* Offset negativo: el trazo se dibuja ENCIMA del borde del propio elemento,
+     no como un anillo por fuera. Se ve como si el borde cambiara de color. */
+  outline: 1px solid var(--focus);
+  outline-offset: -1px;
 }
 @media (prefers-reduced-motion: reduce) {
   * {
@@ -4591,18 +4666,15 @@ a.risk-hint:hover {
   font-weight: 700;
   color: var(--text);
   line-height: 1.3;
-  margin: 0 0 var(--space-4);
+  margin: 0 -8px var(--space-4);
   padding: 4px 8px;
-  margin-left: -8px;
-  outline: 0;
+  width: calc(100% + 16px);
+  resize: none;
+  overflow: hidden;
+  display: block;
 }
 .panel-title-input:hover {
   border-color: var(--border);
-}
-.panel-title-input:focus {
-  border-color: var(--brand-400);
-  background: var(--surface);
-  box-shadow: 0 0 0 3px var(--brand-100);
 }
 
 /* ---------- MODAL: lista de subtareas (drag, editar, responsable) ---------- */
@@ -4652,15 +4724,9 @@ a.risk-hint:hover {
   font-size: 13.5px;
   color: var(--text-2);
   padding: 3px 6px;
-  outline: 0;
 }
 .subrow-title:hover {
   border-color: var(--border);
-}
-.subrow-title:focus {
-  border-color: var(--brand-400);
-  background: var(--surface);
-  box-shadow: 0 0 0 2px var(--brand-100);
 }
 .subrow-open {
   flex: 0 0 auto;
@@ -4685,40 +4751,30 @@ a.risk-hint:hover {
   flex: 0 0 auto;
   margin-left: auto;
 }
-.subrow-due input {
-  border: 1px solid transparent;
+/* Mismo control que en los metadatos, apagado hasta que se necesita */
+.subrow-due .dropdown-trigger {
+  border-color: transparent;
   background: transparent;
-  border-radius: 6px;
-  font-family: inherit;
+  padding: 3px 7px;
+  border-radius: var(--r-sm);
   font-size: 12px;
-  color: var(--text-3);
-  padding: 3px 6px;
-  width: 134px;
-  cursor: pointer;
-  color-scheme: light;
-  opacity: 0.45;
-  transition: opacity 0.12s ease, border-color 0.12s ease;
+  opacity: 0.55;
+  transition: opacity 0.12s ease, background 0.12s ease;
 }
-/* Con fecha, o al pasar el cursor por la fila / enfocar: se muestra completa */
-.subrow-due.has-date input,
-.subrow:hover .subrow-due input,
-.subrow-due input:focus {
+.subrow-due .dropdown-trigger > span {
+  font-size: 12px;
+}
+.subrow-due .dropdown-trigger > svg {
+  display: none;
+}
+.subrow:hover .subrow-due .dropdown-trigger,
+.subrow-due .dropdown-trigger[aria-expanded='true'] {
   opacity: 1;
 }
-.subrow-due input:hover {
+.subrow-due .dropdown-trigger:hover,
+.subrow-due .dropdown-trigger[aria-expanded='true'] {
+  background: var(--surface);
   border-color: var(--border-strong);
-}
-.subrow-due input:focus {
-  outline: 0;
-  border-color: var(--brand-400);
-  box-shadow: 0 0 0 2px var(--brand-100);
-  color: var(--text-2);
-}
-.subrow-due.has-date input {
-  color: var(--text-2);
-}
-.subrow-due.overdue input {
-  color: var(--urgent-fg);
 }
 .subrow-assignee {
   flex: 0 0 auto;
@@ -4751,29 +4807,35 @@ a.risk-hint:hover {
 
 /* ---------- MODAL: editor de comentarios (WYSIWYG-lite) ---------- */
 .comment-editor {
-  display: flex;
-  align-items: flex-end;
-  gap: 10px;
+  position: relative;
 }
 .comment-editor .ce-box {
-  flex: 1 1 auto;
-  min-width: 0;
   border: 1px solid var(--border-strong);
   border-radius: 14px;
   background: var(--surface);
   overflow: hidden;
+  transition: border-color 0.12s ease;
 }
-.comment-editor .ce-box:focus-within {
-  border-color: var(--brand-400);
-  box-shadow: 0 0 0 3px var(--brand-100);
+.comment-editor .ce-box.is-activo {
+  border-color: var(--text-3);
 }
+
+/* La barra de formato solo aparece al escribir o al enfocar: en reposo el
+   compositor es una sola línea limpia. */
 .ce-toolbar {
   display: flex;
   align-items: center;
   gap: 2px;
   padding: 4px 6px;
   border-bottom: 1px solid var(--border);
-  background: var(--surface-2, #f7f7f8);
+  background: var(--panel);
+}
+.ce-hint {
+  margin-left: auto;
+  padding-right: 4px;
+  font-size: 10.5px;
+  color: var(--text-3);
+  white-space: nowrap;
 }
 .ce-tool {
   display: inline-flex;
@@ -4792,7 +4854,18 @@ a.risk-hint:hover {
   background: var(--border);
   color: var(--text);
 }
+
+/* Campo y botón de enviar en la misma fila: el compositor ocupa todo el ancho
+   de la columna (antes el avatar propio se comía ~38px sin aportar dato). */
+.ce-row {
+  display: flex;
+  align-items: flex-end;
+  gap: 4px;
+  padding-right: 6px;
+}
 .ce-input {
+  flex: 1 1 auto;
+  min-width: 0;
   min-height: 38px;
   max-height: 180px;
   overflow-y: auto;
@@ -4800,7 +4873,6 @@ a.risk-hint:hover {
   font-size: 13px;
   line-height: 1.5;
   color: var(--text);
-  outline: 0;
   word-break: break-word;
 }
 .ce-input.is-empty::before {
@@ -4812,12 +4884,52 @@ a.risk-hint:hover {
   color: var(--brand-700);
   text-decoration: underline;
 }
+
+/* La mención dentro del compositor es un chip real (contenteditable=false):
+   así queda atada al usuario por id y no se rompe si dos personas comparten
+   nombre. Sin avatar acá — el compositor es de una línea. */
+.ce-input .mention-chip {
+  padding: 1px 8px;
+  font-size: 12.5px;
+  user-select: none;
+}
+
+/* Error de guardado: el borde acompaña al mensaje para que no haga falta leer
+   para notar que algo falló. */
+.comment-editor .ce-box.is-error {
+  border-color: var(--urgent-fg);
+}
+.ce-error {
+  margin: 6px 2px 0;
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--urgent-fg);
+}
+.ce-exceso {
+  color: var(--urgent-fg);
+  font-weight: 600;
+}
+
+/* Enviar: coral cuando hay algo que enviar, apagado y sin color cuando no.
+   Antes el deshabilitado era el mismo coral al 45%, y se leía como disponible. */
+.comment-editor .comment-send {
+  flex: 0 0 auto;
+  margin-bottom: 5px;
+}
 .comment-editor .comment-send:disabled {
-  opacity: 0.45;
+  background: var(--panel) !important;
+  color: var(--text-3) !important;
+  box-shadow: none;
+  opacity: 1;
   cursor: default;
 }
 .comment-editor .comment-send:disabled:hover {
-  background: var(--brand-600);
+  background: var(--panel) !important;
+}
+
+/* Opción resaltada del autocompletado de menciones */
+.dropdown-item.is-activo {
+  background: var(--panel);
 }
 
 /* Enlaces dentro de los comentarios publicados */
@@ -4828,4 +4940,479 @@ a.risk-hint:hover {
 }
 .act-body a:hover {
   text-decoration: none;
+}
+
+
+/* ============================================================
+   MODAL DE TAREA — layout de dos columnas
+   Izquierda: detalle y subtareas. Derecha: actividad y comentarios.
+   ============================================================ */
+
+/* ---------- Encabezado ---------- */
+.tm-head {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 14px 12px 20px;
+  border-bottom: 1px solid var(--border);
+}
+.tm-head-l,
+.tm-head-r {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.tm-badge {
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--text-3);
+  background: var(--panel);
+  border-radius: var(--r-full);
+  padding: 4px 10px;
+}
+
+/* ---------- Rejilla ---------- */
+.tm-grid {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 380px;
+  overflow: hidden;
+}
+.tm-main {
+  min-width: 0;
+  overflow-y: auto;
+  padding: 16px 24px 32px;
+}
+.tm-side {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  min-width: 0;
+  border-left: 1px solid var(--border);
+  background: var(--panel);
+}
+.tm-side-head {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 13px 16px;
+  border-bottom: 1px solid var(--border);
+}
+.tm-side-feed {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Estado vacío: `margin: auto 0` lo centra en el espacio que sobra, así ocupa
+   el hueco sin empujar el compositor ni achicar la columna. Si el feed crece,
+   el auto colapsa y el bloque queda simplemente debajo. */
+/* Falla al eliminar: se avisa arriba del feed, donde el comentario volvió a
+   aparecer. */
+.side-error {
+  margin: 0 0 10px;
+  padding: 8px 12px;
+  border-radius: var(--r-md);
+  background: var(--urgent-bg);
+  font-size: 12.5px;
+  color: var(--urgent-fg);
+}
+
+.side-vacio {
+  margin: auto 0;
+  text-align: center;
+  padding: 20px 14px;
+  color: var(--text-3);
+}
+.side-vacio svg {
+  width: 26px;
+  height: 26px;
+  opacity: 0.5;
+  margin-bottom: 8px;
+}
+.side-vacio p {
+  margin: 0 0 4px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-2);
+}
+.side-vacio span {
+  display: block;
+  font-size: 12px;
+  line-height: 1.55;
+  max-width: 240px;
+  margin: 0 auto;
+}
+.tm-side-foot {
+  flex: 0 0 auto;
+  border-top: 1px solid var(--border);
+  padding: 12px 14px;
+  background: var(--surface);
+}
+
+/* Filtro Todo / Comentarios */
+.tm-filter {
+  display: inline-flex;
+  gap: 2px;
+  padding: 2px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-full);
+}
+.tm-filter-b {
+  border: 0;
+  background: transparent;
+  font-family: inherit;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--text-3);
+  padding: 4px 11px;
+  border-radius: var(--r-full);
+  cursor: pointer;
+  white-space: nowrap;
+}
+.tm-filter-b:hover {
+  color: var(--text-2);
+}
+.tm-filter-b.on {
+  background: var(--brand-100);
+  color: var(--brand-700);
+}
+
+/* La columna de actividad es angosta: se compacta el timeline */
+.tm-side-feed .act-feed {
+  margin-top: 0;
+}
+.tm-side-feed .act-feed::before {
+  left: 12px;
+}
+.tm-side-feed .act {
+  gap: 10px;
+  padding-bottom: var(--space-4);
+}
+.tm-side-feed .act-card {
+  padding: 10px 12px;
+}
+.tm-side-feed .act-empty {
+  padding-left: 0;
+}
+
+/* ---------- Breadcrumb del modal ---------- */
+.tm-crumb {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+  margin-bottom: 6px;
+  color: var(--text-3);
+}
+.tm-crumb a {
+  color: var(--text-3);
+}
+.tm-crumb a:hover {
+  color: var(--brand-600);
+  text-decoration: underline;
+}
+.tm-crumb-i {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.tm-crumb-sep {
+  color: var(--text-3);
+  opacity: 0.6;
+}
+
+/* ---------- Metadatos sin cajas ----------
+   Antes cada valor iba dentro de un control con borde, y esos recuadros
+   flotaban en medio de una celda mucho más ancha: se leía como un formulario
+   con agujeros. Ahora el rótulo es texto gris chico y el valor es un chip que
+   solo se resalta al pasar el cursor, que es cuando importa saber que se edita. */
+.tm-meta {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  column-gap: 28px;
+  row-gap: 4px;
+  margin: 14px 0 28px;
+  padding: 18px 20px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--r-lg);
+}
+.tm-field {
+  display: grid;
+  grid-template-columns: 92px minmax(0, 1fr);
+  align-items: center;
+  gap: 10px;
+  min-height: 36px;
+  min-width: 0;
+}
+.tm-f-k {
+  font-size: 12.5px;
+  color: var(--text-3);
+  white-space: nowrap;
+}
+.tm-f-v {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+/* Disparadores sin caja: el margen negativo alinea el texto del valor con la
+   rejilla, y el relleno vuelve a aparecer como fondo al pasar el cursor. */
+.tm-meta .dropdown-trigger {
+  max-width: 100%;
+  min-width: 0;
+  padding: 4px 8px;
+  margin-left: -8px;
+  border-color: transparent;
+  background: transparent;
+  border-radius: var(--r-sm);
+  transition: background 0.12s ease;
+}
+.tm-meta .dropdown-trigger:hover,
+.tm-meta .dropdown-trigger[aria-expanded='true'] {
+  border-color: transparent;
+  background: var(--panel);
+}
+/* El chevrón aparece recién al pasar el cursor: en reposo el valor se lee como dato */
+.tm-meta .dropdown-trigger > svg {
+  opacity: 0;
+  transition: opacity 0.12s ease;
+}
+.tm-meta .dropdown-trigger:hover > svg,
+.tm-meta .dropdown-trigger:focus-visible > svg,
+.tm-meta .dropdown-trigger[aria-expanded='true'] > svg {
+  opacity: 1;
+}
+.tm-meta .dropdown-trigger > span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+/* Vencida: el color y la palabra van en el mismo texto, sin píldora aparte */
+.due-late {
+  color: var(--urgent-fg);
+  font-weight: 600;
+}
+
+/* Píldora de etiqueta sin botón de quitar (la quita el desplegable) */
+.tag-pill.is-plain {
+  padding: 3px 10px;
+}
+
+/* Selector de fecha dentro del desplegable */
+.pop-sep {
+  height: 1px;
+  background: var(--border);
+  margin: 4px 2px;
+}
+.pop-date {
+  border: 1px solid var(--border-strong);
+  border-radius: var(--r-sm);
+  padding: 6px 9px;
+  margin: 0 2px 2px;
+  font-family: inherit;
+  font-size: 13px;
+  color: var(--text);
+  color-scheme: light;
+}
+
+/* Punto de color del selector de estado */
+.stat-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: var(--r-full);
+  flex: 0 0 8px;
+}
+
+/* Avatar vacío del selector de responsable */
+.ava-empty {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: var(--r-full);
+  border: 1px dashed var(--border-strong);
+  color: var(--text-3);
+}
+
+/* Indicador de autoguardado */
+.save-hint {
+  position: absolute;
+  right: 0;
+  top: -18px;
+  font-size: 11px;
+  color: var(--text-3);
+  opacity: 0;
+  transition: opacity 0.2s ease;
+  pointer-events: none;
+}
+.save-hint.on {
+  opacity: 1;
+}
+
+/* ---------- Subtareas: encabezado con barra de progreso ---------- */
+/* Ritmo vertical del modal: los bloques respiran más entre sí.
+   Se acota a .tm-main para no alterar Ajustes, Equipos ni Compartir. */
+.tm-main .section-label {
+  margin: 28px 0 10px;
+}
+.tm-subs-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 28px 0 10px;
+}
+.tm-prog {
+  flex: 1 1 auto;
+  max-width: 220px;
+  height: 6px;
+  border-radius: var(--r-full);
+  background: var(--border-strong);
+  overflow: hidden;
+}
+.tm-prog > span {
+  display: block;
+  height: 100%;
+  border-radius: var(--r-full);
+  background: var(--low-fg);
+  transition: width 0.2s ease;
+}
+.tm-prog-n {
+  font-size: 11.5px;
+  font-weight: 700;
+  color: var(--text-3);
+  white-space: nowrap;
+}
+
+/* ============================================================
+   POPOVER — menús flotantes en portal
+   Al vivir fuera del contenedor con scroll no los recorta el modal
+   ni la vista con scroll de la lista.
+   ============================================================ */
+.pop {
+  position: fixed;
+  /* Arranca oculto y en 0,0: el componente le escribe la posición real en un
+     layout effect, antes del pintado, así no hay salto visible. */
+  top: 0;
+  left: 0;
+  visibility: hidden;
+  z-index: 90;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  box-shadow: var(--shadow-lg);
+  padding: 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  animation: popIn 0.12s ease;
+}
+@keyframes popIn {
+  from {
+    opacity: 0;
+    transform: translateY(-3px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.pop-search {
+  border: 1px solid var(--border-strong);
+  border-radius: var(--r-sm);
+  padding: 6px 9px;
+  margin: 2px 2px 4px;
+  font-family: inherit;
+  font-size: 13px;
+  color: var(--text);
+}
+.dropdown-item.danger {
+  color: var(--urgent-fg);
+}
+.dropdown-item.danger:hover {
+  background: var(--urgent-bg);
+}
+/* ============================================================
+   MODAL DE TAREA — adaptable
+   ============================================================ */
+@media (max-width: 1040px) {
+  /* Una sola columna: la actividad pasa debajo del detalle */
+  .tm-grid {
+    grid-template-columns: 1fr;
+    overflow-y: auto;
+  }
+  .tm-main {
+    overflow: visible;
+  }
+  .tm-side {
+    border-left: 0;
+    border-top: 1px solid var(--border);
+    min-height: 0;
+  }
+  .tm-side-feed {
+    overflow: visible;
+  }
+  .tm-side-foot {
+    position: sticky;
+    bottom: 0;
+  }
+}
+
+@media (max-width: 720px) {
+  .panel-overlay {
+    padding: 0;
+  }
+  .panel {
+    max-width: none;
+    max-height: 100vh;
+    height: 100vh;
+    border-radius: 0;
+  }
+  .tm-head {
+    padding: 10px 10px 10px 14px;
+  }
+  .tm-head .btn {
+    font-size: 12.5px;
+    padding: 6px 10px;
+  }
+  .tm-badge {
+    display: none;
+  }
+  .tm-main {
+    padding: 14px 16px 24px;
+  }
+  .tm-meta {
+    grid-template-columns: 1fr;
+    padding: 12px 14px;
+  }
+  .tm-field {
+    grid-template-columns: 86px minmax(0, 1fr);
+  }
+  .tm-side-head,
+  .tm-side-feed {
+    padding: 12px 14px;
+  }
+  .tm-prog {
+    max-width: none;
+  }
+  /* En pantallas chicas la fila de subtarea se apoya en el orden natural */
+  .subrow-due input {
+    width: 118px;
+  }
 }

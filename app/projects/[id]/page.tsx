@@ -7,7 +7,6 @@ import ListView from '@/app/components/views/list-view'
 import BoardView from '@/app/components/views/board-view'
 import TagsView from '@/app/components/views/tags-view'
 import CalendarView from '@/app/components/views/calendar-view'
-import TaskPanel from '@/app/components/task-panel'
 import TaskDetail from '@/app/components/task-detail'
 import ShareButton from '@/app/components/share-button'
 import NewTaskButton from '@/app/components/new-task-button'
@@ -175,6 +174,7 @@ export default async function ProjectPage({
     author_name: string | null
     author_avatar: string | null
     created_at: string
+    edited_at: string | null
     mentions: { id: string; name: string | null; email: string; avatar: string | null }[]
   }[] = []
   let activity: {
@@ -364,24 +364,22 @@ export default async function ProjectPage({
       </div>
 
       {panelTask && (
-        <TaskPanel closeHref={closeHref}>
-          <TaskDetail
-            key={panelTask.id}
-            task={panelTask}
-            subtasks={subtasks}
-            tags={panelTags}
-            allTags={allTags}
-            ancestors={ancestors}
-            members={members}
-            comments={comments}
-            activity={activity}
-            currentUserId={user.id}
-            projectId={project.id}
-            projectName={project.name}
-            view={active}
-            closeHref={closeHref}
-          />
-        </TaskPanel>
+        <TaskDetail
+          key={panelTask.id}
+          task={panelTask}
+          subtasks={subtasks}
+          tags={panelTags}
+          allTags={allTags}
+          ancestors={ancestors}
+          members={members}
+          comments={comments}
+          activity={activity}
+          currentUserId={user.id}
+          projectId={project.id}
+          projectName={project.name}
+          view={active}
+          closeHref={closeHref}
+        />
       )}
     </div>
   )

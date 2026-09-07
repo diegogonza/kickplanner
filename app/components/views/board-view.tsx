@@ -47,6 +47,8 @@ export default function BoardView({
   const move = async (id: string, status: Status) => {
     setItems((prev) => prev.map((t) => (t.id === id ? { ...t, status } : t)))
     await supabase.from('tasks').update({ status }).eq('id', id)
+    // Arrastrar en el tablero también deja rastro en el historial de la tarea
+    await supabase.from('task_activity').insert({ task_id: id, type: 'status', meta: { to: status } })
     router.refresh()
   }
 
@@ -54,6 +56,7 @@ export default function BoardView({
     const next: Status = task.status === 'done' ? 'todo' : 'done'
     setItems((prev) => prev.map((t) => (t.id === task.id ? { ...t, status: next } : t)))
     await supabase.from('tasks').update({ status: next }).eq('id', task.id)
+    await supabase.from('task_activity').insert({ task_id: task.id, type: 'status', meta: { to: next } })
     router.refresh()
   }
 

@@ -183,3 +183,22 @@ Se crea una notificación cuando: te **mencionan** en un comentario, o te **asig
 4. **Fase 12 — Notificaciones** (la mayor; 12a→12b→12c)
 
 Ninguna fase bloquea a otra, así que se pueden entregar y commitear una por una.
+
+
+---
+
+## Fase 13 — Portal de clientes
+
+Plan completo en `PLAN-PORTAL-CLIENTES.md` (v3) · ejecución en `BITACORA-PORTAL.md`.
+
+Enlace privado por cliente con contraseña, solo lectura, **sin autenticación del cliente**. La visibilidad es opt-in tarea por tarea (`tasks.client_visible`).
+
+### Deuda técnica que la auditoría dejó al descubierto
+
+Ninguno de estos puntos bloquea la Fase 13 con el enfoque v3 (el cliente nunca se autentica contra Supabase), pero siguen abiertos y bloquearían cualquier funcionalidad futura con usuarios externos:
+
+- `workspace_members()` es `SECURITY DEFINER` sin validar al llamante: devuelve correo y nombre de todo el equipo a cualquier autenticado.
+- `generate_client_payments()` y `seed_web_installments()` son `SECURITY DEFINER` sin guarda y **escriben** en `client_payments`.
+- `profiles` tiene la política `SELECT ... USING (true)`.
+- `is_project_member()` autoriza lectura y escritura con la misma función; no existe un rol de solo lectura.
+- El middleware solo distingue logueado / no logueado.
