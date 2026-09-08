@@ -55,11 +55,18 @@ export default function Popover({
       const w = Math.max(minWidth, el.offsetWidth)
       let left = align === 'right' ? a.right - w : a.left
       left = Math.min(Math.max(EDGE, left), Math.max(EDGE, window.innerWidth - w - EDGE))
-      const top = flip ? Math.max(EDGE, a.top - GAP - maxH) : a.bottom + GAP
+
+      // Hacia arriba hay que apoyar el BORDE INFERIOR del menú sobre el ancla, y
+      // para eso hace falta su alto real. Usar `maxH` acá lo dejaba flotando:
+      // un menú de dos opciones se dibujaba como si midiera los 230px del tope.
+      // El maxHeight se aplica antes de medir para que un menú largo sí quede
+      // recortado a maxH.
+      el.style.maxHeight = `${maxH}px`
+      const alto = flip ? Math.min(el.offsetHeight, maxH) : 0
+      const top = flip ? Math.max(EDGE, a.top - GAP - alto) : a.bottom + GAP
 
       el.style.top = `${top}px`
       el.style.left = `${left}px`
-      el.style.maxHeight = `${maxH}px`
       el.style.visibility = 'visible'
     }
 
