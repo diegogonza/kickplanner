@@ -8,7 +8,7 @@ export default async function Sidebar({
   active = 'projects',
 }: {
   email?: string
-  active?: 'projects' | 'clientes' | 'plantillas' | 'portfolios' | 'teams' | 'mis-tareas' | 'notificaciones' | 'panel' | 'pagos'
+  active?: 'projects' | 'clientes' | 'plantillas' | 'portfolios' | 'teams' | 'mis-tareas' | 'equipo' | 'notificaciones' | 'panel' | 'pagos'
 }) {
   const supabase = await createClient()
   const {
@@ -56,6 +56,14 @@ export default async function Sidebar({
             <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" />
           </svg>
           Mis tareas
+        </Link>
+        <Link className={`nav-item ${active === 'equipo' ? 'active' : ''}`} href="/equipo">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+            <circle cx="9" cy="7" r="4" />
+            <path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75" />
+          </svg>
+          Semana del equipo
         </Link>
         <Link className={`nav-item ${active === 'notificaciones' ? 'active' : ''}`} href="/notificaciones">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">

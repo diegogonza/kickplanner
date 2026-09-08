@@ -1,6 +1,7 @@
 'use client'
 
 import { useRef, useState, useTransition } from 'react'
+import { useRouter } from 'next/navigation'
 import { setAssignee } from '@/app/projects/actions'
 import { displayName, type Member } from '@/app/projects/statuses'
 import Avatar from '@/app/components/avatar'
@@ -26,13 +27,16 @@ export default function AssigneeSelect({
 }) {
   const [open, setOpen] = useState(false)
   const [q, setQ] = useState('')
+  const [error, setError] = useState<string | null>(null)
   const [, startTransition] = useTransition()
+  const router = useRouter()
   const btnRef = useRef<HTMLButtonElement>(null)
   const cur = members.find((m) => m.user_id === current)
 
   const apply = (userId: string | null) => {
     setOpen(false)
     setQ('')
+    setError(null)
     if (onChange) {
       onChange(userId)
       return
@@ -41,8 +45,16 @@ export default function AssigneeSelect({
     fd.set('id', taskId)
     fd.set('project_id', projectId)
     fd.set('assignee_id', userId ?? '')
-    startTransition(() => {
-      setAssignee(fd)
+    // `setAssignee` puede rechazar (el RPC valida que la persona sea miembro del
+    // proyecto). Sin await ni catch quedaba una promesa suelta: el fallo no se
+    // veía y React lo reportaba como rechazo no atrapado.
+    startTransition(async () => {
+      try {
+        await setAssignee(fd)
+      } catch {
+        setError('No se pudo cambiar el responsable.')
+        router.refresh()
+      }
     })
   }
 
@@ -80,6 +92,12 @@ export default function AssigneeSelect({
           <path d="M6 9l6 6 6-6" />
         </svg>
       </button>
+
+      {error && (
+        <p className="side-error" role="alert" style={{ margin: '6px 0 0' }}>
+          {error}
+        </p>
+      )}
 
       <Popover open={open} onClose={() => setOpen(false)} anchor={btnRef} minWidth={230}>
         {members.length > 6 && (

@@ -243,6 +243,7 @@ export async function toggleComplete(formData: FormData) {
   await supabase.from('task_activity').insert({ task_id: id, type: 'status', meta: { to: next } })
   revalidatePath(`/projects/${projectId}`)
   revalidatePath('/mis-tareas')
+  revalidatePath('/equipo')
 }
 
 export async function deleteTask(formData: FormData) {
@@ -474,8 +475,10 @@ export async function setAssignee(formData: FormData) {
 
   const supabase = await createClient()
   // RPC: actualiza responsable + registra actividad + notifica al asignado
-  await supabase.rpc('set_task_assignee', { p_task_id: id, p_assignee: assignee })
+  const { error } = await supabase.rpc('set_task_assignee', { p_task_id: id, p_assignee: assignee })
+  if (error) throw new Error(error.message)
   revalidatePath(`/projects/${projectId}`)
+  revalidatePath('/equipo')
 }
 
 // ---------- COMENTARIOS ----------

@@ -62,7 +62,11 @@ export default function Popover({
       // El maxHeight se aplica antes de medir para que un menú largo sí quede
       // recortado a maxH.
       el.style.maxHeight = `${maxH}px`
-      const alto = flip ? Math.min(el.offsetHeight, maxH) : 0
+      // offsetHeight ya es el alto REAL una vez aplicado el maxHeight, así que
+      // no hay que volver a acotarlo: con box-sizing content-box el borde y el
+      // relleno quedan fuera de maxH y el menú se dibujaba unos píxeles encima
+      // del ancla.
+      const alto = flip ? el.offsetHeight : 0
       const top = flip ? Math.max(EDGE, a.top - GAP - alto) : a.bottom + GAP
 
       el.style.top = `${top}px`
@@ -73,7 +77,17 @@ export default function Popover({
     place()
     window.addEventListener('resize', place)
     window.addEventListener('scroll', place, true)
+
+    // Abierto hacia arriba, el menú se apoya sobre el ancla por su borde
+    // INFERIOR: si el contenido encoge (el autocompletado filtrando mientras se
+    // escribe), hay que recalcular o queda flotando. Este efecto no se vuelve a
+    // ejecutar por eso —los hijos no están en sus dependencias—, así que la
+    // señal la da el propio nodo.
+    const ro = new ResizeObserver(() => place())
+    if (ref.current) ro.observe(ref.current)
+
     return () => {
+      ro.disconnect()
       window.removeEventListener('resize', place)
       window.removeEventListener('scroll', place, true)
     }

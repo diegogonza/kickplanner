@@ -44,6 +44,9 @@
   --low-fg: #1f9d62;
   --low-bg: #e7f6ee;
   --urgent-fg: #e5484d;
+  /* Variante para texto chico en rojo: #e5484d da 3.9:1 sobre blanco, por debajo
+     del 4.5:1 de WCAG AA. Esta da 5.9:1. */
+  --urgent-text: #c0272d;
   --urgent-bg: #fdecec;
   --mod-fg: #e0890b;
   --mod-bg: #fcf1e1;
@@ -5415,4 +5418,249 @@ a.risk-hint:hover {
   .subrow-due input {
     width: 118px;
   }
+}
+
+/* ---------- SEMANA DEL EQUIPO ---------- */
+/* Grilla persona × día. Una sola `grid` para toda la tabla (cabecera incluida)
+   así las columnas siguen alineadas aunque se oculten los fines de semana. */
+.tw {
+  --tw-persona: 210px;
+  padding-bottom: var(--space-5);
+}
+.tw-tools {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 0 14px;
+  flex-wrap: wrap;
+}
+.tw-filtro {
+  height: 32px;
+  padding: 0 10px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--r-sm);
+  background: var(--surface);
+  font-family: inherit;
+  font-size: 13px;
+  color: var(--text);
+  max-width: 240px;
+}
+.tw-hint {
+  margin-left: auto;
+  font-size: 11.5px;
+  color: var(--text-3);
+}
+.tw-rango {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-2);
+  margin-right: 4px;
+  white-space: nowrap;
+}
+
+/* El scroll horizontal vive acá: en pantallas chicas la grilla se desplaza sin
+   romper el layout de la página. */
+.tw-scroll {
+  overflow-x: auto;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--r-lg);
+  background: var(--surface);
+}
+.tw-grid {
+  display: grid;
+  min-width: 760px;
+}
+
+/* Cabecera */
+.tw-dia.hoy {
+  background: var(--brand-50);
+  box-shadow: inset 1px 0 0 var(--brand-200), inset -1px 0 0 var(--brand-200);
+}
+
+.tw-corner,
+.tw-dia {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background: var(--panel);
+  border-bottom: 1px solid var(--border-strong);
+  padding: 9px 12px;
+}
+.tw-corner {
+  left: 0;
+  z-index: 3;
+  border-right: 1px solid var(--border-strong);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-3);
+  display: flex;
+  align-items: center;
+}
+.tw-dia {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+}
+.tw-dia-n {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-3);
+}
+.tw-dia-d {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-2);
+}
+.tw-dia.hoy .tw-dia-n,
+.tw-dia.hoy .tw-dia-d {
+  color: var(--brand-600);
+}
+
+/* Columna de personas: fija al hacer scroll horizontal */
+.tw-persona {
+  position: sticky;
+  left: 0;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 12px;
+  background: var(--surface);
+  border-right: 1px solid var(--border-strong);
+  border-bottom: 1px solid var(--border);
+}
+.tw-persona-n {
+  flex: 1;
+  min-width: 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.tw-persona-c {
+  flex: 0 0 auto;
+  min-width: 20px;
+  padding: 1px 6px;
+  border-radius: var(--r-full);
+  background: var(--panel);
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-2);
+  text-align: center;
+}
+.tw-sin-ava {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: var(--r-full);
+  border: 1px dashed var(--border-strong);
+  color: var(--text-3);
+  font-size: 12px;
+  font-weight: 700;
+}
+/* Mientras se arrastra, la gente que no es miembro del proyecto se apaga */
+.tw-persona.bloqueada {
+  opacity: 0.45;
+}
+
+/* Celdas */
+/* El tope de alto es lo que mantiene la grilla legible: sin él, el día más
+   cargado de una persona estira TODA su fila y empuja al resto fuera de
+   pantalla. Pasado el tope, la celda scrollea por dentro. */
+.tw-celda {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-height: 64px;
+  max-height: 280px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  padding: 6px;
+  border-bottom: 1px solid var(--border);
+  border-left: 1px solid var(--border);
+}
+.tw-celda.finde,
+.tw-dia.finde {
+  background: var(--panel);
+}
+.tw-celda.hoy {
+  box-shadow: inset 1px 0 0 var(--brand-200), inset -1px 0 0 var(--brand-200);
+}
+.tw-celda.dragover {
+  background: var(--brand-50);
+  box-shadow: inset 0 0 0 2px var(--brand-600);
+}
+.tw-celda.nodrop {
+  box-shadow: inset 0 0 0 2px var(--urgent-fg);
+  cursor: not-allowed;
+}
+
+/* Grupo de proyecto dentro de la celda: mismas clases que la semana de "Mis
+   tareas" para que las dos vistas se lean igual. El color vive en el grupo, así
+   que la tarea de adentro va limpia sobre blanco. */
+.tw-celda .cal-group {
+  margin-bottom: 0;
+  padding: 5px 6px 6px;
+}
+
+/* Tarea */
+.tw-chip {
+  padding: 4px 8px;
+  border-radius: var(--r-sm);
+  background: var(--surface);
+  cursor: pointer;
+  user-select: none;
+}
+.tw-chip:hover {
+  box-shadow: 0 0 0 1px var(--border-strong);
+}
+.tw-chip-t {
+  font-size: 12px;
+  line-height: 1.35;
+  color: var(--text);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.tw-chip.hecha {
+  opacity: 0.55;
+}
+.tw-chip.hecha .tw-chip-t {
+  text-decoration: line-through;
+}
+/* Vencida: el rojo va sobre el texto, no sobre un adorno. El borde izquierdo
+   del chip ya lo ocupa el color del proyecto, y una segunda barra competía con
+   él. Usa --urgent-text (más oscuro que --urgent-fg) porque a 12px el coral de
+   los badges no llega al 4.5:1 que pide la WCAG para texto normal. */
+.tw-chip.vencida .tw-chip-t {
+  color: var(--urgent-text);
+  font-weight: 600;
+}
+.tw-chip.arrastrando {
+  opacity: 0.4;
+}
+
+.tw-vacio {
+  padding: 40px 16px;
+  text-align: center;
+}
+.tw-vacio p {
+  margin: 0 0 4px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-2);
+}
+.tw-vacio span {
+  font-size: 12.5px;
+  color: var(--text-3);
 }

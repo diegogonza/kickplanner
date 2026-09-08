@@ -34,10 +34,29 @@ export function displayName(m: { full_name?: string | null; email: string }): st
 export const FINANCE_USER_ID = 'e676f0e8-5e19-4db2-8295-01974d3ced39'
 
 // ---------- Fechas ----------
-// Fecha de hoy en formato YYYY-MM-DD (UTC, coherente con current_date de la BD)
+/**
+ * Zona horaria de la operación. La agencia trabaja en Medellín, así que "hoy"
+ * significa hoy acá — no en UTC ni en la máquina de quien mira.
+ *
+ * Es una constante y no la del navegador a propósito: la misma fecha tiene que
+ * salir en el cliente, en el render del servidor (Vercel corre en UTC) y en la
+ * base. Si se calcula en cada lado por separado, se contradicen entre sí
+ * durante las 5 horas que UTC va adelantado.
+ */
+export const TZ = 'America/Bogota'
+
+// Fecha de hoy en formato YYYY-MM-DD, en la zona de la operación.
+// 'en-CA' porque es el locale que formatea nativamente como YYYY-MM-DD.
+const FMT_DIA = new Intl.DateTimeFormat('en-CA', {
+  timeZone: TZ,
+  year: 'numeric',
+  month: '2-digit',
+  day: '2-digit',
+})
 export function todayISO(): string {
-  return new Date().toISOString().slice(0, 10)
+  return FMT_DIA.format(new Date())
 }
+
 // Convierte 'YYYY-MM-DD' a Date local (para cálculos de calendario)
 export function parseDue(iso: string): Date {
   const [y, m, d] = iso.split('-').map(Number)
