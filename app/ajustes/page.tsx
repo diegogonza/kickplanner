@@ -1,5 +1,7 @@
+import { headers } from 'next/headers'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/utils/supabase/server'
+import McpConnections, { type ConexionMcp } from '@/app/components/mcp-connections'
 import Sidebar from '@/app/components/sidebar'
 import Avatar from '@/app/components/avatar'
 import { updateProfile, uploadAvatar, removeAvatar } from './actions'
@@ -16,6 +18,20 @@ export default async function SettingsPage() {
     .select('full_name, job_title, department, avatar_url')
     .eq('id', user.id)
     .maybeSingle()
+
+  const { data: conexiones } = await supabase
+    .from('mcp_connections')
+    .select('id, name, token_prefix, created_at, last_used_at')
+    .order('created_at', { ascending: false })
+
+  // La cabecera Host la controla quien hace la peticion: si esta configurada,
+  // mandamos NEXT_PUBLIC_SITE_URL para que el comando que se copia (con el token
+  // dentro) no pueda apuntar a un dominio ajeno.
+  const sitio = process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/+$/, '')
+  const cabeceras = await headers()
+  const host = cabeceras.get('host') ?? 'localhost:3000'
+  const protocolo = host.startsWith('localhost') || host.startsWith('127.0.0.1') ? 'http' : 'https'
+  const endpoint = sitio ? `${sitio}/api/mcp` : `${protocolo}://${host}/api/mcp`
 
   const email = user.email ?? ''
 
@@ -88,6 +104,8 @@ export default async function SettingsPage() {
                 <button type="submit" className="btn btn-primary">Guardar cambios</button>
               </div>
             </form>
+
+            <McpConnections conexiones={(conexiones ?? []) as ConexionMcp[]} endpoint={endpoint} />
           </div>
         </div>
       </div>

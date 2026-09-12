@@ -2,6 +2,12 @@ import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
 export async function updateSession(request: NextRequest) {
+  // El endpoint MCP se autentica con su propio token Bearer, no con cookies de sesion
+  const ruta = request.nextUrl.pathname
+  if (ruta === '/api/mcp' || ruta.startsWith('/api/mcp/')) {
+    return NextResponse.next({ request })
+  }
+
   let supabaseResponse = NextResponse.next({ request })
 
   const supabase = createServerClient(

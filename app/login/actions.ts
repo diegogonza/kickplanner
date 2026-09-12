@@ -17,6 +17,7 @@ export async function login(formData: FormData) {
 
 export async function signout() {
   const supabase = await createClient()
-  await supabase.auth.signOut()
+  // 'local' cierra solo esta sesion: las conexiones MCP de /ajustes siguen vivas
+  await supabase.auth.signOut({ scope: 'local' })
   redirect('/login')
 }
