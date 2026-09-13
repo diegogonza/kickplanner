@@ -1,11 +1,11 @@
 // Avatar reutilizable: muestra la foto de perfil si existe, o la inicial con color.
 // Sin hooks: se puede usar en Server y Client Components.
 
-const AVATAR_COLORS = [
-  '#FD5F5C', '#2E77E6', '#14B8A6', '#E0A81E',
-  '#EC4899', '#7B5CF0', '#22C55E', '#0D9488',
+export const AVATAR_COLORS = [
+  '#00B968', '#1F5FBF', '#14B8A6', '#B9740B',
+  '#A85C36', '#7B5CF0', '#174D3A', '#0D9488',
 ]
-function colorFor(seed: string): string {
+export function colorFor(seed: string): string {
   let h = 0
   for (let i = 0; i < seed.length; i++) h = (h * 31 + seed.charCodeAt(i)) >>> 0
   return AVATAR_COLORS[h % AVATAR_COLORS.length]

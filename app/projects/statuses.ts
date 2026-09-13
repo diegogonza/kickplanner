@@ -134,10 +134,10 @@ export const STATUSES: { key: Status; label: string; color: string }[] = [
 export type ProjectStatus = 'upcoming' | 'on_track' | 'at_risk' | 'on_hold'
 
 export const PROJECT_STATUSES: { key: ProjectStatus; label: string; cls: string; color: string }[] = [
-  { key: 'upcoming', label: 'Inicia pronto', cls: 'ps-upcoming', color: '#3b5bdb' },
-  { key: 'on_track', label: 'En progreso', cls: 'ps-ontrack', color: '#1f9d62' },
-  { key: 'at_risk', label: 'En riesgo', cls: 'ps-atrisk', color: '#b9740b' },
-  { key: 'on_hold', label: 'Detenido', cls: 'ps-onhold', color: '#5b6472' },
+  { key: 'upcoming', label: 'Inicia pronto', cls: 'ps-upcoming', color: 'var(--info-fg)' },
+  { key: 'on_track', label: 'En progreso', cls: 'ps-ontrack', color: 'var(--low-fg)' },
+  { key: 'at_risk', label: 'En riesgo', cls: 'ps-atrisk', color: 'var(--mod-fg)' },
+  { key: 'on_hold', label: 'Detenido', cls: 'ps-onhold', color: 'var(--text-2)' },
 ]
 
 export const projectStatusOf = (k: string) =>
@@ -147,15 +147,15 @@ export const projectStatusOf = (k: string) =>
 export type ProjectType = 'seo' | 'web'
 
 export const PROJECT_TYPES: { key: ProjectType; label: string; cls: string; color: string }[] = [
-  { key: 'seo', label: 'SEO', cls: 'pt-seo', color: '#6d5bd0' },
-  { key: 'web', label: 'WEB', cls: 'pt-web', color: '#0d9488' },
+  { key: 'seo', label: 'SEO', cls: 'pt-seo', color: 'var(--brand-800)' },
+  { key: 'web', label: 'WEB', cls: 'pt-web', color: 'var(--rust-fg)' },
 ]
 
 export const projectTypeOf = (k: string) =>
   PROJECT_TYPES.find((t) => t.key === k) ?? PROJECT_TYPES[0]
 
 export const PRIORITIES: { key: Priority; label: string; pill: string; color: string }[] = [
-  { key: 'media', label: 'Media', pill: 'pill-info', color: '#2E77E6' },
-  { key: 'alta', label: 'Alta', pill: 'pill-mod', color: '#E0890B' },
-  { key: 'urgente', label: 'Urgente', pill: 'pill-urgent', color: '#E5484D' },
+  { key: 'media', label: 'Media', pill: 'pill-info', color: 'var(--info-fg)' },
+  { key: 'alta', label: 'Alta', pill: 'pill-mod', color: 'var(--mod-fg)' },
+  { key: 'urgente', label: 'Urgente', pill: 'pill-urgent', color: 'var(--urgent-fg)' },
 ]

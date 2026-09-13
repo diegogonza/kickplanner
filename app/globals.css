@@ -4,54 +4,62 @@
    SaaS Dashboard UI — Design Tokens ("estilo Layers")
    ============================================================ */
 :root {
-  /* Marca (coral) */
-  --brand-50: #fff1f0;
-  --brand-100: #ffe0de;
-  --brand-200: #fec5c3;
-  --brand-300: #fda3a0;
-  --brand-400: #fd817e;
-  --brand-500: #fd6e6b;
-  --brand-600: #fd5f5c; /* PRIMARIO (coral) */
-  --brand-700: #e84744; /* hover del primario */
-  --brand-800: #c4322f;
+  /* Marca (verde "Hell Basement")
+     Base: esmeralda intensa #00B968 · verde bosque #174D3A.
+     Los neón (#19F57A / #42FF92) solo van sobre superficies oscuras. */
+  --brand-50: #f0fbf6;
+  --brand-100: #dbf5ea;
+  --brand-200: #ade9cf;
+  --brand-300: #73d8ac;
+  --brand-400: #38c889;
+  --brand-500: #00b968; /* esmeralda intensa: acentos sobre fondo oscuro */
+  --brand-600: #0a8452; /* PRIMARIO (relleno + texto sobre blanco, 4.7:1) */
+  --brand-700: #076e43; /* hover del primario / texto sobre tintes */
+  --brand-800: #174d3a; /* verde bosque */
+  --brand-neon: #19f57a; /* solo sobre oscuro: glows, resaltes */
+  --brand-spectral: #42ff92; /* solo sobre oscuro: punto de luz */
 
   /* Neutrales / superficies */
-  --bg: #f7f8fa;
-  --panel: #f3f4f7;
+  --bg: #f4f8f6;
+  --panel: #eef3f0;
   --surface: #ffffff;
-  --border: #ecedf1;
-  --border-strong: #e1e3ea;
+  --border: #e3ebe7;
+  --border-strong: #d5e0da;
 
   /* Indicador de foco, único para toda la app. Los componentes NO definen su
      propio estilo de foco: usan la regla global :focus-visible de más abajo.
      Es --text-2, la tinta secundaria de la app: un valor que ya existe en el
      sistema, no un gris inventado. */
-  --focus: #4a4c5a;
+  --focus: #3f6958;
 
   /* Texto */
-  --text: #1e1f2b;
-  --text-2: #4a4c5a;
-  --text-3: #6b6e80; /* 4.6:1 sobre blanco (antes #8a8d9f, 3.0:1) */
+  --text: #10201a;
+  --text-2: #3f6958; /* verde concreto, 6.2:1 sobre blanco */
+  --text-3: #5e7a6e; /* 4.7:1 sobre blanco */
   --text-inv: #ffffff;
 
-  /* Encabezados de tabla: gris sólido frío, en la misma familia que --bg y
+  /* Encabezados de tabla: gris verdoso sólido, en la misma familia que --bg y
      --panel pero un par de pasos más marcado para despegarse de las filas. */
-  --thead-bg: #e7e9f0;
-  --thead-fg: #3b3d4a; /* 8.4:1 sobre --thead-bg */
-  --thead-border: #d6d9e3;
+  --thead-bg: #e2ece7;
+  --thead-fg: #26382f; /* 9.6:1 sobre --thead-bg */
+  --thead-border: #ccdcd4;
 
   /* Estado / prioridad */
-  --low-fg: #1f9d62;
-  --low-bg: #e7f6ee;
+  --low-fg: #157a52;
+  --low-bg: #e2f2ea;
   --urgent-fg: #e5484d;
   /* Variante para texto chico en rojo: #e5484d da 3.9:1 sobre blanco, por debajo
      del 4.5:1 de WCAG AA. Esta da 5.9:1. */
   --urgent-text: #c0272d;
   --urgent-bg: #fdecec;
-  --mod-fg: #e0890b;
-  --mod-bg: #fcf1e1;
-  --info-fg: #2e77e6;
+  --mod-fg: #b9740b; /* ámbar único de la app (antes había dos) */
+  --mod-bg: #fbedd6;
+  --info-fg: #1f5fbf; /* azul único de la app (antes había dos) */
   --info-bg: #e8f1fe;
+  /* Óxido (paleta Hell Basement): el único acento cálido, para "WEB" */
+  --rust-fg: #6b4f3c;
+  --rust-bg: #f3ebe4;
+  --rust-border: #e5d8cc;
 
   /* Radios */
   --r-xs: 6px;
@@ -63,9 +71,9 @@
 
   /* Sombras */
   --shadow-sm:
-    0 1px 2px rgba(16, 24, 40, 0.04), 0 1px 3px rgba(16, 24, 40, 0.04);
-  --shadow-md: 0 4px 12px rgba(16, 24, 40, 0.06);
-  --shadow-lg: 0 16px 32px rgba(16, 24, 40, 0.14);
+    0 1px 2px rgba(9, 30, 22, 0.04), 0 1px 3px rgba(9, 30, 22, 0.04);
+  --shadow-md: 0 4px 12px rgba(9, 30, 22, 0.06);
+  --shadow-lg: 0 16px 32px rgba(9, 30, 22, 0.14);
 
   /* Tipografía */
   --font-sans:
@@ -85,13 +93,13 @@
   /* Layout */
   --sidebar-w: 244px;
 
-  /* Navegación oscura (extraído del mockup) */
-  --nav-bg: #232428; /* fondo sidebar + topbar + tabs */
-  --nav-raised: #343436; /* fila activa / hover elevado */
-  --nav-text: #c9cbd1; /* texto de nav inactivo (claro) */
+  /* Navegación oscura (verde casi negro, familia Hell Basement) */
+  --nav-bg: #041A14; /* fondo sidebar + topbar + tabs */
+  --nav-raised: #0c2c22; /* fila activa / hover elevado */
+  --nav-text: #b4c9bf; /* texto de nav inactivo (claro) */
   --nav-strong: #ffffff; /* marca, título, item activo */
-  --nav-muted: #85858a; /* etiquetas, íconos, breadcrumb */
-  --nav-dim: #6b6f72; /* email atenuado */
+  --nav-muted: #7e958a; /* etiquetas, íconos, breadcrumb */
+  --nav-dim: #63796f; /* email atenuado */
   --nav-border: rgba(255, 255, 255, 0.09);
   --nav-hover: rgba(255, 255, 255, 0.06);
 }
@@ -130,7 +138,7 @@ body {
 .btn-primary {
   background: var(--brand-600) !important;
   color: var(--text-inv) !important;
-  box-shadow: 0 6px 16px rgba(253, 95, 92, 0.28);
+  box-shadow: 0 6px 16px rgba(10, 132, 82, 0.30);
 }
 .btn-primary:hover {
   background: var(--brand-700) !important;
@@ -142,11 +150,11 @@ body {
 }
 .btn-outline:hover {
   border-color: var(--text-3);
-  background: #fcfcfd;
+  background: #fbfdfc;
 }
 /* Terciario: solo texto, sin fondo ni borde. Para acciones de confirmación
    dentro de un bloque que ya tiene su propio contenedor, donde un botón sólido
-   pesa de más. Mantiene el coral de marca como señal de acción.
+   pesa de más. Mantiene el verde de marca como señal de acción.
    El !important replica la convención de .btn-primary: en este sistema los
    colores de botón se fijan así para que ninguna utilidad los pise. */
 .btn-tertiary {
@@ -538,7 +546,7 @@ body {
   border-top-left-radius: 0;
   border-top-right-radius: 0;
   /* sombra apenas insinuada: separa sin pesar */
-  box-shadow: 0 4px 10px -8px rgba(16, 24, 40, 0.18);
+  box-shadow: 0 4px 10px -8px rgba(9, 30, 22, 0.18);
 }
 
 /* ---------- MODAL ---------- */
@@ -546,7 +554,7 @@ body {
   position: fixed;
   inset: 0;
   z-index: 50;
-  background: rgba(16, 24, 40, 0.45);
+  background: rgba(9, 30, 22, 0.45);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -591,7 +599,7 @@ body {
 .wizard-aside {
   position: relative;
   overflow: hidden;
-  background: #14100f;
+  background: #050c09;
   color: #fff;
 }
 /* Resplandor cálido inferior, como en la referencia */
@@ -603,9 +611,9 @@ body {
   height: 78%;
   background: radial-gradient(
     ellipse at 50% 100%,
-    rgba(253, 95, 92, 0.95) 0%,
-    rgba(253, 138, 92, 0.55) 38%,
-    rgba(253, 95, 92, 0) 72%
+    rgba(25, 245, 122, 0.85) 0%,
+    rgba(0, 185, 104, 0.5) 38%,
+    rgba(25, 245, 122, 0) 72%
   );
   filter: blur(14px);
   pointer-events: none;
@@ -676,7 +684,7 @@ body {
 .wizard-step.is-active .wizard-step-dot {
   background: #fff;
   border-color: #fff;
-  color: #14100f;
+  color: #050c09;
 }
 .wizard-step.is-done {
   color: rgba(255, 255, 255, 0.78);
@@ -2012,8 +2020,8 @@ body {
   color: var(--text-3);
 }
 .cal-cell.weekend {
-  background: #edeef2;
-  border-color: #e4e5ea;
+  background: #e9efec;
+  border-color: #dae3dd;
 }
 .cal-cell.weekend .cal-daynum {
   color: var(--text-3);
@@ -2103,7 +2111,7 @@ body {
 .cal-chip:hover {
   background: var(--brand-50);
   transform: translateY(-1px);
-  box-shadow: 0 1px 4px rgba(16, 24, 40, 0.12);
+  box-shadow: 0 1px 4px rgba(9, 30, 22, 0.12);
 }
 .cal-group-dot {
   width: 8px;
@@ -2368,7 +2376,7 @@ body {
 }
 .notif-item:hover {
   border-color: var(--border-strong);
-  background: #fcfcfd;
+  background: #fbfdfc;
 }
 .notif-item.unread {
   background: var(--brand-50);
@@ -2554,20 +2562,20 @@ body {
   font-family: inherit;
 }
 .ps-upcoming {
-  background: #e8eefc;
-  color: #3b5bdb;
+  background: var(--info-bg);
+  color: var(--info-fg);
 }
 .ps-ontrack {
-  background: #e7f6ee;
-  color: #1f9d62;
+  background: #e2f2ea;
+  color: #157a52;
 }
 .ps-atrisk {
-  background: #fbedd6;
-  color: #b9740b;
+  background: var(--mod-bg);
+  color: var(--mod-fg);
 }
 .ps-onhold {
-  background: #eceef2;
-  color: #5b6472;
+  background: #e9efec;
+  color: #4e6158;
 }
 
 /* ---- Tipo de proyecto (SEO / WEB) ---- */
@@ -2581,19 +2589,19 @@ body {
   flex: 0 0 auto;
 }
 .pt-seo {
-  background: #efecfb;
-  color: #6d5bd0;
-  border-color: #ded7f6;
+  background: #e4efe9;
+  color: #174d3a;
+  border-color: #cbe1d6;
 }
 .pt-web {
-  background: #e0f2f1;
-  color: #0d9488;
-  border-color: #c7e9e6;
+  background: var(--rust-bg);
+  color: var(--rust-fg);
+  border-color: var(--rust-border);
 }
 .pt-general {
-  background: #eef0f4;
-  color: #5b6472;
-  border-color: #dfe3ea;
+  background: #ebf0ed;
+  color: #4e6158;
+  border-color: #dae3dd;
 }
 
 /* ---- Editor de plantillas ---- */
@@ -3312,7 +3320,7 @@ body {
   gap: 14px;
 }
 .cli-card {
-  border: 1px solid var(--border, #e6e6e9);
+  border: 1px solid var(--border, #e3ebe7);
   border-radius: var(--r-lg, 12px);
   background: var(--surface, #fff);
   padding: 16px;
@@ -3382,7 +3390,7 @@ body {
   font-style: italic;
 }
 .cli-foot {
-  border-top: 1px solid var(--border, #eceef2);
+  border-top: 1px solid var(--border, #e9efec);
   padding-top: 10px;
 }
 .cli-projects-link {
@@ -3410,7 +3418,7 @@ body {
   justify-content: space-between;
   gap: 10px;
   background: var(--brand-50);
-  border: 1px solid var(--brand-100, #f3dcd9);
+  border: 1px solid var(--brand-100, #dbf5ea);
   color: var(--text-2);
   border-radius: var(--r-md, 8px);
   padding: 8px 12px;
@@ -3479,7 +3487,7 @@ body {
   width: 340px;
   max-width: 92vw;
   background: var(--surface, #fff);
-  border: 1px solid var(--border, #e6e6e9);
+  border: 1px solid var(--border, #e3ebe7);
   border-radius: var(--r-lg, 12px);
   box-shadow: 0 12px 32px rgba(0, 0, 0, 0.14);
   padding: 14px;
@@ -3499,7 +3507,7 @@ body {
   align-items: center;
   gap: 7px;
   padding: 8px 10px;
-  border: 1px solid var(--border, #e6e6e9);
+  border: 1px solid var(--border, #e3ebe7);
   border-radius: var(--r-md, 8px);
   background: transparent;
   cursor: pointer;
@@ -3525,7 +3533,7 @@ body {
 }
 .pstatus-history {
   margin-top: 14px;
-  border-top: 1px solid var(--border, #eceef2);
+  border-top: 1px solid var(--border, #e9efec);
   padding-top: 12px;
   max-height: 260px;
   overflow-y: auto;
@@ -3611,7 +3619,7 @@ a.risk-hint:hover {
   margin-bottom: var(--space-4);
 }
 .pss-item {
-  border: 1px solid var(--border, #eceef2);
+  border: 1px solid var(--border, #e9efec);
   border-radius: var(--r-md, 8px);
   padding: 10px 12px;
   display: flex;
@@ -3931,7 +3939,7 @@ a.risk-hint:hover {
   text-align: left;
 }
 .ctxmenu-item:hover {
-  background: var(--surface-2, #f4f5f7);
+  background: var(--surface-2, #f1f5f3);
   color: var(--text);
 }
 .ctxmenu-item:disabled {
@@ -4132,7 +4140,7 @@ a.risk-hint:hover {
 .pay-filter-count {
   font-size: 11px;
   color: var(--text-3);
-  background: var(--surface-2, #eef0f3);
+  background: var(--surface-2, #edf2ef);
   border-radius: var(--r-full);
   padding: 0 6px;
   min-width: 18px;
@@ -4161,7 +4169,7 @@ a.risk-hint:hover {
   font-weight: 600;
 }
 .pay-model.seo { background: var(--brand-50); color: var(--brand-700); }
-.pay-model.web { background: #e6f4f1; color: #0d9488; }
+.pay-model.web { background: var(--rust-bg); color: var(--rust-fg); }
 
 /* Cuota Web editable */
 .pay-inst {
@@ -4309,7 +4317,7 @@ a.risk-hint:hover {
   justify-self: start;
 }
 .pay-badge.paid { background: var(--low-bg); color: var(--low-fg); }
-.pay-badge.pending { background: #eceef2; color: var(--text-2); }
+.pay-badge.pending { background: #e9efec; color: var(--text-2); }
 .pay-badge.overdue { background: #fbedd6; color: #b9740b; }
 .pay-action-pay {
   border: 0;
@@ -4417,7 +4425,7 @@ a.risk-hint:hover {
   height: 20px;
   padding: 0 7px;
   border-radius: var(--r-full);
-  background: var(--surface-2, #eef0f3);
+  background: var(--surface-2, #edf2ef);
   color: var(--text-2);
   font-size: 11.5px;
   font-weight: 600;
@@ -4636,13 +4644,13 @@ a.risk-hint:hover {
 
 /* ---------- ACCESIBILIDAD ---------- */
 /* La navegación oscura invierte el token: una tinta oscura ahí quedaría
-   invisible (1.1:1 sobre #232428, muy por debajo del mínimo de 3:1).
+   invisible (1.1:1 sobre #041a14, muy por debajo del mínimo de 3:1).
    Al ser una custom property, la heredan todos los enfocables de adentro. */
 .sidebar,
 .topbar,
 .app-topbar,
 .tabs {
-  --focus: #d7dae3;
+  --focus: #9fc7b5;
 }
 
 :focus-visible {
@@ -4690,7 +4698,7 @@ a.risk-hint:hover {
   border: 1px solid transparent;
 }
 .subrow:hover {
-  background: var(--surface-2, var(--bg-2, #f7f7f8));
+  background: var(--surface-2, var(--bg-2, #f5f8f6));
 }
 .subrow.dragging {
   opacity: 0.5;
@@ -4913,8 +4921,8 @@ a.risk-hint:hover {
   font-weight: 600;
 }
 
-/* Enviar: coral cuando hay algo que enviar, apagado y sin color cuando no.
-   Antes el deshabilitado era el mismo coral al 45%, y se leía como disponible. */
+/* Enviar: verde de marca cuando hay algo que enviar, apagado y sin color cuando no.
+   Antes el deshabilitado era el mismo verde al 45%, y se leía como disponible. */
 .comment-editor .comment-send {
   flex: 0 0 auto;
   margin-bottom: 5px;
@@ -5640,7 +5648,7 @@ a.risk-hint:hover {
 }
 /* Vencida: el rojo va sobre el texto, no sobre un adorno. El borde izquierdo
    del chip ya lo ocupa el color del proyecto, y una segunda barra competía con
-   él. Usa --urgent-text (más oscuro que --urgent-fg) porque a 12px el coral de
+   él. Usa --urgent-text (más oscuro que --urgent-fg) porque a 12px el rojo de
    los badges no llega al 4.5:1 que pide la WCAG para texto normal. */
 .tw-chip.vencida .tw-chip-t {
   color: var(--urgent-text);

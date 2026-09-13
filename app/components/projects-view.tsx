@@ -50,10 +50,10 @@ const memberName = (m: Member) => m.full_name?.trim() || m.email
 
 // Paleta pastel (tintes suaves) para las píldoras de estado
 const STATUS_PASTEL: Record<string, { bg: string; fg: string }> = {
-  upcoming: { bg: '#E6F1FB', fg: '#0C447C' },
-  on_track: { bg: '#E1F5EE', fg: '#0F6E56' },
-  at_risk: { bg: '#FAEEDA', fg: '#854F0B' },
-  on_hold: { bg: '#ECEEF2', fg: '#444441' },
+  upcoming: { bg: '#E8F1FE', fg: '#1F5FBF' },
+  on_track: { bg: '#E2F2EA', fg: '#157A52' },
+  at_risk: { bg: '#FBEDD6', fg: '#B9740B' },
+  on_hold: { bg: '#E9EFEC', fg: '#4E6158' },
 }
 
 // Pasos del asistente de creación de proyecto
@@ -471,7 +471,7 @@ export default function ProjectsView({
                 Todos <span className="proj-pill-count">{statusCount('')}</span>
               </button>
               {STATUSES.map((s) => {
-                const pastel = STATUS_PASTEL[s.key] ?? { bg: '#ECEEF2', fg: '#444441' }
+                const pastel = STATUS_PASTEL[s.key] ?? { bg: '#E9EFEC', fg: '#4E6158' }
                 return (
                   <button
                     key={s.key}
