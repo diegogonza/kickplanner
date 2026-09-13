@@ -49,7 +49,7 @@ export default async function ProjectPage({
     .select('id, name, owner_id, status, type, client_id')
     .eq('id', id)
     .single()
-  if (!project) redirect('/')
+  if (!project) redirect('/projects')
 
   const ptype = projectTypeOf(project.type)
 
@@ -246,19 +246,19 @@ export default async function ProjectPage({
 
   return (
     <div className="flex h-full">
-      <Sidebar email={user.email ?? ''} />
+      <Sidebar email={user.email ?? ''} active="projects" />
 
       <div className="flex flex-1 flex-col overflow-hidden">
         <header className="topbar" style={{ borderBottom: 'none' }}>
           <div>
             <div className="breadcrumb">
-              <Link href="/" style={{ color: 'var(--text-3)' }}>
+              <Link href="/projects" style={{ color: 'var(--text-3)' }}>
                 Proyectos
               </Link>{' '}
               /{' '}
               {clientName && (
                 <>
-                  <Link href={`/?client=${project.client_id}`} style={{ color: 'var(--text-3)' }}>
+                  <Link href={`/projects?client=${project.client_id}`} style={{ color: 'var(--text-3)' }}>
                     {clientName}
                   </Link>{' '}
                   /{' '}

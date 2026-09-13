@@ -2,7 +2,7 @@ import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/utils/supabase/server'
 import Sidebar from '@/app/components/sidebar'
-import Avatar, { colorFor } from '@/app/components/avatar'
+import Avatar from '@/app/components/avatar'
 import StickyTable from '@/app/components/sticky-table'
 import { displayName } from '@/app/projects/statuses'
 
@@ -28,8 +28,12 @@ function fmtDue(s: string): string {
   const [y, m, d] = s.split('-').map(Number)
   return new Date(y, m - 1, d).toLocaleDateString('es', { day: 'numeric', month: 'short' })
 }
-// Un solo generador de color por semilla en toda la app (ver components/avatar)
-const dotColor = colorFor
+function dotColor(seed: string): string {
+  const colors = ['#FD5F5C', '#2E77E6', '#14B8A6', '#E0A81E', '#EC4899', '#7B5CF0', '#22C55E']
+  let h = 0
+  for (let i = 0; i < seed.length; i++) h = (h * 31 + seed.charCodeAt(i)) >>> 0
+  return colors[h % colors.length]
+}
 const STATUS_LABEL: Record<string, string> = {
   open: 'Sin completar', todo: 'Pendiente', doing: 'En curso', done: 'Completada',
 }
@@ -132,7 +136,7 @@ export default async function SearchPage({
 
   return (
     <div className="flex h-full">
-      <Sidebar />
+      <Sidebar active="buscar" />
 
       <div className="flex flex-1 flex-col overflow-hidden">
         <header className="topbar" style={{ borderBottom: 'none' }}>

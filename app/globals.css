@@ -5672,3 +5672,534 @@ a.risk-hint:hover {
   font-size: 12.5px;
   color: var(--text-3);
 }
+
+/* ---------- BANNER DE BIENVENIDA (/panel) ----------
+   Superficie oscura de la familia Hell Basement dentro de una pantalla clara:
+   funciona como pieza de marca, no como tarjeta de datos. Los verdes neón solo
+   viven acá adentro, que es donde tienen fondo oscuro para sostenerlos.
+   La tarjeta ocupa todo el ancho, pero el contenido se centra en una banda
+   máxima: en monitores anchos el trío texto/personaje/lista se mantiene junto
+   en vez de separarse dejando un hueco muerto en el medio. */
+.pbanner {
+  --pb-neon: var(--brand-neon, #19f57a);
+  --pb-ink: #eaf5ef;
+  --pb-bg: #05231a;
+
+  position: relative;
+  margin: 0 0 var(--space-5);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: 22px;
+  overflow: hidden;
+  isolation: isolate;
+  /* Fondo PLANO a propósito: el fundido de la ilustración usa este mismo color,
+     y solo así el degradado la disuelve sin que se note el borde del archivo.
+     La profundidad la aportan los resplandores de abajo, no el fondo. */
+  background: var(--pb-bg);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.05),
+    0 18px 40px -30px rgba(0, 0, 0, 0.85);
+}
+.pbanner-inner {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) clamp(300px, 30%, 460px) minmax(230px, 300px);
+  grid-template-areas: "text art list";
+  align-items: center;
+  max-width: 1440px;
+  margin-inline: auto;
+  min-height: clamp(268px, 17vw, 320px);
+}
+/* ---- texto ---- */
+.pbanner-text {
+  grid-area: text;
+  position: relative;
+  z-index: 4;
+  padding: 26px 12px 26px 34px;
+  min-width: 0;
+  max-width: 560px;
+}
+.pbanner-hello {
+  margin: 0 0 10px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--pb-neon);
+}
+.pbanner-title {
+  margin: 0;
+  font-size: 30px;
+  line-height: 1.16;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: #ffffff;
+  text-wrap: balance;
+}
+.pbanner-title span { color: var(--pb-neon); }
+.pbanner-rule {
+  display: block;
+  width: 58px;
+  height: 4px;
+  margin: 16px 0 14px;
+  border-radius: var(--r-full);
+  background: linear-gradient(90deg, var(--pb-neon), #00b968);
+}
+.pbanner-quote {
+  margin: 0;
+  max-width: 34ch;
+  font-size: 13.5px;
+  line-height: 1.5;
+  color: rgba(234, 245, 239, 0.66);
+}
+
+/* ---- ilustración ----
+   La imagen va a tamaño natural (no estirada a la caja) y se disuelve con una
+   máscara radial: así no se ve el rectángulo del archivo contra el fondo. */
+.pbanner-art {
+  grid-area: art;
+  position: relative;
+  z-index: 1;
+  align-self: stretch;
+  /* imprescindible: sin esto la ilustración se sale de su columna en pantallas
+     grandes y el fundido —que cubre solo la columna— deja el canto a la vista */
+  overflow: hidden;
+}
+/* Halo verde: vive DENTRO de la caja de la ilustración y por debajo del
+   fundido. Toda la luz del banner queda contenida acá; fuera de esta caja el
+   fondo es plano, que es lo que permite que el fundido no deje canto. */
+.pbanner-art::before {
+  content: "";
+  position: absolute;
+  z-index: 0;
+  inset: -40% -8%;
+  background: radial-gradient(closest-side, rgba(25, 245, 122, 0.22), transparent 74%);
+  pointer-events: none;
+}
+.pbanner-art img {
+  position: absolute;
+  z-index: 1;
+  left: 50%;
+  bottom: -24%;
+  /* se dimensiona por ANCHO (no por alto): así nunca supera su columna */
+  width: 100%;
+  max-width: 500px;
+  height: auto;
+  transform: translateX(-50%);
+  pointer-events: none;
+}
+/* Fundido de la ilustración hacia el color exacto del banner. Es un óvalo
+   (no rampas rectas) para que el personaje quede nítido en el centro y solo se
+   disuelvan los bordes del archivo. Se hace con degradados y no con
+   mask-image porque la máscara no la resuelven todos los motores igual y
+   dejaba el rectángulo a la vista. El óvalo cierra ANTES del borde de la
+   imagen: si cerrara justo en el borde, quedaría un canto de un 7% visible. */
+.pbanner-art::after {
+  content: "";
+  position: absolute;
+  z-index: 2;
+  inset: 0;
+  background: radial-gradient(
+    52% 70% at 50% 44%,
+    rgba(5, 35, 26, 0) 0%,
+    rgba(5, 35, 26, 0) 54%,
+    var(--pb-bg) 95%
+  );
+  pointer-events: none;
+}
+
+/* ---- beneficios ---- */
+.pbanner-list {
+  grid-area: list;
+  position: relative;
+  z-index: 4;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin: 0 28px 0 0;
+  padding: 16px 18px;
+  list-style: none;
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  border-radius: 16px;
+  background: rgba(6, 30, 23, 0.62);
+  backdrop-filter: blur(3px);
+}
+.pbanner-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 14px;
+  line-height: 1.3;
+  color: var(--pb-ink);
+}
+.pbanner-check {
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border: 1.5px solid rgba(25, 245, 122, 0.55);
+  border-radius: 7px;
+  background: rgba(25, 245, 122, 0.10);
+  color: var(--pb-neon);
+}
+.pbanner-check svg { width: 13px; height: 13px; }
+
+/* ---- responsive ---- */
+@media (max-width: 1180px) {
+  .pbanner-inner {
+    grid-template-columns: minmax(0, 1fr) minmax(260px, 38%);
+    grid-template-areas:
+      "text art"
+      "list art";
+    align-items: start;
+  }
+  .pbanner-inner::before { right: 8%; width: 40%; }
+  .pbanner-text { padding: 24px 12px 14px 28px; }
+  .pbanner-list { margin: 0 0 24px 28px; max-width: 340px; }
+  .pbanner-title { font-size: 26px; }
+  .pbanner-art img { width: 100%; max-width: 430px; bottom: -6%; }
+}
+@media (max-width: 760px) {
+  .pbanner-inner {
+    grid-template-columns: 1fr;
+    grid-template-areas:
+      "art"
+      "text"
+      "list";
+    min-height: 0;
+  }
+  .pbanner-inner::before { display: none; }
+  .pbanner-art {
+    height: 210px;
+    min-height: 0;
+  }
+  .pbanner-art img {
+    /* en móvil la caja es ancha y baja: la imagen ocupa todo el ancho para que
+       sus bordes caigan donde el fundido ya es opaco */
+    top: -86%;
+    bottom: auto;
+    width: 100%;
+    max-width: none;
+    height: auto;
+  }
+  .pbanner-text { padding: 4px 22px 14px; }
+  .pbanner-quote { max-width: none; }
+  .pbanner-list { margin: 0 22px 22px; }
+  .pbanner-title { font-size: 24px; }
+}
+
+/* ---------- AJUSTES · PERFIL ----------
+   Dos columnas: el formulario manda y a la derecha acompaña Hellix. El
+   asistente es superficie clara (no la oscura del banner del panel) porque
+   convive con el formulario: si fuera oscuro competiría con él. */
+.st-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 372px;
+  gap: 20px;
+  align-items: start;
+}
+.st-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  padding: 24px 26px 22px;
+  box-shadow: var(--shadow-sm);
+}
+.st-head { margin-bottom: 20px; }
+.st-title {
+  margin: 0;
+  font-size: 17px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: var(--text);
+}
+.st-desc {
+  margin: 4px 0 0;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--text-3);
+}
+
+/* ---- aviso de la subida de foto ---- */
+.st-alert {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  margin: 0 0 18px;
+  padding: 10px 12px;
+  border: 1px solid;
+  border-radius: 12px;
+  font-size: 13px;
+  line-height: 1.45;
+}
+.st-alert svg { width: 17px; height: 17px; flex: 0 0 auto; }
+.st-alert-ok {
+  border-color: var(--brand-200);
+  background: var(--brand-50);
+  color: var(--brand-800);
+}
+.st-alert-error {
+  border-color: #fbd5d5;
+  background: var(--urgent-bg);
+  color: var(--urgent-text);
+}
+.st-alert-close {
+  margin-left: auto;
+  padding: 0 2px;
+  font-size: 13px;
+  line-height: 1;
+  color: inherit;
+  opacity: 0.6;
+  text-decoration: none;
+}
+.st-alert-close:hover { opacity: 1; }
+
+/* ---- foto ---- */
+.st-photo {
+  display: flex;
+  align-items: flex-start;
+  gap: 20px;
+}
+.st-avatar-ring {
+  flex: 0 0 auto;
+  padding: 3px;
+  border-radius: var(--r-full);
+  background: linear-gradient(135deg, var(--brand-400), var(--brand-600));
+  line-height: 0;
+}
+.st-avatar-ring .ava {
+  border: 3px solid var(--surface);
+  box-sizing: content-box;
+}
+.st-photo-body { min-width: 0; }
+.st-photo-title {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
+}
+.st-photo-desc {
+  margin: 3px 0 12px;
+  font-size: 13px;
+  color: var(--text-3);
+}
+.st-file {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  max-width: 100%;
+  padding: 6px;
+  border: 1px solid var(--border-strong);
+  border-radius: 12px;
+  background: var(--bg);
+}
+.st-file input[type="file"] {
+  min-width: 0;
+  font-family: inherit;
+  font-size: 13px;
+  color: var(--text-2);
+}
+.st-file input[type="file"]::file-selector-button {
+  margin-right: 10px;
+  padding: 8px 14px;
+  border: 1px solid var(--border-strong);
+  border-radius: 9px;
+  background: var(--surface);
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-2);
+  cursor: pointer;
+}
+.st-file input[type="file"]::file-selector-button:hover {
+  border-color: var(--brand-300);
+  color: var(--brand-700);
+}
+.st-file .btn { padding: 8px 14px; }
+.st-photo-meta {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-top: 10px;
+  font-size: 12.5px;
+  color: var(--text-3);
+}
+.st-remove {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  font-family: inherit;
+  font-size: 12.5px;
+  color: var(--urgent-text);
+  cursor: pointer;
+}
+.st-remove:hover { text-decoration: underline; }
+.st-remove svg { width: 14px; height: 14px; }
+
+.st-sep {
+  height: 1px;
+  margin: 22px 0;
+  background: var(--border);
+}
+
+/* ---- campos ---- */
+.st-fields {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 18px 22px;
+}
+.st-field { display: flex; flex-direction: column; min-width: 0; }
+.st-label {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin-bottom: 7px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--text-2);
+}
+.st-label svg { width: 15px; height: 15px; color: var(--text-3); }
+.st-field .field {
+  padding: 12px 14px;
+  border-radius: 11px;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+.st-field .field:hover:not(:disabled) { border-color: var(--text-3); }
+.st-field .field:focus {
+  outline: none;
+  border-color: var(--brand-500);
+  box-shadow: 0 0 0 3px var(--brand-100);
+}
+.st-field .field:disabled {
+  background: var(--panel);
+  color: var(--text-3);
+  cursor: not-allowed;
+}
+.st-hint {
+  margin: 6px 0 0;
+  font-size: 12px;
+  color: var(--text-3);
+}
+.st-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 24px;
+}
+
+/* ---- asistente ---- */
+.st-aside {
+  position: sticky;
+  top: 4px;
+  overflow: hidden;
+  padding: 22px 22px 20px;
+  /* tinte menta en vez de blanco: separa a Hellix del formulario sin recurrir
+     a la superficie oscura, que acá competiría con los campos */
+  border-color: var(--brand-100);
+  background: linear-gradient(180deg, #e7f7ef 0%, #f3fbf7 58%, #ffffff 100%);
+}
+.st-hello {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  margin: 0 0 8px;
+  font-size: 17px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: var(--text);
+}
+.st-hello svg { width: 20px; height: 20px; color: var(--brand-500); flex: 0 0 auto; }
+.st-msg {
+  margin: 0;
+  font-size: 13.5px;
+  line-height: 1.55;
+  color: var(--text-2);
+}
+.st-hellix {
+  position: relative;
+  display: grid;
+  place-items: center;
+  margin: 6px 0 14px;
+}
+/* aura verde: el personaje viene recortado, así no queda flotando en el vacío */
+.st-hellix::before {
+  content: "";
+  position: absolute;
+  width: 78%;
+  aspect-ratio: 1;
+  border-radius: var(--r-full);
+  background: radial-gradient(closest-side, rgba(0, 185, 104, 0.16), transparent 76%);
+}
+.st-hellix img {
+  position: relative;
+  width: 72%;
+  max-width: 240px;
+  margin-top: 6px;
+  height: auto;
+}
+.st-note {
+  position: absolute;
+  z-index: 1;
+  right: -4px;
+  top: 2%;
+  max-width: 96px;
+  transform: rotate(-7deg);
+  font-size: 12.5px;
+  font-style: italic;
+  line-height: 1.35;
+  color: var(--text-2);
+  text-align: center;
+}
+.st-tip {
+  display: flex;
+  gap: 10px;
+  padding: 12px 14px;
+  border: 1px solid var(--brand-200);
+  border-radius: 14px;
+  /* un paso más saturada que la tarjeta, si no se pierde sobre el menta */
+  background: #dbf3e7;
+}
+.st-tip svg { width: 17px; height: 17px; color: var(--brand-600); flex: 0 0 auto; margin-top: 1px; }
+.st-tip-title {
+  margin: 0 0 2px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--brand-800);
+}
+.st-tip-text {
+  margin: 0;
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: var(--text-2);
+}
+.st-quote {
+  margin: 16px 0 0;
+  font-size: 12.5px;
+  font-style: italic;
+  line-height: 1.5;
+  text-align: center;
+  color: var(--text-3);
+}
+.st-quote-by {
+  display: block;
+  margin-top: 6px;
+  font-size: 10.5px;
+  font-style: normal;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--text-3);
+}
+
+@media (max-width: 1100px) {
+  .st-grid { grid-template-columns: 1fr; }
+  .st-aside { position: static; }
+  .st-hellix img { max-width: 220px; }
+}
+@media (max-width: 640px) {
+  .st-fields { grid-template-columns: 1fr; }
+  .st-photo { flex-direction: column; gap: 14px; }
+  .st-card { padding: 20px 18px; }
+}

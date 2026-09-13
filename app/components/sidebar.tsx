@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import { signout } from '@/app/login/actions'
 import { createClient } from '@/utils/supabase/server'
+import { getSessionProfile } from '@/app/lib/session'
 import Avatar from '@/app/components/avatar'
 import { displayName, FINANCE_USER_ID } from '@/app/projects/statuses'
 
@@ -8,26 +9,28 @@ export default async function Sidebar({
   active = 'projects',
 }: {
   email?: string
-  active?: 'projects' | 'clientes' | 'plantillas' | 'portfolios' | 'teams' | 'mis-tareas' | 'equipo' | 'notificaciones' | 'panel' | 'pagos'
+  active?:
+    | 'projects'
+    | 'clientes'
+    | 'plantillas'
+    | 'portfolios'
+    | 'teams'
+    | 'mis-tareas'
+    | 'equipo'
+    | 'notificaciones'
+    | 'panel'
+    | 'pagos'
+    | 'ajustes'
+    | 'buscar'
 }) {
-  const supabase = await createClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  // Sesión y perfil compartidos con la página que renderiza el sidebar: el
+  // helper está cacheado por request, así que esto no repite la consulta.
+  const { user, fullName, avatarUrl } = await getSessionProfile()
   const email = user?.email ?? ''
 
-  let fullName: string | null = null
-  let avatarUrl: string | null = null
   let unread = 0
   if (user) {
-    const { data: prof } = await supabase
-      .from('profiles')
-      .select('full_name, avatar_url')
-      .eq('id', user.id)
-      .maybeSingle()
-    fullName = prof?.full_name ?? null
-    avatarUrl = prof?.avatar_url ?? null
-
+    const supabase = await createClient()
     const { count } = await supabase
       .from('notifications')
       .select('id', { count: 'exact', head: true })
@@ -41,7 +44,7 @@ export default async function Sidebar({
     <aside className="sidebar">
       <nav className="flex flex-col gap-1">
         <div className="nav-label" style={{ marginTop: 0 }}>Gestión (PM)</div>
-        <Link className={`nav-item ${active === 'panel' ? 'active' : ''}`} href="/panel">
+        <Link className={`nav-item ${active === 'panel' ? 'active' : ''}`} href="/">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <path d="M3 3v18h18" />
             <rect x="7" y="12" width="3" height="6" rx="1" />
@@ -73,7 +76,7 @@ export default async function Sidebar({
           Notificaciones
           {unread > 0 && <span className="nav-badge">{unread > 99 ? '99+' : unread}</span>}
         </Link>
-        <Link className={`nav-item ${active === 'projects' ? 'active' : ''}`} href="/">
+        <Link className={`nav-item ${active === 'projects' ? 'active' : ''}`} href="/projects">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />
           </svg>

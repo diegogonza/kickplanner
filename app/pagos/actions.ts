@@ -100,6 +100,7 @@ export async function changeFee(formData: FormData) {
   })
   revalidatePath('/pagos')
   revalidatePath('/')
+  revalidatePath('/projects') // la columna de cuota vive en la lista de proyectos
 }
 
 // Elimina una cuota
