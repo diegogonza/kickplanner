@@ -64,14 +64,14 @@ export default async function PanelTasksPage({
         <header className="topbar" style={{ borderBottom: 'none' }}>
           <div>
             <div className="breadcrumb">
-              <Link href="/panel" style={{ color: 'var(--text-3)' }}>Panel</Link> / {FILTERS[key].title}
+              <Link href="/" style={{ color: 'var(--text-3)' }}>Panel</Link> / {FILTERS[key].title}
             </div>
             <h1 className="page-title">
               {FILTERS[key].title}
               <span className="count-badge">{listTasks.length}</span>
             </h1>
           </div>
-          <Link className="btn btn-outline" href="/panel">
+          <Link className="btn btn-outline" href="/">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M15 18l-6-6 6-6" />
             </svg>

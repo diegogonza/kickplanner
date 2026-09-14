@@ -114,7 +114,7 @@ export default function ClientesView({ clients }: { clients: ClientOverview[] })
               </div>
 
               <div className="cli-foot">
-                <Link href={`/?client=${c.id}`} className="cli-projects-link">
+                <Link href={`/projects?client=${c.id}`} className="cli-projects-link">
                   {c.num_projects} {c.num_projects === 1 ? 'proyecto' : 'proyectos'}
                 </Link>
               </div>

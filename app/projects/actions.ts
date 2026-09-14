@@ -44,8 +44,8 @@ export async function createProject(formData: FormData) {
     await supabase.rpc('apply_template', { p_template_id: templateId, p_project_id: newId })
   }
 
-  revalidatePath('/')
-  revalidatePath('/panel')
+  revalidatePath('/') // el panel vive en la raíz
+  revalidatePath('/projects')
 }
 
 export async function updateProject(formData: FormData) {
@@ -73,8 +73,8 @@ export async function updateProject(formData: FormData) {
   if (status) {
     await supabase.rpc('set_project_status', { p_project_id: id, p_status: status, p_note: null })
   }
-  revalidatePath('/')
-  revalidatePath('/panel')
+  revalidatePath('/') // el panel vive en la raíz
+  revalidatePath('/projects')
   revalidatePath(`/projects/${id}`)
 }
 
@@ -87,6 +87,7 @@ export async function setProjectUrl(formData: FormData) {
   const supabase = await createClient()
   await supabase.from('projects').update({ url }).eq('id', id)
   revalidatePath('/')
+  revalidatePath('/projects')
   revalidatePath(`/projects/${id}`)
 }
 
@@ -98,8 +99,8 @@ export async function setProjectManager(formData: FormData) {
 
   const supabase = await createClient()
   await supabase.from('projects').update({ manager_id: managerId }).eq('id', id)
-  revalidatePath('/')
-  revalidatePath('/panel')
+  revalidatePath('/') // el panel vive en la raíz
+  revalidatePath('/projects')
   revalidatePath(`/projects/${id}`)
 }
 
@@ -111,8 +112,8 @@ export async function setProjectStatus(formData: FormData) {
 
   const supabase = await createClient()
   await supabase.rpc('set_project_status', { p_project_id: id, p_status: raw, p_note: note })
-  revalidatePath('/')
-  revalidatePath('/panel')
+  revalidatePath('/') // el panel vive en la raíz
+  revalidatePath('/projects')
   revalidatePath(`/projects/${id}`)
 }
 
@@ -135,6 +136,7 @@ export async function toggleFavorite(formData: FormData) {
       .upsert({ project_id: id, user_id: user.id }, { onConflict: 'project_id,user_id', ignoreDuplicates: true })
   }
   revalidatePath('/')
+  revalidatePath('/projects')
 }
 
 export async function deleteProject(formData: FormData) {
@@ -143,6 +145,7 @@ export async function deleteProject(formData: FormData) {
   const supabase = await createClient()
   await supabase.from('projects').delete().eq('id', id)
   revalidatePath('/')
+  revalidatePath('/projects')
 }
 
 // ---------- TAREAS ----------

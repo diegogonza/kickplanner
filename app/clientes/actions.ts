@@ -47,6 +47,7 @@ export async function updateCliente(formData: FormData) {
 
   revalidatePath('/clientes')
   revalidatePath('/')
+  revalidatePath('/projects')
 }
 
 export async function deleteCliente(formData: FormData) {
@@ -59,4 +60,5 @@ export async function deleteCliente(formData: FormData) {
 
   revalidatePath('/clientes')
   revalidatePath('/')
+  revalidatePath('/projects')
 }
