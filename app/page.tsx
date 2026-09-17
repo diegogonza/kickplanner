@@ -5,6 +5,7 @@ import { getSessionProfile } from '@/app/lib/session'
 import Sidebar from '@/app/components/sidebar'
 import Avatar from '@/app/components/avatar'
 import PanelBanner from '@/app/components/panel-banner'
+import SeoHealth from '@/app/components/seo-health'
 import { STATUSES, PRIORITIES, PROJECT_STATUSES, projectStatusOf, displayName } from '@/app/projects/statuses'
 
 type PerProject = { id: string; name: string; status: string; total: number; done: number; overdue: number }
@@ -78,6 +79,9 @@ export default async function PanelPage() {
         <div className="viewscroll flex-1 overflow-y-auto px-6">
           <div className="w-full">
             <PanelBanner />
+
+            {/* Solo se dibuja si hay algo roto. Ver seo-health.tsx. */}
+            <SeoHealth />
 
             {/* KPIs */}
             <div className="kpi-grid">

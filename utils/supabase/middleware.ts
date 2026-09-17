@@ -2,6 +2,14 @@ import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
 export async function updateSession(request: NextRequest) {
+  // El portal de clientes (/portal/*) es un carril aparte: no usa Supabase Auth,
+  // se entra con la contraseña del cliente y una cookie de sesión propia. Si lo
+  // dejáramos pasar por el chequeo de abajo, todo visitante sin sesión del
+  // equipo terminaría rebotado a /login y el portal sería inalcanzable.
+  if (request.nextUrl.pathname.startsWith('/portal')) {
+    return NextResponse.next({ request })
+  }
+
   let supabaseResponse = NextResponse.next({ request })
 
   const supabase = createServerClient(

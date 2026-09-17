@@ -24,13 +24,23 @@ export async function createProject(formData: FormData) {
   const currency = (formData.get('currency') as string) || 'COP'
   const url = ((formData.get('url') as string) ?? '').trim() || null
 
+  // Todo proyecto necesita cliente (projects.client_id es NOT NULL). Se corta
+  // acá para dar un mensaje, en vez de dejar que reviente la base.
+  if (!clientId) {
+    console.error('createProject: sin cliente asignado')
+    return
+  }
+
   const supabase = await createClient()
-  const { data: newId, error } = await supabase.rpc('create_project', { p_name: name })
+  const { data: newId, error } = await supabase.rpc('create_project', {
+    p_name: name,
+    p_client_id: clientId,
+  })
   if (error || !newId) {
     console.error('createProject:', error?.message)
     return
   }
-  await supabase.from('projects').update({ client_id: clientId, description, type, manager_id: managerId, start_date: startDate, fee, currency, url }).eq('id', newId)
+  await supabase.from('projects').update({ description, type, manager_id: managerId, start_date: startDate, fee, currency, url }).eq('id', newId)
   // Fija el estado inicial y lo registra en el historial (sin nota)
   await supabase.rpc('set_project_status', {
     p_project_id: newId,
@@ -67,7 +77,13 @@ export async function updateProject(formData: FormData) {
   const supabase = await createClient()
   await supabase
     .from('projects')
-    .update({ name, client_id: clientId, description, manager_id: managerId, start_date: startDate, fee, currency, url, ...(type ? { type } : {}) })
+    .update({
+      name, description, manager_id: managerId, start_date: startDate, fee, currency, url,
+      // Solo se reasigna el cliente si el formulario mandó uno: dejar un
+      // proyecto sin cliente ya no es un estado válido.
+      ...(clientId ? { client_id: clientId } : {}),
+      ...(type ? { type } : {}),
+    })
     .eq('id', id)
   // Si cambió el estado desde el modal de edición, se registra en el historial
   if (status) {

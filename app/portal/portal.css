@@ -1,0 +1,734 @@
+/* ===========================================================================
+   Portal de clientes — vista simplificada
+   Una sola tabla de actividades con filtros. Usa los tokens de la app
+   (globals.css). Prefijo .pt- para no chocar con la app interna.
+   =========================================================================== */
+
+/* El portal NO es un panel dentro de la app: es una página pública suelta.
+   Con `height:100%` + `overflow-y:auto` se volvía un contenedor de scroll
+   propio dentro del shell de 100vh, y aparecían DOS barras de desplazamiento,
+   una adentro de la otra. Con `min-height` y sin overflow, scrollea el
+   documento y nada más — que además es lo que espera un celular para ocultar
+   la barra de direcciones al bajar. */
+.pt-root {
+  min-height: 100%;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-sans);
+}
+.pt-wrap {
+  max-width: 1320px;
+  margin: 0 auto;
+  padding-inline: var(--space-6);
+  padding-block: var(--space-6) var(--space-10);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+@media (max-width: 640px) {
+  .pt-wrap { padding-inline: var(--space-4); }
+}
+.sr {
+  position: absolute; width: 1px; height: 1px;
+  padding: 0; margin: -1px; overflow: hidden;
+  clip: rect(0 0 0 0); white-space: nowrap; border: 0;
+}
+
+/* ---------- Barra superior ---------- */
+.pt-top { background: var(--nav-bg); border-bottom: 1px solid var(--nav-border); }
+.pt-top-in {
+  max-width: 1320px; margin: 0 auto;
+  padding: 0 var(--space-6); height: 62px;
+  display: flex; align-items: center; justify-content: space-between; gap: var(--space-4);
+}
+@media (max-width: 640px) { .pt-top-in { padding: 0 var(--space-4); height: 56px; } }
+.pt-brand { display: flex; align-items: center; flex: none; min-width: 0; }
+/* El alto manda y el ancho se deduce: así la marca no se deforma nunca,
+   cualquiera sea el archivo que se ponga después. */
+.pt-brand img { height: 20px; width: auto; }
+@media (max-width: 640px) { .pt-brand img { height: 17px; } }
+.pt-who { display: flex; align-items: center; gap: 10px; color: var(--nav-strong); font-size: 13.5px; font-weight: 600; }
+.pt-who-nm { white-space: nowrap; }
+@media (max-width: 720px) { .pt-who-nm { display: none; } }
+.pt-ava {
+  width: 32px; height: 32px; border-radius: var(--r-full);
+  background: var(--brand-600); color: #fff;
+  display: grid; place-items: center; font-size: 13px; font-weight: 700; flex: none;
+}
+.pt-out {
+  font-family: inherit; font-size: 12.5px; font-weight: 600;
+  color: var(--nav-muted); background: transparent;
+  border: 1px solid var(--nav-border); border-radius: var(--r-md);
+  padding: 7px 12px; cursor: pointer;
+}
+.pt-out:hover { background: var(--nav-hover); color: var(--nav-strong); }
+
+/* ---------- Banda de bienvenida ---------- */
+/* El texto ocupa 1fr y empuja a la derecha; la cita y la mascota son columnas
+   `auto` PEGADAS entre sí, para que la frase se lea como algo que dice Hellix
+   y no como un bloque suelto flotando en el medio de la banda.
+   En pantallas chicas los dos adornos desaparecen: en 400px de ancho compiten
+   con lo único que el cliente vino a leer. */
+.pt-hero {
+  position: relative;
+  overflow: hidden;
+  border-radius: var(--r-xl);
+  border: 1px solid var(--border);
+  background: linear-gradient(100deg, #ffffff 0%, var(--brand-50) 58%, #e4f7ec 100%);
+  color: var(--text);
+  /* OJO: la escala de espaciado va 6 -> 8, no hay --space-7. Un var() que no
+     existe invalida la declaración COMPLETA, y como padding no se hereda
+     quedaba en 0: por eso el texto salía pegado al borde y el "TU" del
+     antetítulo se veía cortado. Solo tokens que existen. */
+  padding: var(--space-6) var(--space-8);
+  min-height: 170px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  align-items: center;
+  gap: var(--space-5);
+}
+@media (min-width: 900px) {
+  .pt-hero {
+    /* Solo texto + mascota: la cita todavía no cabe sin apretar el párrafo. */
+    grid-template-columns: minmax(0, 1fr) auto;
+    /* Con la mascota en juego, la banda necesita más aire lateral del que pide
+       una tarjeta normal. */
+    padding: var(--space-8) var(--space-10);
+    column-gap: var(--space-6);
+  }
+}
+@media (min-width: 1100px) {
+  .pt-hero { grid-template-columns: minmax(0, 1fr) auto auto; }
+}
+@media (max-width: 640px) { .pt-hero { padding: var(--space-5); min-height: 0; } }
+
+.pt-hero-olas {
+  position: absolute; inset: 0;
+  width: 100%; height: 100%;
+  pointer-events: none;
+}
+
+.pt-hero-in { position: relative; min-width: 0; }
+
+.pt-hero-eyebrow {
+  display: block;
+  font-size: 10.5px; font-weight: 800;
+  letter-spacing: 0.14em; text-transform: uppercase;
+  color: var(--brand-700);
+  margin-bottom: 7px;
+}
+.pt-hero h1 {
+  display: flex; align-items: center; gap: 9px; flex-wrap: wrap;
+  margin: 0;
+  font-size: clamp(23px, 3.2vw, 34px);
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  color: var(--text);
+  text-wrap: balance;
+}
+.pt-hero h1 svg { width: 22px; height: 22px; flex: none; color: var(--brand-600); }
+.pt-hero p {
+  margin: 10px 0 0;
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--text-2);
+  /* Crece con la pantalla en vez de dejar un hueco muerto en el medio de la
+     banda, pero nunca pasa de 58ch: más largo que eso el ojo pierde el renglón. */
+  max-width: clamp(42ch, 44vw, 58ch);
+}
+
+.pt-hero-chip {
+  display: inline-flex; align-items: center; gap: 7px;
+  margin-top: var(--space-4);
+  font-size: 12.5px; font-weight: 600;
+  color: var(--brand-700);
+  background: var(--surface);
+  border: 1px solid var(--brand-200);
+  border-radius: 999px;
+  padding: 7px 14px;
+  box-shadow: 0 2px 8px rgba(10, 132, 82, 0.08);
+}
+.pt-hero-chip svg { width: 13px; height: 13px; flex: none; }
+
+/* Cita del personaje. Manuscrita si el cliente tiene la fuente; si no,
+   cursiva, que mantiene el tono sin depender de nada. */
+.pt-hero-cita {
+  position: relative;
+  margin: 0;
+  display: none;
+  /* Ancho fijo: si se deja crecer, la frase se estira en una sola línea larga y
+     deja de leerse como una nota escrita a mano. */
+  width: clamp(200px, 19vw, 250px);
+  /* Apoyada abajo, a la altura de la cara del personaje. */
+  align-self: end;
+  padding-bottom: var(--space-5);
+}
+@media (min-width: 1100px) { .pt-hero-cita { display: block; } }
+.pt-hero-cita blockquote {
+  margin: 0;
+  font-family: var(--font-mano, 'Segoe Script', 'Bradley Hand', cursive);
+  font-size: 18px;
+  line-height: 1.4;
+  color: var(--text);
+  text-wrap: balance;
+}
+.pt-hero-cita blockquote::before { content: '\201C'; }
+.pt-hero-cita blockquote::after { content: '\201D'; }
+.pt-hero-cita figcaption {
+  display: flex; align-items: center; gap: 8px;
+  margin-top: 6px;
+  font-family: var(--font-mano, 'Segoe Script', 'Bradley Hand', cursive);
+  font-size: 15px;
+  color: var(--text-2);
+}
+/* Flechita que apunta a Hellix. Reemplaza a la nota manuscrita que antes iba
+   encima de la ilustración: decía casi lo mismo que la cita y le tapaba la
+   cara al personaje, que es lo único que hace simpática a la banda. */
+.pt-hero-cita figcaption svg {
+  width: 42px; height: 26px; flex: none;
+  transform: scaleX(-1);
+  color: var(--text-3);
+}
+
+/* Mascota. `align-self: end` la apoya en el borde inferior como en el diseño,
+   sin que estire la altura de la banda. */
+.pt-hero-mascota {
+  position: relative;
+  display: none;
+  align-self: end;
+  justify-self: end;
+}
+@media (min-width: 900px) { .pt-hero-mascota { display: block; } }
+.pt-hero-mascota img {
+  display: block;
+  height: 190px; width: auto;
+  /* Se recorta por abajo para que "salga" de la banda. El valor tiene que ser
+     exactamente el padding vertical de .pt-hero en este breakpoint; si se
+     cambia uno hay que cambiar el otro. */
+  margin-bottom: calc(var(--space-8) * -1);
+}
+
+/* ---------- Selector de proyecto (solo con más de uno) ---------- */
+.pt-projs { display: flex; flex-wrap: wrap; gap: var(--space-2); }
+.pt-proj {
+  display: inline-flex; align-items: center; gap: 7px;
+  font-size: 13px; font-weight: 600; text-decoration: none;
+  color: var(--text-2); background: var(--surface);
+  border: 1px solid var(--border); border-radius: var(--r-full);
+  padding: 7px 13px;
+}
+.pt-proj:hover { border-color: var(--border-strong); }
+.pt-proj.on { background: var(--brand-600); border-color: var(--brand-600); color: #fff; }
+.pt-proj.on .pt-n { background: rgba(255,255,255,.22); color: #fff; }
+
+/* ---------- Tarjetas ---------- */
+.pt-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-xl);
+  box-shadow: var(--shadow-sm);
+}
+
+/* ---------- Fila de indicadores ---------- */
+/* Mobile-first: una columna, luego dos, luego cuatro. Las separaciones se
+   redefinen en cada corte, así que ninguna regla necesita !important. */
+.pt-kpis {
+  display: grid;
+  grid-template-columns: 1fr;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-xl);
+  box-shadow: var(--shadow-sm);
+  overflow: hidden;
+}
+.pt-kpi {
+  display: flex; align-items: center; gap: var(--space-4);
+  padding: var(--space-5);
+  min-width: 0;
+  border-top: 1px solid var(--border);
+  border-left: none;
+}
+.pt-kpi:first-child { border-top: none; }
+
+@media (min-width: 561px) {
+  .pt-kpis { grid-template-columns: 1fr 1fr; }
+  .pt-kpi:nth-child(-n + 2) { border-top: none; }
+  .pt-kpi:nth-child(even) { border-left: 1px solid var(--border); }
+}
+
+@media (min-width: 1081px) {
+  .pt-kpis { grid-template-columns: minmax(260px, 1.5fr) repeat(3, minmax(150px, 1fr)); }
+  .pt-kpi { border-top: none; border-left: 1px solid var(--border); }
+  .pt-kpi:first-child { border-left: none; }
+}
+.pt-kpi-main h2 {
+  margin: 0; font-size: 19px; font-weight: 800; letter-spacing: -0.025em; line-height: 1.2;
+}
+.pt-kpi-main p { margin: 4px 0 0; font-size: 13px; color: var(--text-3); }
+.pt-kpi > div { min-width: 0 }
+.pt-kpi b {
+  display: block; font-size: 25px; font-weight: 800; line-height: 1.05;
+  letter-spacing: -0.025em; font-variant-numeric: tabular-nums;
+}
+.pt-kpi > div > span { display: block; font-size: 12.5px; color: var(--text-3); margin-top: 3px; }
+.pt-ic {
+  width: 44px; height: 44px; flex: none;
+  border-radius: var(--r-md); display: grid; place-items: center;
+}
+.pt-ic svg { width: 20px; height: 20px; }
+.pt-ic.total { background: var(--info-bg); color: var(--info-fg); }
+.pt-ic.run { background: var(--info-bg); color: var(--info-fg); }
+.pt-ic.done { background: var(--low-bg); color: var(--low-fg); }
+
+/* ---------- Barra de herramientas ---------- */
+.pt-tools {
+  display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-4) var(--space-5);
+}
+.pt-tabs { display: flex; flex-wrap: wrap; gap: var(--space-2); }
+.pt-tab {
+  display: inline-flex; align-items: center; gap: 7px;
+  font-family: inherit; font-size: 13px; font-weight: 600;
+  color: var(--text-2); background: var(--surface);
+  border: 1px solid var(--border); border-radius: var(--r-full);
+  padding: 8px 14px; cursor: pointer;
+}
+.pt-tab:hover { border-color: var(--border-strong); }
+.pt-tab.on { background: var(--nav-bg); border-color: var(--nav-bg); color: #fff; }
+.pt-tab.on .pt-n { background: rgba(255,255,255,.18); color: #fff; }
+.pt-n {
+  font-size: 11.5px; font-weight: 700; font-variant-numeric: tabular-nums;
+  background: var(--panel); color: var(--text-3);
+  border-radius: var(--r-full); padding: 1px 7px;
+}
+.pt-dot { width: 7px; height: 7px; border-radius: 50%; flex: none; }
+
+.pt-tools-right { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2); }
+.pt-search, .pt-sort {
+  display: inline-flex; align-items: center; gap: 8px;
+  border: 1px solid var(--border); border-radius: var(--r-md);
+  background: var(--surface); padding: 0 12px; height: 38px;
+}
+.pt-search svg, .pt-sort svg { width: 15px; height: 15px; color: var(--text-3); flex: none; }
+.pt-search input, .pt-sort select {
+  font-family: inherit; font-size: 13px; color: var(--text);
+  background: transparent; border: none; outline: none; padding: 0;
+}
+.pt-search input { width: 165px; }
+.pt-search input::placeholder { color: var(--text-3); }
+.pt-sort select { cursor: pointer; }
+.pt-search:focus-within, .pt-sort:focus-within { border-color: var(--brand-400); }
+@media (max-width: 560px) {
+  .pt-tools-right { width: 100%; }
+  .pt-search { flex: 1; }
+  .pt-search input { width: 100%; }
+}
+
+/* ---------- Tabla ---------- */
+.pt-tablewrap { overflow-x: auto; }
+.pt-table { width: 100%; border-collapse: collapse; min-width: 820px; }
+.pt-table th {
+  text-align: left; font-size: 12px; font-weight: 600; color: var(--text-3);
+  padding: 11px var(--space-4);
+  background: var(--panel);
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+}
+.pt-table th:first-child { padding-left: var(--space-5); }
+.pt-table th:last-child { padding-right: var(--space-5); }
+.pt-table td {
+  padding: 13px var(--space-4);
+  border-bottom: 1px solid var(--border);
+  font-size: 14px; vertical-align: middle;
+}
+.pt-table td:first-child { padding-left: var(--space-5); }
+.pt-table td:last-child { padding-right: var(--space-5); text-align: right; }
+.pt-table tbody tr:last-child td { border-bottom: none; }
+.pt-table tbody tr:hover td { background: var(--brand-50); }
+
+/* Cabecera de mes: separa los grupos sin competir con la fila de columnas. */
+.pt-group th {
+  background: var(--surface);
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+  padding: 9px var(--space-5);
+  text-align: left;
+}
+.pt-table tbody:first-of-type .pt-group th { border-top: none; }
+.pt-group th span:first-child {
+  font-size: 12.5px; font-weight: 700; color: var(--text-2);
+  letter-spacing: -0.01em; margin-right: 9px;
+}
+
+.pt-td-title { color: var(--text); line-height: 1.45; }
+.pt-td-date { color: var(--text-3); font-size: 13px; font-variant-numeric: tabular-nums; white-space: nowrap; }
+
+.pt-mark {
+  width: 19px; height: 19px; border-radius: var(--r-full);
+  border: 2px solid var(--border-strong);
+  display: grid; place-items: center; flex: none;
+}
+.pt-mark.done { background: var(--brand-600); border-color: var(--brand-600); color: #fff; }
+.pt-mark svg { width: 11px; height: 11px; }
+
+.pt-cat {
+  display: inline-flex; align-items: center; gap: 8px;
+  font-size: 13px; color: var(--text-2); white-space: nowrap;
+}
+.pt-cat svg { width: 15px; height: 15px; color: var(--text-3); flex: none; }
+
+.pt-state {
+  display: inline-flex; align-items: center; gap: 7px;
+  font-size: 12.5px; font-weight: 600;
+  border-radius: var(--r-full); padding: 4px 11px; white-space: nowrap;
+}
+.pt-state.run { background: var(--info-bg); color: var(--info-fg); }
+.pt-state.run .pt-dot { background: var(--info-fg); }
+.pt-state.done { background: var(--low-bg); color: var(--low-fg); }
+.pt-state.done .pt-dot { background: var(--low-fg); }
+
+.pt-doc {
+  display: inline-grid; place-items: center;
+  width: 30px; height: 30px; border-radius: var(--r-sm);
+  color: var(--text-3); text-decoration: none;
+}
+.pt-doc:hover { background: var(--brand-50); color: var(--brand-700); }
+.pt-doc svg { width: 16px; height: 16px; }
+
+/* ---------- Vacíos ---------- */
+.pt-empty {
+  padding: var(--space-10) var(--space-5);
+  text-align: center;
+}
+.pt-empty b { display: block; font-size: 15px; font-weight: 700; color: var(--text-2); }
+.pt-empty span {
+  display: block; margin-top: 6px;
+  font-size: 13.5px; line-height: 1.55; color: var(--text-3);
+  max-width: 44ch; margin-inline: auto;
+}
+
+/* ---------- Puerta de contraseña ---------- */
+/* Altura contra la ventana, no contra el padre: `.pt-root` ya no tiene altura
+   definida, así que un `min-height: 100%` acá se resolvería a cero y la puerta
+   dejaría de ocupar la pantalla. `dvh` además respeta la barra de direcciones
+   del celular, que `vh` ignora. */
+.pt-gate {
+  min-height: 100vh;
+  min-height: 100dvh;
+  display: grid; place-items: center;
+  padding: var(--space-8) var(--space-4);
+  background: var(--nav-bg);
+}
+.pt-gate-in {
+  width: 100%; max-width: 396px;
+  display: flex; flex-direction: column; align-items: center;
+  gap: var(--space-6);
+}
+.pt-gate-logo { height: 26px; width: auto; }
+.pt-gate-box {
+  width: 100%;
+  background: var(--surface); border-radius: var(--r-xl);
+  box-shadow: var(--shadow-lg); padding: var(--space-8);
+}
+.pt-gate h1 { margin: 0; font-size: 20px; font-weight: 800; letter-spacing: -0.025em; }
+.pt-gate .lead { margin: 8px 0 var(--space-6); font-size: 13.5px; line-height: 1.6; color: var(--text-3); }
+.pt-gate form { display: flex; flex-direction: column; gap: var(--space-3); }
+.pt-gate label { font-size: 12.5px; font-weight: 600; color: var(--text-2); }
+.pt-input {
+  width: 100%; font-family: inherit; font-size: 14px;
+  color: var(--text); background: var(--surface);
+  border: 1px solid var(--border-strong); border-radius: var(--r-md);
+  padding: 11px 13px;
+}
+.pt-input::placeholder { color: var(--text-3); }
+.pt-submit {
+  margin-top: var(--space-2);
+  font-family: inherit; font-size: 14px; font-weight: 700;
+  color: #fff; background: var(--brand-600);
+  border: none; border-radius: var(--r-md);
+  padding: 12px 16px; cursor: pointer;
+  box-shadow: 0 6px 16px rgba(10, 132, 82, 0.28);
+}
+.pt-submit:hover { background: var(--brand-700); }
+.pt-err {
+  font-size: 13px; color: var(--urgent-text); background: var(--urgent-bg);
+  border-radius: var(--r-sm); padding: 9px 12px; line-height: 1.5;
+}
+.pt-gate .foot { margin: var(--space-6) 0 0; font-size: 12px; line-height: 1.55; color: var(--text-3); }
+
+/* ---------- Resultados en Google ---------- */
+/* Mobile-first: todo apilado en una columna; en pantallas anchas los dos
+   números quedan a la izquierda y el gráfico ocupa el resto. */
+.pt-seo { padding: var(--space-5); }
+@media (min-width: 721px) { .pt-seo { padding: var(--space-6); } }
+
+.pt-seo-head {
+  display: flex; align-items: center; gap: var(--space-3);
+  flex-wrap: wrap;
+  margin-bottom: var(--space-5);
+}
+/* El ícono de Google llega con su propio fondo blanco redondo, así que el
+   contenedor no le pone ni caja ni tinte: solo lo encuadra. */
+.pt-seo-ico {
+  display: grid; place-items: center; flex: none;
+  width: 38px; height: 38px;
+  border-radius: 50%;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  overflow: hidden;
+}
+.pt-seo-ico img { display: block; width: 100%; height: 100%; object-fit: contain; }
+.pt-seo-titulo { min-width: 0; margin-right: auto; }
+.pt-seo-titulo h2 {
+  margin: 0; font-size: 16px; font-weight: 800; letter-spacing: -0.02em;
+}
+.pt-seo-titulo p {
+  margin: 2px 0 0; font-size: 12.5px; color: var(--text-3); line-height: 1.4;
+}
+.pt-seo-periodo {
+  flex: none;
+  font-size: 12.5px; font-weight: 700; color: var(--brand-700);
+  background: var(--brand-50); border: 1px solid var(--brand-200);
+  border-radius: var(--r-full); padding: 5px 12px;
+}
+.pt-seo-info {
+  display: inline-grid; place-items: center; flex: none;
+  width: 16px; height: 16px; color: var(--text-3); cursor: help;
+  vertical-align: -3px;
+}
+.pt-seo-info svg { width: 15px; height: 15px; }
+
+.pt-seo-top { display: grid; gap: var(--space-5); align-items: center; }
+@media (min-width: 861px) {
+  .pt-seo-top { grid-template-columns: auto minmax(300px, 1fr); gap: var(--space-8); }
+}
+.pt-seo-nums {
+  display: grid; grid-template-columns: 1fr 1fr;
+  gap: var(--space-4) var(--space-6);
+}
+@media (min-width: 861px) { .pt-seo-nums { gap: var(--space-4) var(--space-8); } }
+.pt-seo-num { min-width: 0; }
+.pt-seo-num b {
+  display: block; font-size: 30px; font-weight: 800; line-height: 1.05;
+  letter-spacing: -0.03em; font-variant-numeric: tabular-nums; color: var(--text);
+}
+@media (min-width: 721px) { .pt-seo-num b { font-size: 34px; } }
+.pt-seo-lbl {
+  display: block; font-size: 12.5px; color: var(--text-3);
+  margin-top: 5px; line-height: 1.35;
+}
+/* Variación interanual. Va pegada al número, antes de la etiqueta: es lo que
+   le da sentido al 1.608 — sin ella el cliente no sabe si está bien o mal. */
+.pt-seo-delta {
+  display: block; font-size: 12px; font-weight: 700; margin-top: 6px;
+}
+.pt-seo-delta.up { color: var(--brand-700); }
+.pt-seo-delta.down { color: var(--urgent-text); }
+
+/* ---------- Gráfico de clics mes a mes ---------- */
+/* Dos capas: el SVG dibuja solo trazos (se estira a lo ancho sin deformarlos,
+   con vector-effect) y todo lo que lleva texto o tiene que seguir redondo va en
+   HTML, posicionado por porcentaje sobre el mismo sistema de 0 a 100. */
+.pt-graf {
+  margin: 0; min-width: 0;
+  /* Aire para el globo "Empezamos acá", que se dibuja por encima del área del
+     gráfico. Sin esto, en pantallas angostas se monta sobre la etiqueta
+     "Clics desde Google" que queda justo arriba. */
+  padding-top: 20px;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  column-gap: 10px;
+}
+.pt-graf-y {
+  display: flex; flex-direction: column; justify-content: space-between;
+  height: 104px;
+  font-size: 10.5px; color: var(--text-3);
+  font-variant-numeric: tabular-nums; text-align: right;
+}
+.pt-graf-plot { position: relative; height: 104px; min-width: 0; }
+.pt-graf-plot svg { display: block; width: 100%; height: 100%; overflow: visible; }
+
+.pt-graf-punto {
+  position: absolute; width: 9px; height: 9px; border-radius: 50%;
+  background: var(--brand-600); border: 2px solid var(--surface);
+  box-shadow: 0 0 0 1px var(--brand-200);
+  transform: translate(-50%, -50%);
+}
+/* Globo con el último valor. Si el punto está muy arriba se cuelga hacia abajo
+   para no salirse de la tarjeta. */
+.pt-graf-globo {
+  /* Centrado sobre el punto, que siempre está en el extremo derecho. El -10px
+     lo mete un poco en el padding de la tarjeta para que quede encima del punto
+     y no colgando a su izquierda. */
+  position: absolute; right: -10px;
+  transform: translateY(calc(-100% - 14px));
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--r-sm); box-shadow: var(--shadow-sm);
+  padding: 5px 9px; white-space: nowrap;
+  font-size: 11px; color: var(--text-3); line-height: 1.2;
+}
+.pt-graf-globo.abajo { transform: translateY(14px); }
+.pt-graf-globo b {
+  display: block; font-size: 13px; font-weight: 800; color: var(--text);
+  font-variant-numeric: tabular-nums;
+}
+/* Etiqueta de la línea punteada. */
+.pt-graf-inicio {
+  position: absolute; top: -6px; transform: translate(-50%, -100%);
+  background: var(--brand-600); color: var(--text-inv);
+  border-radius: var(--r-full); padding: 3px 9px;
+  font-size: 10.5px; font-weight: 700; white-space: nowrap;
+}
+.pt-graf-x {
+  grid-column: 2; position: relative; height: 16px; margin-top: 6px;
+}
+.pt-graf-x span {
+  position: absolute; top: 0; transform: translateX(-50%);
+  font-size: 10.5px; color: var(--text-3); white-space: nowrap;
+}
+@media (max-width: 560px) { .pt-graf-x span { font-size: 10px; } }
+/* Los extremos se anclan al borde para no salirse de la tarjeta. */
+.pt-graf-x span:first-child { transform: none; }
+.pt-graf-x span:last-child { transform: translateX(-100%); }
+.pt-graf-pie {
+  grid-column: 2; margin: 4px 0 0;
+  font-size: 11.5px; color: var(--text-3); line-height: 1.4;
+}
+
+/* ---------- Palabras clave por rango de posición ---------- */
+.pt-seo-kw {
+  margin-top: var(--space-6); padding-top: var(--space-5);
+  border-top: 1px solid var(--border);
+}
+.pt-seo-kw-head {
+  display: flex; align-items: baseline; justify-content: space-between;
+  gap: var(--space-2); flex-wrap: wrap; margin-bottom: var(--space-3);
+}
+.pt-seo-kw-head b { font-size: 13.5px; font-weight: 700; }
+.pt-seo-kw-head span { font-size: 11.5px; color: var(--text-3); }
+.pt-seo-kw-row {
+  display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-3);
+}
+@media (min-width: 721px) { .pt-seo-kw-row { grid-template-columns: repeat(4, 1fr); } }
+
+.pt-kw-card {
+  display: flex; align-items: center; gap: 10px;
+  width: 100%; min-width: 0; text-align: left;
+  background: var(--brand-50); color: inherit;
+  border: 1px solid var(--brand-100); border-radius: var(--r-md);
+  padding: 11px 12px; cursor: pointer;
+  transition: border-color .12s, background .12s;
+}
+.pt-kw-card:hover { border-color: var(--brand-300); background: var(--brand-100); }
+.pt-kw-card.on { border-color: var(--brand-600); background: var(--brand-100); }
+.pt-kw-ico {
+  display: grid; place-items: center; flex: none;
+  width: 30px; height: 30px; border-radius: var(--r-sm);
+  background: var(--surface); color: var(--brand-600);
+}
+.pt-kw-ico svg { width: 16px; height: 16px; }
+.pt-kw-txt { min-width: 0; margin-right: auto; }
+.pt-kw-txt .v {
+  display: block; font-size: 20px; font-weight: 800; line-height: 1.1;
+  letter-spacing: -0.02em; font-variant-numeric: tabular-nums; color: var(--text);
+}
+.pt-kw-txt .k {
+  display: block; font-size: 12px; font-weight: 600; color: var(--text-2); margin-top: 1px;
+}
+.pt-kw-txt .d {
+  display: block; font-size: 11px; margin-top: 2px; line-height: 1.3;
+  font-weight: 700;
+}
+.pt-kw-txt .d.up { color: var(--brand-700); }
+.pt-kw-txt .d.down { color: var(--urgent-text); }
+.pt-kw-chev {
+  width: 15px; height: 15px; flex: none; color: var(--text-3);
+  transition: transform .15s;
+}
+.pt-kw-card.on .pt-kw-chev { transform: rotate(90deg); color: var(--brand-700); }
+
+/* Panel desplegable con ejemplos de palabras clave. */
+.pt-kw-panel {
+  margin-top: var(--space-3);
+  border: 1px solid var(--border); border-radius: var(--r-md);
+  background: var(--panel);
+  padding: var(--space-4);
+}
+.pt-kw-panel-head {
+  display: flex; align-items: baseline; justify-content: space-between;
+  gap: var(--space-3); margin-bottom: var(--space-3);
+}
+.pt-kw-panel-head b { font-size: 13px; font-weight: 700; }
+.pt-kw-cerrar {
+  flex: none; background: none; border: 0; padding: 0; cursor: pointer;
+  font-size: 12px; font-weight: 600; color: var(--text-3);
+  text-decoration: underline;
+}
+.pt-kw-cerrar:hover { color: var(--text); }
+.pt-kw-estado { margin: 0; font-size: 12.5px; color: var(--text-3); line-height: 1.5; }
+.pt-kw-lista {
+  list-style: none; margin: 0; padding: 0;
+  max-height: 260px; overflow-y: auto;
+}
+.pt-kw-lista li {
+  display: grid; grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: baseline; gap: var(--space-3);
+  padding: 7px 0; border-bottom: 1px solid var(--border);
+  font-size: 12.5px;
+}
+.pt-kw-lista li:last-child { border-bottom: 0; }
+.pt-kw-lista .q {
+  min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  color: var(--text);
+}
+.pt-kw-lista .pos {
+  font-weight: 700; color: var(--brand-700);
+  font-variant-numeric: tabular-nums;
+}
+.pt-kw-lista .cl {
+  color: var(--text-3); font-variant-numeric: tabular-nums;
+  min-width: 62px; text-align: right;
+}
+.pt-kw-nota {
+  margin: var(--space-3) 0 0; font-size: 11.5px; color: var(--text-3); line-height: 1.45;
+}
+
+.pt-seo-det {
+  margin: var(--space-4) 0 0; font-size: 12px; color: var(--text-3); line-height: 1.5;
+}
+
+/* ---------- Atajo y aviso para el equipo ---------- */
+/* Barra fija arriba de todo: el equipo tiene que saber SIEMPRE que lo que ve
+   es la vista del cliente, no una pantalla interna. */
+.pt-equipo-bar {
+  display: flex; flex-wrap: wrap; align-items: center; justify-content: center;
+  gap: var(--space-3);
+  background: var(--mod-bg); color: var(--mod-fg);
+  border-bottom: 1px solid var(--mod-fg);
+  font-size: 12.5px; font-weight: 700; line-height: 1.5;
+  padding: 8px var(--space-4);
+  text-align: center;
+}
+.pt-equipo-bar a { color: inherit; font-weight: 700; }
+
+.pt-equipo {
+  margin-top: var(--space-5);
+  padding-top: var(--space-5);
+  border-top: 1px solid var(--border);
+  display: flex; flex-direction: column; gap: 6px;
+}
+.pt-equipo button {
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  width: 100%; font-family: inherit; font-size: 13.5px; font-weight: 600;
+  color: var(--text-2); background: var(--panel);
+  border: 1px solid var(--border-strong); border-radius: var(--r-md);
+  padding: 11px 14px; cursor: pointer;
+}
+.pt-equipo button:hover { border-color: var(--brand-400); color: var(--brand-700); }
+.pt-equipo button svg { width: 16px; height: 16px; flex: none; }
+.pt-equipo span { font-size: 12px; color: var(--text-3); text-align: center; line-height: 1.45; }
+
+/* ---------- Pie ---------- */
+.pt-foot { font-size: 12px; color: var(--text-3); text-align: center; line-height: 1.6; margin: var(--space-2) 0 0; }

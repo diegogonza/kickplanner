@@ -12,6 +12,7 @@ export default async function Sidebar({
   active?:
     | 'projects'
     | 'clientes'
+    | 'portales'
     | 'plantillas'
     | 'portfolios'
     | 'teams'
@@ -107,6 +108,15 @@ export default async function Sidebar({
             <circle cx="12" cy="7" r="4" />
           </svg>
           Clientes
+        </Link>
+        <Link className={`nav-item ${active === 'portales' ? 'active' : ''}`} href="/portales">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <rect x="2" y="4" width="20" height="16" rx="2" />
+            <path d="M2 9h20" />
+            <circle cx="5.5" cy="6.5" r=".6" fill="currentColor" stroke="none" />
+            <path d="M12 13v4M10 15h4" />
+          </svg>
+          Portal de clientes
         </Link>
         {canSeePayments && (
           <Link className={`nav-item ${active === 'pagos' ? 'active' : ''}`} href="/pagos">

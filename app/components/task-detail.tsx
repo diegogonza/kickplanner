@@ -600,6 +600,7 @@ export default function TaskDetail({
                 <TagSelect current={tag} allTags={allTags} onPick={pickTag} onCreate={createTag} />
               </span>
             </div>
+
           </div>
 
           <div className="section-label">Descripción</div>

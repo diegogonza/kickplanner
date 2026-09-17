@@ -3352,6 +3352,20 @@ body {
   font-size: 11px;
   color: var(--text-3);
 }
+/* Nivel comercial del cliente (Premium / Estandar / Basico). Neutro a
+   propósito: compite visualmente con las píldoras de tipo de proyecto, que
+   son las que de verdad hay que leer primero. */
+.cli-tier {
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: var(--text-3);
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: var(--r-full);
+  padding: 2px 8px;
+}
 .cli-nap {
   display: flex;
   flex-direction: column;
@@ -6202,4 +6216,90 @@ a.risk-hint:hover {
   .st-fields { grid-template-columns: 1fr; }
   .st-photo { flex-direction: column; gap: 14px; }
   .st-card { padding: 20px 18px; }
+}
+
+/* ===========================================================================
+   Portales de clientes (/portales)
+   =========================================================================== */
+.pv-scroll { overflow-x: auto; }
+.pv-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.pv-table th {
+  text-align: left; font-size: 11px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: 0.04em; color: var(--text-3);
+  padding: 12px var(--space-4); border-bottom: 1px solid var(--border);
+  white-space: nowrap; background: var(--panel);
+}
+.pv-table td {
+  padding: 12px var(--space-4); border-bottom: 1px solid var(--border);
+  vertical-align: top;
+}
+.pv-table tbody tr:last-child td { border-bottom: none; }
+.pv-table tbody tr:hover td { background: var(--brand-50); }
+.pv-cli { font-weight: 600; color: var(--text); }
+.pv-sub { font-size: 12px; color: var(--text-3); margin-top: 2px; }
+.pv-link { font-size: 12.5px; color: var(--brand-700); text-decoration: none; white-space: nowrap; }
+.pv-link:hover { text-decoration: underline; }
+.pv-copy {
+  display: inline-grid; place-items: center; flex: none;
+  width: 24px; height: 24px; border-radius: var(--r-sm);
+  color: var(--text-3); background: transparent; border: 1px solid var(--border);
+  cursor: pointer;
+}
+.pv-copy:hover { color: var(--brand-700); border-color: var(--brand-400); }
+.pv-ses-on { font-weight: 700; color: var(--brand-700); }
+
+/* Estado en una palabra. Cada uno con su color semántico: el que hay que
+   mirar primero es el bloqueado. */
+.pv-estado {
+  display: inline-block; font-size: 11px; font-weight: 700;
+  text-transform: uppercase; letter-spacing: 0.03em;
+  border-radius: var(--r-full); padding: 3px 9px; white-space: nowrap;
+}
+.pv-on { color: var(--low-fg); background: var(--low-bg); }
+.pv-off { color: var(--text-3); background: var(--panel); }
+.pv-lock { color: var(--urgent-text); background: var(--urgent-bg); }
+.pv-none { color: var(--mod-fg); background: var(--mod-bg); }
+
+/* Bloque de contraseñas recién generadas. Se destaca porque es la ÚNICA vez
+   que esas contraseñas existen en pantalla. */
+.pv-nuevos {
+  margin-bottom: var(--space-4);
+  border-color: var(--brand-400);
+  background: var(--brand-50);
+}
+.pv-nuevos-head {
+  display: flex; flex-wrap: wrap; align-items: flex-start;
+  justify-content: space-between; gap: var(--space-3);
+  margin-bottom: var(--space-4);
+}
+.pv-nuevos-head b { display: block; font-size: 14px; }
+.pv-nuevos-head span {
+  display: block; font-size: 12.5px; color: var(--text-2);
+  margin-top: 3px; line-height: 1.5; max-width: 52ch;
+}
+.pv-nuevos-list { display: flex; flex-direction: column; gap: 6px; }
+.pv-nuevo {
+  display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-3);
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--r-md); padding: 10px 12px;
+}
+.pv-nuevo > div:first-child { flex: 1 1 240px; min-width: 0; }
+.pv-nuevo-cli { font-weight: 600; font-size: 13px; }
+.pv-nuevo-link {
+  font-size: 12px; color: var(--text-3);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.pv-pass {
+  font-family: var(--font-mono, ui-monospace, monospace);
+  font-size: 14px; font-weight: 700; letter-spacing: 0.06em;
+  color: var(--text); background: var(--panel);
+  border: 1px solid var(--border-strong); border-radius: var(--r-sm);
+  padding: 6px 11px; white-space: nowrap;
+  /* Seleccionable de un clic: se va a copiar a mano más de una vez. */
+  user-select: all;
+}
+
+@media (max-width: 720px) {
+  .pv-table th, .pv-table td { padding: 10px var(--space-3); }
+  .pv-nuevos-head { flex-direction: column; }
 }

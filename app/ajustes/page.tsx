@@ -5,6 +5,7 @@ import { getSessionProfile } from "@/app/lib/session";
 import Sidebar from "@/app/components/sidebar";
 import Avatar from "@/app/components/avatar";
 import { updateProfile, uploadAvatar, removeAvatar } from "./actions";
+import GoogleConnection from "@/app/components/google-connection";
 
 /** Consejo contextual: cambia según lo que le falte al perfil. */
 function tipFor(p: {
@@ -42,9 +43,13 @@ const FOTO_MSG: Record<string, { tone: "ok" | "error"; text: string }> = {
 export default async function SettingsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ foto?: string }>;
+  searchParams: Promise<{
+    foto?: string;
+    google_ok?: string;
+    google_error?: string;
+  }>;
 }) {
-  const { foto } = await searchParams;
+  const { foto, google_ok, google_error } = await searchParams;
   const aviso = foto ? FOTO_MSG[foto] : undefined;
 
   // Cacheado por request: lo comparte con el sidebar.
@@ -294,6 +299,9 @@ export default async function SettingsPage({
                 </div>
               </form>
             </div>
+
+            {/* ---------- Google Search Console ---------- */}
+            <GoogleConnection ok={google_ok === "1"} error={google_error} />
 
             {/* ---------- Hellix ---------- */}
             <aside className="st-card st-aside">

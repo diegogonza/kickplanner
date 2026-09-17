@@ -505,7 +505,6 @@ export default function ProjectsView({
               <select className="projfilter-sel" value={fClient} onChange={(e) => setFClient(e.target.value)} title="Cliente">
                 <option value="">Cliente: todos</option>
                 {clients.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
-                <option value="__none__">Sin cliente</option>
               </select>
               <select className="projfilter-sel" value={fManager} onChange={(e) => setFManager(e.target.value)} title="Encargado">
                 <option value="">Encargado: todos</option>
@@ -632,8 +631,11 @@ export default function ProjectsView({
                   <div className="wizard-grid">
                     <div className="wizard-field">
                       <label className="k">Cliente</label>
-                      <select name="client_id" className="field" defaultValue="">
-                        <option value="">Sin cliente</option>
+                      {/* Obligatorio: projects.client_id es NOT NULL. Sin
+                          cliente no hay portal, ni facturación agrupada, ni
+                          datos de Search Console. */}
+                      <select name="client_id" className="field" defaultValue="" required>
+                        <option value="" disabled>Elegí un cliente…</option>
                         {clients.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
                       </select>
                     </div>
@@ -739,8 +741,8 @@ export default function ProjectsView({
               <div className="flex flex-col gap-3">
                 <input name="name" className="field" defaultValue={editing.name} autoComplete="off" required />
                 <label className="k">Cliente</label>
-                <select name="client_id" className="field" defaultValue={editing.client_id ?? ''}>
-                  <option value="">Sin cliente</option>
+                <select name="client_id" className="field" defaultValue={editing.client_id ?? ''} required>
+                  <option value="" disabled>Elegí un cliente…</option>
                   {clients.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
                 </select>
                 <label className="k">Encargado</label>
