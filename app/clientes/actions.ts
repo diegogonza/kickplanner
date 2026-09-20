@@ -2,6 +2,7 @@
 
 import { revalidatePath } from 'next/cache'
 import { createClient } from '@/utils/supabase/server'
+import { isAdmin, NO_PERMISSION_MESSAGE } from '@/app/lib/permissions'
 
 /**
  * Acciones de la ficha de cliente.
@@ -104,6 +105,7 @@ export async function updateCliente(formData: FormData): Promise<Resultado> {
 }
 
 export async function deleteCliente(formData: FormData): Promise<Resultado> {
+  if (!(await isAdmin())) return { ok: false, mensaje: NO_PERMISSION_MESSAGE }
   const id = formData.get('id') as string
   if (!id) return { ok: false, mensaje: 'Falta el cliente a eliminar.' }
 
@@ -115,7 +117,7 @@ export async function deleteCliente(formData: FormData): Promise<Resultado> {
       .from('clients').delete().eq('id', id).select('id')
     if (error) return { ok: false, mensaje: traducir(error, 'eliminar el cliente') }
     if (!datos || datos.length === 0) {
-      return { ok: false, mensaje: 'No se eliminó nada: no tenés permiso sobre este cliente.' }
+      return { ok: false, mensaje: NO_PERMISSION_MESSAGE }
     }
 
     revalidatePath('/clientes')

@@ -5,6 +5,8 @@ export type SessionProfile = {
   user: { id: string; email: string } | null
   fullName: string | null
   avatarUrl: string | null
+  /** Rol en la agencia (profiles.role). Diego y Oscar son 'admin'. */
+  isAdmin: boolean
 }
 
 /**
@@ -12,25 +14,28 @@ export type SessionProfile = {
  *
  * `cache()` de React deduplica la llamada dentro del mismo render: la página,
  * el sidebar y cualquier otro componente de servidor pueden pedirlo sin que se
- * repitan el `auth.getUser()` (que valida el token contra Supabase por red) ni
+ * repitan la validación de la sesión ni
  * la consulta a `profiles`.
  */
 export const getSessionProfile = cache(async (): Promise<SessionProfile> => {
   const supabase = await createClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-  if (!user) return { user: null, fullName: null, avatarUrl: null }
+  // getClaims() verifica la firma del JWT de la cookie. Con claves asimétricas
+  // lo hace localmente (sin ir a Supabase); con la clave simétrica heredada
+  // cae solo a getUser() por red. En ambos casos la identidad es confiable.
+  const { data } = await supabase.auth.getClaims()
+  const claims = data?.claims
+  if (!claims?.sub) return { user: null, fullName: null, avatarUrl: null, isAdmin: false }
 
   const { data: prof } = await supabase
     .from('profiles')
-    .select('full_name, avatar_url')
-    .eq('id', user.id)
+    .select('full_name, avatar_url, role')
+    .eq('id', claims.sub)
     .maybeSingle()
 
   return {
-    user: { id: user.id, email: user.email ?? '' },
+    user: { id: claims.sub, email: (claims.email as string | undefined) ?? '' },
     fullName: prof?.full_name ?? null,
     avatarUrl: prof?.avatar_url ?? null,
+    isAdmin: prof?.role === 'admin',
   }
 })

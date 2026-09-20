@@ -4,7 +4,7 @@ import { createClient } from '@/utils/supabase/server'
 import Sidebar from '@/app/components/sidebar'
 import TeamMembers from '@/app/components/team-members'
 import AddProjectToTeam from '@/app/components/add-project-to-team'
-import { removeProjectFromTeam } from '@/app/teams/actions'
+import RemoveFromTeamButton from '@/app/components/remove-from-team-button'
 
 type Project = { id: string; name: string; team_id: string | null }
 
@@ -82,15 +82,7 @@ export default async function TeamPage({
                         </span>
                         <span className="card-title">{p.name}</span>
                       </Link>
-                      <form action={removeProjectFromTeam}>
-                        <input type="hidden" name="team_id" value={team.id} />
-                        <input type="hidden" name="project_id" value={p.id} />
-                        <button type="submit" className="btn-ghost" title="Quitar del equipo">
-                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                            <path d="M18 6L6 18M6 6l12 12" />
-                          </svg>
-                        </button>
-                      </form>
+                      <RemoveFromTeamButton teamId={team.id} projectId={p.id} />
                     </div>
                   ))}
                 </div>

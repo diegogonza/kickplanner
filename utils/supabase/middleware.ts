@@ -33,9 +33,11 @@ export async function updateSession(request: NextRequest) {
     }
   )
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  // getClaims() en vez de getUser(): verifica el JWT localmente cuando el
+  // proyecto usa claves asimétricas, así el middleware no suma un viaje a
+  // Supabase en cada navegación. También refresca la sesión si hace falta.
+  const { data } = await supabase.auth.getClaims()
+  const user = data?.claims?.sub ?? null
 
   // Si no hay usuario logueado y no esta en /login, lo mandamos a /login
   if (!user && !request.nextUrl.pathname.startsWith('/login')) {

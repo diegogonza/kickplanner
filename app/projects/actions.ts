@@ -2,15 +2,47 @@
 
 import { revalidatePath } from 'next/cache'
 import { createClient } from '@/utils/supabase/server'
+import { isAdmin, OK, DENIED, failed, type ActionResult } from '@/app/lib/permissions'
 
 // ---------- PROYECTOS ----------
 
 const PROJECT_STATUS = ['upcoming', 'on_track', 'at_risk', 'on_hold'] as const
 const PROJECT_TYPE = ['seo', 'web'] as const
 
-export async function createProject(formData: FormData) {
+/**
+ * URL del proyecto: vacía, o http(s). Se usa como href en la lista de
+ * proyectos, así que un "javascript:…" se ejecutaría al hacer clic.
+ * Sin esquema ("stevia.com.co") se asume https.
+ */
+function parseUrl(raw: string): { ok: true; value: string | null } | { ok: false } {
+  const v = raw.trim()
+  if (!v) return { ok: true, value: null }
+  const withScheme = /^[a-z][a-z0-9+.-]*:/i.test(v) ? v : `https://${v}`
+  try {
+    const u = new URL(withScheme)
+    if (u.protocol !== 'http:' && u.protocol !== 'https:') return { ok: false }
+    return { ok: true, value: u.toString() }
+  } catch {
+    return { ok: false }
+  }
+}
+
+/** Fee: vacío, o número >= 0. Un valor inválido NO se convierte en null. */
+function parseFee(raw: string): { ok: true; value: number | null } | { ok: false } {
+  const v = raw.trim()
+  if (!v) return { ok: true, value: null }
+  const n = Number(v)
+  if (!Number.isFinite(n) || n < 0) return { ok: false }
+  return { ok: true, value: n }
+}
+
+const BAD_URL = failed('La URL del proyecto debe empezar con http:// o https://.')
+const BAD_FEE = failed('El fee debe ser un número igual o mayor a 0.')
+
+export async function createProject(formData: FormData): Promise<ActionResult> {
+  if (!(await isAdmin())) return DENIED
   const name = (formData.get('name') as string)?.trim()
-  if (!name) return
+  if (!name) return failed('El proyecto necesita un nombre.')
 
   const clientId = (formData.get('client_id') as string) || null
   const description = ((formData.get('description') as string) ?? '').trim() || null
@@ -20,15 +52,19 @@ export async function createProject(formData: FormData) {
   const type = PROJECT_TYPE.includes(typeRaw as never) ? typeRaw : 'seo'
   const managerId = (formData.get('manager_id') as string) || null
   const startDate = (formData.get('start_date') as string) || null
-  const fee = formData.get('fee') ? Number(formData.get('fee')) : null
   const currency = (formData.get('currency') as string) || 'COP'
-  const url = ((formData.get('url') as string) ?? '').trim() || null
+  const feeP = parseFee((formData.get('fee') as string) ?? '')
+  if (!feeP.ok) return BAD_FEE
+  const urlP = parseUrl((formData.get('url') as string) ?? '')
+  if (!urlP.ok) return BAD_URL
+  const fee = feeP.value
+  const url = urlP.value
 
   // Todo proyecto necesita cliente (projects.client_id es NOT NULL). Se corta
   // acá para dar un mensaje, en vez de dejar que reviente la base.
   if (!clientId) {
     console.error('createProject: sin cliente asignado')
-    return
+    return failed('Elige un cliente para el proyecto.')
   }
 
   const supabase = await createClient()
@@ -38,86 +74,142 @@ export async function createProject(formData: FormData) {
   })
   if (error || !newId) {
     console.error('createProject:', error?.message)
-    return
+    return failed()
   }
-  await supabase.from('projects').update({ description, type, manager_id: managerId, start_date: startDate, fee, currency, url }).eq('id', newId)
+  // El proyecto ya existe. Si un paso posterior falla no se deshace (eso
+  // borraría lo que sí se guardó): se completa lo posible y se avisa qué quedó
+  // pendiente, para terminarlo desde "Editar ajustes" o "Plantillas".
+  const pendientes: string[] = []
+
+  const { error: updErr } = await supabase
+    .from('projects')
+    .update({ description, type, manager_id: managerId, start_date: startDate, fee, currency, url })
+    .eq('id', newId)
+  if (updErr) {
+    console.error('createProject/update:', updErr.message)
+    pendientes.push('los datos del proyecto (tipo, fee, fechas, URL)')
+  }
+
   // Fija el estado inicial y lo registra en el historial (sin nota)
-  await supabase.rpc('set_project_status', {
+  const { error: stErr } = await supabase.rpc('set_project_status', {
     p_project_id: newId,
     p_status: status,
     p_note: null,
   })
+  if (stErr) {
+    console.error('createProject/status:', stErr.message)
+    pendientes.push('el estado inicial')
+  }
 
   // Aplica una plantilla si se eligió al crear
   const templateId = (formData.get('template_id') as string) || null
   if (templateId) {
-    await supabase.rpc('apply_template', { p_template_id: templateId, p_project_id: newId })
+    const { error: tplErr } = await supabase.rpc('apply_template', { p_template_id: templateId, p_project_id: newId })
+    if (tplErr) {
+      console.error('createProject/template:', tplErr.message)
+      pendientes.push('la plantilla')
+    }
   }
 
   revalidatePath('/') // el panel vive en la raíz
   revalidatePath('/projects')
+  if (pendientes.length) {
+    return failed(`El proyecto se creó, pero no se pudo guardar ${pendientes.join(', ')}. Complétalo desde el menú del proyecto.`)
+  }
+  return OK
 }
 
-export async function updateProject(formData: FormData) {
+export async function updateProject(formData: FormData): Promise<ActionResult> {
+  if (!(await isAdmin())) return DENIED
   const id = formData.get('id') as string
   const name = (formData.get('name') as string)?.trim()
-  if (!id || !name) return
-  const clientId = (formData.get('client_id') as string) || null
-  const description = ((formData.get('description') as string) ?? '').trim() || null
-  const raw = (formData.get('status') as string) ?? ''
+  if (!id || !name) return failed('El proyecto necesita un nombre.')
+
+  // Solo se actualizan los campos que el formulario MANDÓ. Antes, un campo
+  // ausente (p. ej. el selector de encargado sin opciones porque falló la
+  // carga del equipo) se guardaba como null y borraba el dato existente.
+  const has = (k: string) => formData.has(k)
+  const str = (k: string) => ((formData.get(k) as string) ?? '').trim()
+  const patch: Record<string, unknown> = { name }
+  if (has('description')) patch.description = str('description') || null
+  if (has('manager_id')) patch.manager_id = str('manager_id') || null
+  if (has('start_date')) patch.start_date = str('start_date') || null
+  if (has('fee')) {
+    const f = parseFee(str('fee'))
+    if (!f.ok) return BAD_FEE
+    patch.fee = f.value
+  }
+  if (has('currency')) patch.currency = str('currency') || 'COP'
+  if (has('url')) {
+    const u = parseUrl(str('url'))
+    if (!u.ok) return BAD_URL
+    patch.url = u.value
+  }
+  // Dejar un proyecto sin cliente no es un estado válido: vacío = no tocar.
+  if (str('client_id')) patch.client_id = str('client_id')
+  const typeRaw = str('type')
+  if (PROJECT_TYPE.includes(typeRaw as never)) patch.type = typeRaw
+  const raw = str('status')
   const status = PROJECT_STATUS.includes(raw as never) ? raw : null
-  const typeRaw = (formData.get('type') as string) ?? ''
-  const type = PROJECT_TYPE.includes(typeRaw as never) ? typeRaw : null
-  const managerId = (formData.get('manager_id') as string) || null
-  const startDate = (formData.get('start_date') as string) || null
-  const fee = formData.get('fee') ? Number(formData.get('fee')) : null
-  const currency = (formData.get('currency') as string) || 'COP'
-  const url = ((formData.get('url') as string) ?? '').trim() || null
 
   const supabase = await createClient()
-  await supabase
-    .from('projects')
-    .update({
-      name, description, manager_id: managerId, start_date: startDate, fee, currency, url,
-      // Solo se reasigna el cliente si el formulario mandó uno: dejar un
-      // proyecto sin cliente ya no es un estado válido.
-      ...(clientId ? { client_id: clientId } : {}),
-      ...(type ? { type } : {}),
-    })
-    .eq('id', id)
+  const { error, count } = await supabase.from('projects').update(patch, { count: 'exact' }).eq('id', id)
+  if (error) {
+    console.error('updateProject:', error.message)
+    return failed()
+  }
+  // Con RLS, un UPDATE sobre un proyecto que no puedes ver no da error: toca
+  // 0 filas. Sin esto se respondía "guardado" sin haber guardado nada.
+  if (!count) return DENIED
   // Si cambió el estado desde el modal de edición, se registra en el historial
   if (status) {
-    await supabase.rpc('set_project_status', { p_project_id: id, p_status: status, p_note: null })
+    const { error: stErr } = await supabase.rpc('set_project_status', { p_project_id: id, p_status: status, p_note: null })
+    if (stErr) {
+      console.error('updateProject/status:', stErr.message)
+      revalidatePath(`/projects/${id}`)
+      return failed('Se guardaron los cambios, pero no se pudo actualizar el estado.')
+    }
   }
   revalidatePath('/') // el panel vive en la raíz
   revalidatePath('/projects')
   revalidatePath(`/projects/${id}`)
+  return OK
 }
 
 // Edición en línea de la URL del proyecto (desde la tabla de Proyectos)
-export async function setProjectUrl(formData: FormData) {
+export async function setProjectUrl(formData: FormData): Promise<ActionResult> {
+  if (!(await isAdmin())) return DENIED
   const id = formData.get('id') as string
-  if (!id) return
-  const url = ((formData.get('url') as string) ?? '').trim() || null
+  if (!id) return failed()
+  const u = parseUrl((formData.get('url') as string) ?? '')
+  if (!u.ok) return BAD_URL
+  const url = u.value
 
   const supabase = await createClient()
-  await supabase.from('projects').update({ url }).eq('id', id)
+  const { error, count } = await supabase.from('projects').update({ url }, { count: 'exact' }).eq('id', id)
+  if (error) return failed()
+  if (!count) return DENIED
   revalidatePath('/')
   revalidatePath('/projects')
   revalidatePath(`/projects/${id}`)
+  return OK
 }
 
 // Cambio rápido de encargado desde la lista de proyectos
-export async function setProjectManager(formData: FormData) {
+export async function setProjectManager(formData: FormData): Promise<ActionResult> {
+  if (!(await isAdmin())) return DENIED
   const id = formData.get('id') as string
-  if (!id) return
+  if (!id) return failed()
   const managerId = (formData.get('manager_id') as string) || null
 
   const supabase = await createClient()
-  await supabase.from('projects').update({ manager_id: managerId }).eq('id', id)
+  const { error, count } = await supabase.from('projects').update({ manager_id: managerId }, { count: 'exact' }).eq('id', id)
+  if (error) return failed()
+  if (!count) return DENIED
   revalidatePath('/') // el panel vive en la raíz
   revalidatePath('/projects')
   revalidatePath(`/projects/${id}`)
+  return OK
 }
 
 export async function setProjectStatus(formData: FormData) {
@@ -155,13 +247,20 @@ export async function toggleFavorite(formData: FormData) {
   revalidatePath('/projects')
 }
 
-export async function deleteProject(formData: FormData) {
+export async function deleteProject(formData: FormData): Promise<ActionResult> {
+  if (!(await isAdmin())) return DENIED
   const id = formData.get('id') as string
-  if (!id) return
+  if (!id) return failed()
   const supabase = await createClient()
-  await supabase.from('projects').delete().eq('id', id)
+  // count: con RLS un DELETE bloqueado no da error, devuelve 0 filas.
+  const { error, count } = await supabase.from('projects').delete({ count: 'exact' }).eq('id', id)
+  if (error || !count) {
+    if (error) console.error('deleteProject:', error.message)
+    return error ? failed() : DENIED
+  }
   revalidatePath('/')
   revalidatePath('/projects')
+  return OK
 }
 
 // ---------- TAREAS ----------

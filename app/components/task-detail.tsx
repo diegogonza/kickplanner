@@ -17,6 +17,7 @@ import {
 import Avatar from '@/app/components/avatar'
 import { deleteComment } from '@/app/projects/actions'
 import TaskPanel from '@/app/components/task-panel'
+import { toast } from '@/app/components/toast'
 import StatusSelect from '@/app/components/status-select'
 import TaskActionsMenu from '@/app/components/task-actions-menu'
 import PrioritySelect from '@/app/components/priority-select'
@@ -318,14 +319,47 @@ export default function TaskDetail({
   }, [saveTitle])
 
   // ---- Cierre ------------------------------------------------------------
+  const [closing, setClosing] = useState(false)
+  // Un solo cierre a la vez: Escape o un segundo clic mientras dice
+  // "Guardando…" no deben iniciar otra navegación ni otro temporizador.
+  const closingRef = useRef(false)
   const requestClose = useCallback(() => {
+    if (closingRef.current) return
     if (hasDraft.current && !window.confirm('Tenés un comentario sin enviar. ¿Cerrar de todos modos?')) return
-    router.push(closeHref)
-    if (dirty.current) {
+    // Un título escrito hace menos de 600 ms todavía está en el debounce: se
+    // guarda YA, para que entre en la cadena y la navegación lo espere (antes
+    // se guardaba al desmontar, después de navegar, y la lista mostraba el
+    // título viejo).
+    if (titleTimer.current) clearTimeout(titleTimer.current)
+    if (pendingTitle.current !== null) saveTitle(pendingTitle.current)
+    // Una sola navegación. El push ya trae la página fresca del servidor, así
+    // que no hace falta un refresh() aparte (antes eran dos renders completos).
+    // Si hubo cambios, se espera a que terminen de guardarse para que esa única
+    // respuesta ya los incluya.
+    closingRef.current = true
+    if (!dirty.current) return void router.push(closeHref)
+    // Con conexión lenta esto puede tardar: se avisa en vez de parecer ignorado.
+    // Y si Supabase no responde, a los 8 s se cierra igual: los guardados
+    // siguen en curso en segundo plano y la lista se pone al día al terminar.
+    setClosing(true)
+    let done = false
+    const go = () => {
+      if (done) return
+      done = true
+      router.push(closeHref)
+    }
+    const timer = window.setTimeout(() => {
+      toast('Algunos cambios aún se están guardando. Aparecerán en unos segundos.')
+      go()
       const refresh = () => router.refresh()
       chain.current.then(refresh, refresh)
+    }, 8000)
+    const finish = () => {
+      window.clearTimeout(timer)
+      go()
     }
-  }, [closeHref, router])
+    chain.current.then(finish, finish)
+  }, [closeHref, router, saveTitle])
 
   const onDraftChange = useCallback((v: boolean) => {
     hasDraft.current = v
@@ -389,7 +423,7 @@ export default function TaskDetail({
   )
 
   const afterDestructive = useCallback(() => {
-    router.refresh()
+    // push trae la página fresca: un refresh() previo solo duplicaba el render
     router.push(closeHref)
   }, [closeHref, router])
 
@@ -534,7 +568,8 @@ export default function TaskDetail({
             onDeleted={afterDestructive}
             onDuplicated={afterDuplicate}
           />
-          <button type="button" className="btn-ghost" title="Cerrar (Esc)" onClick={requestClose}>
+          {closing && <span className="tm-saving" role="status">Guardando…</span>}
+          <button type="button" className="btn-ghost" title="Cerrar (Esc)" onClick={requestClose} disabled={closing}>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M18 6L6 18M6 6l12 12" />
             </svg>

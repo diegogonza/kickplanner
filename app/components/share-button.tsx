@@ -3,16 +3,19 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/utils/supabase/client'
+import { toastNoPermission } from '@/app/components/toast'
+import { NO_PERMISSION_MESSAGE } from '@/app/lib/permission-copy'
 
 type Member = { user_id: string; email: string; role: string }
 
 export default function ShareButton({
   projectId,
-  isOwner,
+  canManage,
   currentUserId,
 }: {
   projectId: string
-  isOwner: boolean
+  /** Admin: puede invitar y quitar. El resto ve lo mismo y recibe el aviso. */
+  canManage: boolean
   currentUserId: string
 }) {
   const supabase = createClient()
@@ -29,14 +32,14 @@ export default function ShareButton({
     setMembers((data ?? []) as Member[])
   }
 
-  useEffect(() => {
-    if (open) {
-      loadMembers()
-      setMsg(null)
-      setEmail('')
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open])
+  // Al abrir: se limpia el formulario y se piden los miembros. En el
+  // handler, no en un efecto (evita el render en cascada).
+  const openModal = () => {
+    setMsg(null)
+    setEmail('')
+    setOpen(true)
+    void loadMembers()
+  }
 
   useEffect(() => {
     if (!open) return
@@ -49,6 +52,10 @@ export default function ShareButton({
     e.preventDefault()
     const value = email.trim()
     if (!value) return
+    if (!canManage) {
+      setMsg({ type: 'error', text: NO_PERMISSION_MESSAGE })
+      return
+    }
     setBusy(true)
     setMsg(null)
     const { data, error } = await supabase.rpc('invite_member', {
@@ -66,7 +73,7 @@ export default function ShareButton({
       return
     }
     if (data === 'forbidden') {
-      setMsg({ type: 'error', text: 'Solo el dueño del proyecto puede invitar.' })
+      setMsg({ type: 'error', text: NO_PERMISSION_MESSAGE })
       return
     }
     setMsg({ type: 'ok', text: '¡Miembro agregado!' })
@@ -76,18 +83,24 @@ export default function ShareButton({
   }
 
   const removeMember = async (userId: string) => {
-    await supabase
+    if (!canManage) {
+      toastNoPermission()
+      return
+    }
+    const { count } = await supabase
       .from('project_members')
-      .delete()
+      .delete({ count: 'exact' })
       .eq('project_id', projectId)
       .eq('user_id', userId)
+    // Con RLS, un borrado sin permiso no da error: devuelve 0 filas.
+    if (!count) toastNoPermission()
     loadMembers()
     router.refresh()
   }
 
   return (
     <>
-      <button className="btn btn-outline" type="button" onClick={() => setOpen(true)}>
+      <button className="btn btn-outline" type="button" onClick={openModal}>
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
           <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
           <circle cx="9" cy="7" r="4" />
@@ -102,21 +115,19 @@ export default function ShareButton({
             <h2>Compartir proyecto</h2>
             <p className="modal-sub">Invitá a personas con cuenta para colaborar en este proyecto.</p>
 
-            {isOwner && (
-              <form onSubmit={invite} className="flex gap-2">
-                <input
-                  className="field"
-                  type="email"
-                  placeholder="email@ejemplo.com"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  autoComplete="off"
-                />
-                <button className="btn btn-primary" type="submit" disabled={busy}>
-                  {busy ? 'Invitando…' : 'Invitar'}
-                </button>
-              </form>
-            )}
+            <form onSubmit={invite} className="flex gap-2">
+              <input
+                className="field"
+                type="email"
+                placeholder="email@ejemplo.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                autoComplete="off"
+              />
+              <button className="btn btn-primary" type="submit" disabled={busy}>
+                {busy ? 'Invitando…' : 'Invitar'}
+              </button>
+            </form>
 
             {msg && (
               <p
@@ -146,7 +157,7 @@ export default function ShareButton({
                     <span className={`pill ${isMemberOwner ? 'pill-info' : 'pill-low'}`}>
                       {isMemberOwner ? 'Dueño' : 'Miembro'}
                     </span>
-                    {isOwner && !isMemberOwner && (
+                    {!isMemberOwner && (
                       <button
                         type="button"
                         className="btn-ghost"

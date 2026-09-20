@@ -2,6 +2,7 @@
 
 import { revalidatePath } from 'next/cache'
 import { createClient } from '@/utils/supabase/server'
+import { OK, DENIED, failed, type ActionResult } from '@/app/lib/permissions'
 
 const TEMPLATE_TYPE = ['seo', 'web', 'general'] as const
 const VALID_PRIORITY = ['media', 'alta', 'urgente'] as const
@@ -25,26 +26,36 @@ export async function createTemplate(formData: FormData) {
   revalidatePath('/plantillas')
 }
 
-export async function updateTemplate(formData: FormData) {
+export async function updateTemplate(formData: FormData): Promise<ActionResult> {
   const id = formData.get('id') as string
   const name = (formData.get('name') as string)?.trim()
-  if (!id || !name) return
+  if (!id || !name) return failed('La plantilla necesita un nombre.')
   const typeRaw = (formData.get('type') as string) ?? 'general'
   const type = TEMPLATE_TYPE.includes(typeRaw as never) ? typeRaw : 'general'
   const description = ((formData.get('description') as string) ?? '').trim() || null
 
   const supabase = await createClient()
-  await supabase.from('templates').update({ name, type, description }).eq('id', id)
+  // count: con RLS, editar una plantilla ajena no da error, devuelve 0 filas.
+  const { error, count } = await supabase
+    .from('templates')
+    .update({ name, type, description }, { count: 'exact' })
+    .eq('id', id)
+  if (error) return failed()
+  if (!count) return DENIED
   revalidatePath('/plantillas')
   revalidatePath(`/plantillas/${id}`)
+  return OK
 }
 
-export async function deleteTemplate(formData: FormData) {
+export async function deleteTemplate(formData: FormData): Promise<ActionResult> {
   const id = formData.get('id') as string
-  if (!id) return
+  if (!id) return failed()
   const supabase = await createClient()
-  await supabase.from('templates').delete().eq('id', id)
+  const { error, count } = await supabase.from('templates').delete({ count: 'exact' }).eq('id', id)
+  if (error) return failed()
+  if (!count) return DENIED
   revalidatePath('/plantillas')
+  return OK
 }
 
 // ---------- TAREAS DE LA PLANTILLA ----------
@@ -154,17 +165,24 @@ export async function removeTemplateTaskTag(formData: FormData) {
 
 // ---------- APLICAR ----------
 
-export async function applyTemplate(formData: FormData) {
+export async function applyTemplate(formData: FormData): Promise<ActionResult & { count?: number }> {
   const templateId = formData.get('template_id') as string
   const projectId = formData.get('project_id') as string
   const start = ((formData.get('start_date') as string) ?? '').trim() || null
-  if (!templateId || !projectId) return
+  if (!templateId || !projectId) return failed('Elige una plantilla.')
 
   const supabase = await createClient()
-  await supabase.rpc('apply_template', {
+  const { data, error } = await supabase.rpc('apply_template', {
     p_template_id: templateId,
     p_project_id: projectId,
     ...(start ? { p_start: start } : {}),
   })
+  if (error) {
+    console.error('applyTemplate:', error.message)
+    if (error.message.includes('no autorizado')) return DENIED
+    if (error.message.includes('plantilla no encontrada')) return failed('Esa plantilla ya no existe.')
+    return failed('No se pudo aplicar la plantilla. Intenta de nuevo.')
+  }
   revalidatePath(`/projects/${projectId}`)
+  return { ok: true, count: typeof data === 'number' ? data : undefined }
 }

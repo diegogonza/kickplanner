@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { assignProjectToTeam } from '@/app/teams/actions'
+import { toastIfFailed } from '@/app/components/toast'
 
 type Project = { id: string; name: string }
 
@@ -34,14 +35,14 @@ export default function AddProjectToTeam({
         <div className="modal-overlay" onClick={() => setOpen(false)}>
           <div className="modal" role="dialog" aria-modal="true" onClick={(e) => e.stopPropagation()}>
             <h2>Asignar proyecto al equipo</h2>
-            <p className="modal-sub">Solo podés asignar proyectos de los que sos dueño.</p>
+            <p className="modal-sub">Asignar proyectos a un equipo es una acción de administradores.</p>
 
             {available.length === 0 ? (
               <p className="card-desc">No tenés proyectos disponibles para asignar.</p>
             ) : (
               <div className="flex flex-col gap-1">
                 {available.map((p) => (
-                  <form key={p.id} action={assignProjectToTeam}>
+                  <form key={p.id} action={async (fd) => { toastIfFailed(await assignProjectToTeam(fd)) }}>
                     <input type="hidden" name="team_id" value={teamId} />
                     <input type="hidden" name="project_id" value={p.id} />
                     <button type="submit" className="dropdown-item" style={{ width: '100%' }}>

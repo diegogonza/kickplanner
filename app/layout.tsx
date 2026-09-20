@@ -4,6 +4,7 @@ import { Plus_Jakarta_Sans } from "next/font/google";
 import "./globals.css";
 import GlobalSearch from "./components/global-search";
 import AppChrome from "./components/app-chrome";
+import Toaster from "./components/toast";
 
 const jakarta = Plus_Jakarta_Sans({
   subsets: ["latin"],
@@ -30,6 +31,7 @@ export default function RootLayout({
             </Suspense>
           </AppChrome>
           <div className="app-main">{children}</div>
+          <Toaster />
         </div>
       </body>
     </html>

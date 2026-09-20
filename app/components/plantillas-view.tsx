@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { createTemplate, updateTemplate, deleteTemplate } from '@/app/plantillas/actions'
+import { toastIfFailed } from '@/app/components/toast'
 
 export type TemplateOverview = {
   id: string
@@ -81,7 +82,7 @@ export default function PlantillasView({ templates }: { templates: TemplateOverv
                     {menuOpen === t.id && (
                       <div className="dropdown-menu" style={{ right: 0, left: 'auto' }}>
                         <button type="button" className="dropdown-item" onClick={() => { setEditing(t); setMenuOpen(null) }}>Editar datos</button>
-                        <form action={deleteTemplate} onSubmit={(e) => { if (!confirm('¿Eliminar la plantilla y sus tareas?')) e.preventDefault(); else setMenuOpen(null) }}>
+                        <form action={async (fd) => { toastIfFailed(await deleteTemplate(fd)) }} onSubmit={(e) => { if (!confirm('¿Eliminar la plantilla y sus tareas?')) e.preventDefault(); else setMenuOpen(null) }}>
                           <input type="hidden" name="id" value={t.id} />
                           <button type="submit" className="dropdown-item" style={{ color: 'var(--urgent-fg)' }}>Eliminar</button>
                         </form>
@@ -123,7 +124,7 @@ export default function PlantillasView({ templates }: { templates: TemplateOverv
         <div className="modal-overlay" onClick={() => setEditing(null)}>
           <div className="modal" role="dialog" aria-modal="true" onClick={(e) => e.stopPropagation()}>
             <h2>Editar plantilla</h2>
-            <form action={async (fd) => { await updateTemplate(fd); setEditing(null) }}>
+            <form action={async (fd) => { if (!toastIfFailed(await updateTemplate(fd))) setEditing(null) }}>
               <input type="hidden" name="id" value={editing.id} />
               <Fields t={editing} />
               <div className="modal-actions">

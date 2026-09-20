@@ -787,7 +787,7 @@ body {
 .tab {
   display: inline-flex;
   align-items: center;
-  gap: 7px;
+  gap: 8px;
   padding: 12px 2px;
   font-size: 13.5px;
   font-weight: 500;
@@ -797,8 +797,9 @@ body {
   text-decoration: none;
 }
 .tab svg {
-  width: 16px;
-  height: 16px;
+  width: 17px;
+  height: 17px;
+  flex: 0 0 auto;
 }
 .tab:hover {
   color: var(--nav-strong);
@@ -6302,4 +6303,269 @@ a.risk-hint:hover {
 @media (max-width: 720px) {
   .pv-table th, .pv-table td { padding: 10px var(--space-3); }
   .pv-nuevos-head { flex-direction: column; }
+}
+
+/* ============================================================
+   ENCABEZADO DEL PROYECTO — breadcrumb, título con tipo y menú
+   ============================================================ */
+.proj-crumbs {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 14px;
+  line-height: 1.4;
+  color: var(--nav-muted);
+  margin-bottom: 6px;
+  min-width: 0;
+}
+.proj-crumbs-icon {
+  width: 17px;
+  height: 17px;
+  flex: 0 0 auto;
+}
+.proj-crumbs a {
+  color: var(--nav-muted);
+  text-decoration: none;
+  white-space: nowrap;
+  transition: color 0.12s ease;
+}
+.proj-crumbs a:hover {
+  color: var(--nav-text);
+}
+.proj-crumbs-sep {
+  color: var(--nav-dim);
+  opacity: 0.7;
+}
+.proj-crumbs-current {
+  color: var(--nav-strong);
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.proj-title {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+}
+.proj-title-type {
+  font-weight: 500;
+  color: var(--nav-muted);
+  white-space: nowrap;
+}
+.proj-menu-trigger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border: 0;
+  border-radius: var(--r-sm);
+  background: transparent;
+  color: var(--nav-muted);
+  cursor: pointer;
+  transition: background 0.12s ease, color 0.12s ease;
+}
+.proj-menu-trigger svg {
+  width: 16px;
+  height: 16px;
+}
+.proj-menu-trigger:hover,
+.proj-menu-trigger[aria-expanded='true'] {
+  background: var(--nav-hover);
+  color: var(--nav-strong);
+}
+.proj-menu-item {
+  gap: 10px;
+  padding: 8px 10px;
+  font-size: 13.5px;
+  color: var(--text);
+  text-decoration: none;
+}
+.proj-menu-item svg {
+  flex: 0 0 auto;
+  color: var(--text-3);
+}
+.proj-menu-item.danger svg {
+  color: currentColor;
+}
+
+/* Asistente en modo edición: los pasos del lateral son navegables */
+.wizard-step-btn {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.wizard-step:not(.is-active) .wizard-step-btn:hover {
+  color: rgba(255, 255, 255, 0.78);
+}
+
+/* ============================================================
+   CARGA — esqueletos y pestaña pendiente
+   ============================================================ */
+.sk {
+  display: inline-block;
+  border-radius: var(--r-sm);
+  background: var(--border);
+  animation: skPulse 1.2s ease-in-out infinite;
+}
+.sk-dark {
+  background: var(--nav-hover);
+}
+.sk-rows {
+  display: flex;
+  flex-direction: column;
+  padding-top: var(--space-5);
+}
+.sk-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 8px;
+  border-bottom: 1px solid var(--border);
+}
+@keyframes skPulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.45;
+  }
+}
+
+/* Pestaña pulsada mientras llega la respuesta: barra que se llena bajo ella */
+.tab {
+  position: relative;
+}
+.tab-pending {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -1px;
+  height: 2px;
+  background: var(--brand-500);
+  opacity: 0;
+  transform: scaleX(0);
+  transform-origin: left;
+}
+.tab-pending.is-on {
+  opacity: 1;
+  animation: tabLoad 1.1s ease-in-out infinite;
+}
+@keyframes tabLoad {
+  0% {
+    transform: scaleX(0);
+    opacity: 1;
+  }
+  70% {
+    transform: scaleX(1);
+    opacity: 1;
+  }
+  100% {
+    transform: scaleX(1);
+    opacity: 0;
+  }
+}
+
+/* ============================================================
+   AVISOS (toast)
+   ============================================================ */
+.toasts {
+  position: fixed;
+  right: 20px;
+  bottom: 20px;
+  z-index: 120;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-width: min(420px, calc(100vw - 40px));
+  pointer-events: none;
+}
+.toast {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px 12px 12px 14px;
+  border-radius: var(--r-md);
+  background: var(--nav-bg);
+  color: var(--nav-strong);
+  border: 1px solid var(--nav-border);
+  box-shadow: var(--shadow-lg);
+  font-size: 13.5px;
+  line-height: 1.45;
+  pointer-events: auto;
+  animation: toastIn 0.16s ease;
+}
+.toast svg {
+  flex: 0 0 auto;
+  margin-top: 1px;
+  color: var(--brand-500);
+}
+.toast.is-error svg {
+  color: var(--urgent-fg);
+}
+.toast span {
+  flex: 1;
+}
+.toast-close {
+  border: 0;
+  background: transparent;
+  color: var(--nav-muted);
+  font-size: 18px;
+  line-height: 1;
+  padding: 0 2px;
+  cursor: pointer;
+}
+.toast-close:hover {
+  color: var(--nav-strong);
+}
+@keyframes toastIn {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* Botón con aspecto de enlace (acciones dentro de un texto) */
+.link-btn {
+  border: 0;
+  padding: 0;
+  background: transparent;
+  color: var(--brand-600, var(--brand-500));
+  font: inherit;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+/* Aviso fijo de "solo lectura por permisos" */
+.perm-banner {
+  margin: var(--space-5) 0 0;
+  padding: 10px 14px;
+  border-radius: var(--r-md);
+  background: var(--mod-bg, var(--panel));
+  color: var(--text);
+  border: 1px solid var(--border);
+  font-size: 13px;
+}
+
+/* Modal de tarea: "Guardando…" mientras termina de guardar antes de cerrar */
+.tm-saving {
+  font-size: 12.5px;
+  color: var(--text-3);
+  margin-right: 4px;
 }

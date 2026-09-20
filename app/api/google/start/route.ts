@@ -1,7 +1,8 @@
 import { randomBytes } from 'crypto'
 import { NextResponse, type NextRequest } from 'next/server'
-import { createClient } from '@/utils/supabase/server'
 import { urlDeConsentimiento } from '@/app/lib/google'
+import { getSessionProfile } from '@/app/lib/session'
+import { NO_PERMISSION_MESSAGE } from '@/app/lib/permission-copy'
 
 /**
  * Arranca el flujo de OAuth con Google.
@@ -14,12 +15,11 @@ export async function GET(request: NextRequest) {
     NextResponse.redirect(new URL(`/ajustes?google_error=${encodeURIComponent(msg)}`, request.url))
 
   try {
-    // Solo el equipo puede conectar la cuenta de la agencia.
-    const supabase = await createClient()
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
+    // Conectar la cuenta de Google de la agencia es de administradores. La
+    // base también lo exige (google_oauth_guardar, migración 012_roles).
+    const { user, isAdmin } = await getSessionProfile()
     if (!user) return NextResponse.redirect(new URL('/login', request.url))
+    if (!isAdmin) return volver(NO_PERMISSION_MESSAGE)
 
     const url = urlDeConsentimiento('')
     if (!url.ok) return volver(url.error)

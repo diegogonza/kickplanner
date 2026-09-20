@@ -1,8 +1,10 @@
+import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/utils/supabase/server'
 import Sidebar from '@/app/components/sidebar'
 import TemplateEditor, { type TemplateTaskRow, type Person } from '@/app/components/template-editor'
 import type { Tag } from '@/app/projects/statuses'
+import { getSessionProfile } from '@/app/lib/session'
 
 const TYPE_LABEL: Record<string, string> = { seo: 'SEO', web: 'WEB', general: 'General' }
 
@@ -12,18 +14,18 @@ export default async function TemplateEditorPage({
   params: Promise<{ id: string }>
 }) {
   const { id } = await params
-  const supabase = await createClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  const { user, isAdmin } = await getSessionProfile()
   if (!user) redirect('/login')
+  const supabase = await createClient()
 
   const { data: template } = await supabase
     .from('templates')
-    .select('id, name, type, description')
+    .select('id, name, type, description, owner_id')
     .eq('id', id)
     .maybeSingle()
   if (!template) redirect('/plantillas')
+  // Editan el autor y los admin; el resto la ve y la aplica (RLS, 012_roles).
+  const canEdit = isAdmin || template.owner_id === user.id
 
   const { data: taskRows } = await supabase
     .from('template_tasks')
@@ -60,7 +62,7 @@ export default async function TemplateEditorPage({
         <header className="topbar" style={{ borderBottom: 'none' }}>
           <div>
             <div className="breadcrumb">
-              <a href="/plantillas" style={{ color: 'var(--text-3)' }}>Plantillas</a> / <b>{template.name}</b>
+              <Link href="/plantillas" style={{ color: 'var(--text-3)' }}>Plantillas</Link> / <b>{template.name}</b>
             </div>
             <h1 className="page-title" style={{ gap: 10 }}>
               {template.name}
@@ -73,6 +75,12 @@ export default async function TemplateEditorPage({
 
         <div className="viewscroll flex-1 overflow-y-auto px-6">
           <div className="w-full">
+            {!canEdit && (
+              <p className="perm-banner" role="note">
+                Solo el autor de la plantilla o un administrador puede modificarla. Puedes verla y aplicarla a tus proyectos;
+                los cambios que hagas aquí no se guardarán.
+              </p>
+            )}
             <TemplateEditor templateId={template.id} templateName={template.name} tasks={tasks} tagsByTask={tagsByTask} allTags={allTags} people={people} />
           </div>
         </div>

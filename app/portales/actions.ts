@@ -3,6 +3,7 @@
 import { randomInt } from 'node:crypto'
 import { revalidatePath } from 'next/cache'
 import { createClient } from '@/utils/supabase/server'
+import { isAdmin, NO_PERMISSION_MESSAGE } from '@/app/lib/permissions'
 
 /**
  * Administración de los accesos al portal de clientes.
@@ -36,6 +37,7 @@ function generarPassword(): string {
 
 function traducir(e: { code?: string; message?: string }, accion: string): string {
   if (e.code === '23505') return 'Ya existe un portal con esa dirección. Probá con otra.'
+  if (e.message?.includes('no tienes permisos')) return NO_PERMISSION_MESSAGE
   if (e.message?.includes('sin sesión')) {
     return 'Tu sesión expiró. Volvé a iniciar sesión.'
   }
@@ -48,6 +50,7 @@ export async function crearOrotar(
   clienteNombre: string,
   slugManual?: string
 ): Promise<{ ok: true; acceso: AccesoCreado } | { ok: false; mensaje: string }> {
+  if (!(await isAdmin())) return { ok: false, mensaje: NO_PERMISSION_MESSAGE }
   try {
     const supabase = await createClient()
     const password = generarPassword()
@@ -80,6 +83,7 @@ export async function crearOrotar(
 export async function crearTodosLosFaltantes(): Promise<
   { ok: boolean; mensaje: string; accesos: AccesoCreado[] }
 > {
+  if (!(await isAdmin())) return { ok: false, mensaje: NO_PERMISSION_MESSAGE, accesos: [] }
   try {
     const supabase = await createClient()
     const { data, error } = await supabase.rpc('portales_overview')
@@ -117,6 +121,7 @@ export async function crearTodosLosFaltantes(): Promise<
 }
 
 export async function activarPortal(clientId: string, enabled: boolean): Promise<Resultado> {
+  if (!(await isAdmin())) return { ok: false, mensaje: NO_PERMISSION_MESSAGE }
   try {
     const supabase = await createClient()
     const { data, error } = await supabase.rpc('portal_activar', {
@@ -140,6 +145,7 @@ export async function activarPortal(clientId: string, enabled: boolean): Promise
 }
 
 export async function desbloquearPortal(slug: string): Promise<Resultado> {
+  if (!(await isAdmin())) return { ok: false, mensaje: NO_PERMISSION_MESSAGE }
   try {
     const supabase = await createClient()
     const { data, error } = await supabase.rpc('portal_desbloquear', { p_slug: slug })
@@ -153,6 +159,7 @@ export async function desbloquearPortal(slug: string): Promise<Resultado> {
 }
 
 export async function eliminarPortal(clientId: string): Promise<Resultado> {
+  if (!(await isAdmin())) return { ok: false, mensaje: NO_PERMISSION_MESSAGE }
   try {
     const supabase = await createClient()
     const { data, error } = await supabase.rpc('portal_eliminar_acceso', { p_client_id: clientId })

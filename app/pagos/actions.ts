@@ -2,14 +2,10 @@
 
 import { revalidatePath } from 'next/cache'
 import { createClient } from '@/utils/supabase/server'
-import { FINANCE_USER_ID } from '@/app/projects/statuses'
-import type { SupabaseClient } from '@supabase/supabase-js'
+import { isAdmin } from '@/app/lib/permissions'
 
-// Solo Diego puede operar la sección de Pagos (por ahora)
-async function isFinance(supabase: SupabaseClient): Promise<boolean> {
-  const { data: { user } } = await supabase.auth.getUser()
-  return user?.id === FINANCE_USER_ID
-}
+// Pagos es sección de administradores (rol admin: Diego y Oscar). La base
+// también lo exige (RLS de client_payments, migraciones 012 y 013).
 
 // Marca un ciclo como pagado (fecha de pago = hoy o la indicada)
 export async function markPaymentPaid(formData: FormData) {
@@ -18,7 +14,7 @@ export async function markPaymentPaid(formData: FormData) {
   const paidOn = (formData.get('paid_on') as string) || new Date().toISOString().slice(0, 10)
 
   const supabase = await createClient()
-  if (!(await isFinance(supabase))) return
+  if (!(await isAdmin())) return
   await supabase.from('client_payments').update({ status: 'paid', paid_on: paidOn }).eq('id', id)
   revalidatePath('/pagos')
 }
@@ -29,7 +25,7 @@ export async function markPaymentPending(formData: FormData) {
   if (!id) return
 
   const supabase = await createClient()
-  if (!(await isFinance(supabase))) return
+  if (!(await isAdmin())) return
   await supabase.from('client_payments').update({ status: 'pending', paid_on: null }).eq('id', id)
   revalidatePath('/pagos')
 }
@@ -43,7 +39,7 @@ export async function updatePayment(formData: FormData) {
   const period = (formData.get('period') as string) || null
 
   const supabase = await createClient()
-  if (!(await isFinance(supabase))) return
+  if (!(await isAdmin())) return
   await supabase.from('client_payments').update({ amount, note, period }).eq('id', id)
   revalidatePath('/pagos')
 }
@@ -58,7 +54,7 @@ export async function addInstallment(formData: FormData) {
   const period = (formData.get('period') as string) || null
 
   const supabase = await createClient()
-  if (!(await isFinance(supabase))) return
+  if (!(await isAdmin())) return
   const { data: last } = await supabase
     .from('client_payments')
     .select('seq')
@@ -91,7 +87,7 @@ export async function changeFee(formData: FormData) {
   const note = ((formData.get('note') as string) ?? '').trim() || null
 
   const supabase = await createClient()
-  if (!(await isFinance(supabase))) return
+  if (!(await isAdmin())) return
   await supabase.rpc('change_project_fee', {
     p_project_id: projectId,
     p_new: amount,
@@ -109,7 +105,7 @@ export async function deletePayment(formData: FormData) {
   if (!id) return
 
   const supabase = await createClient()
-  if (!(await isFinance(supabase))) return
+  if (!(await isAdmin())) return
   await supabase.from('client_payments').delete().eq('id', id)
   revalidatePath('/pagos')
 }

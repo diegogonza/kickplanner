@@ -2,6 +2,7 @@ import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/utils/supabase/server'
 import Sidebar from '@/app/components/sidebar'
+import { getSessionProfile } from '@/app/lib/session'
 import ProjectsView, { type ProjectOverview } from '@/app/components/projects-view'
 import NewProjectTrigger from '@/app/components/new-project-trigger'
 
@@ -11,11 +12,9 @@ export default async function Home({
   searchParams: Promise<{ client?: string }>
 }) {
   const { client: clientFilter } = await searchParams
-  const supabase = await createClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  const { user, isAdmin } = await getSessionProfile()
   if (!user) redirect('/login')
+  const supabase = await createClient()
 
   const { data } = await supabase.rpc('projects_overview')
   const all = (data ?? []) as ProjectOverview[]
@@ -55,7 +54,7 @@ export default async function Home({
                 <Link href="/projects" className="filter-clear">Quitar filtro</Link>
               </div>
             )}
-            <ProjectsView projects={projects} clients={clients} templates={templates} members={members} />
+            <ProjectsView projects={projects} clients={clients} templates={templates} members={members} isAdmin={isAdmin} />
           </div>
         </div>
       </div>

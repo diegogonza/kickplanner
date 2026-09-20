@@ -5,7 +5,6 @@ import { useStickyHead } from './use-sticky-head'
 import Link from 'next/link'
 import {
   createProject,
-  updateProject,
   setProjectStatus,
   setProjectManager,
   toggleFavorite,
@@ -20,6 +19,8 @@ import {
   moneyCompact,
 } from '@/app/projects/statuses'
 import Avatar from '@/app/components/avatar'
+import ProjectEditModal from '@/app/components/project-edit-modal'
+import { toastIfFailed, toastNoPermission } from '@/app/components/toast'
 
 export type ProjectOverview = {
   id: string
@@ -123,12 +124,17 @@ export default function ProjectsView({
   clients = [],
   templates = [],
   members = [],
+  isAdmin = false,
 }: {
   projects: ProjectOverview[]
   clients?: { id: string; name: string }[]
   templates?: { id: string; name: string; type: string }[]
   members?: Member[]
+  isAdmin?: boolean
 }) {
+  // Las opciones se muestran a todos; si no es admin, avisa en vez de actuar.
+  // (La base también lo impide: esto es para que el aviso sea inmediato.)
+  const denied = toastNoPermission
   const [createType, setCreateType] = useState('seo')
   const tplFor = (type: string) => templates.filter((t) => t.type === type || t.type === 'general')
   const [createOpen, setCreateOpen] = useState(false)
@@ -157,13 +163,15 @@ export default function ProjectsView({
   // El botón "Iniciar un nuevo proyecto" vive en el header y abre este modal por evento
   useEffect(() => {
     const open = () => {
+      if (!isAdmin) return denied()
       setStep(0)
       setCreateName('')
       setCreateOpen(true)
     }
     window.addEventListener('open-new-project', open)
     return () => window.removeEventListener('open-new-project', open)
-  }, [])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isAdmin])
 
   // Filtros por columna (estilo data table), aplicados en cliente
   const [fName, setFName] = useState('')
@@ -176,7 +184,8 @@ export default function ProjectsView({
   const toggleStatus = (key: string) =>
     setStatusSel((prev) => {
       const n = new Set(prev)
-      n.has(key) ? n.delete(key) : n.add(key)
+      if (n.has(key)) n.delete(key)
+      else n.add(key)
       return n
     })
 
@@ -272,7 +281,7 @@ export default function ProjectsView({
       <button
         type="button"
         className="proj-manager-btn"
-        onClick={() => setManagerOpen(managerOpen === p.id ? null : p.id)}
+        onClick={() => (isAdmin ? setManagerOpen(managerOpen === p.id ? null : p.id) : denied())}
         title={p.manager ? `Encargado: ${p.manager}` : 'Sin encargado'}
       >
         {p.manager_id ? (
@@ -287,7 +296,7 @@ export default function ProjectsView({
         <div className="dropdown-menu" style={{ left: 0, minWidth: 210, maxHeight: 260, overflowY: 'auto' }}>
           <div className="dropdown-label">Encargado</div>
           {members.map((m) => (
-            <form key={m.user_id} action={setProjectManager} onSubmit={() => setManagerOpen(null)}>
+            <form key={m.user_id} action={async (fd) => { toastIfFailed(await setProjectManager(fd)) }} onSubmit={() => setManagerOpen(null)}>
               <input type="hidden" name="id" value={p.id} />
               <input type="hidden" name="manager_id" value={m.user_id} />
               <button type="submit" className="dropdown-item">
@@ -299,7 +308,7 @@ export default function ProjectsView({
             </form>
           ))}
           {p.manager_id && (
-            <form action={setProjectManager} onSubmit={() => setManagerOpen(null)}>
+            <form action={async (fd) => { toastIfFailed(await setProjectManager(fd)) }} onSubmit={() => setManagerOpen(null)}>
               <input type="hidden" name="id" value={p.id} />
               <input type="hidden" name="manager_id" value="" />
               <button type="submit" className="dropdown-item" style={{ color: 'var(--text-3)' }}>
@@ -388,8 +397,15 @@ export default function ProjectsView({
       </button>
       {menuOpen === p.id && (
         <div className="dropdown-menu" style={{ right: 0, left: 'auto' }}>
-          <button type="button" className="dropdown-item" onClick={() => { setEditing(p); setMenuOpen(null) }}>Editar</button>
-          <form action={deleteProject} onSubmit={(e) => { if (!confirm('¿Eliminar el proyecto y todas sus tareas?')) e.preventDefault(); else setMenuOpen(null) }}>
+          <button type="button" className="dropdown-item" onClick={() => { setMenuOpen(null); if (isAdmin) setEditing(p); else denied() }}>Editar</button>
+          <form
+            action={async (fd) => { toastIfFailed(await deleteProject(fd)) }}
+            onSubmit={(e) => {
+              setMenuOpen(null)
+              if (!isAdmin) { e.preventDefault(); denied(); return }
+              if (!confirm('¿Eliminar el proyecto y todas sus tareas?')) e.preventDefault()
+            }}
+          >
             <input type="hidden" name="id" value={p.id} />
             <button type="submit" className="dropdown-item" style={{ color: 'var(--urgent-fg)' }}>Eliminar</button>
           </form>
@@ -603,7 +619,10 @@ export default function ProjectsView({
 
             <form
               className="wizard-form"
-              action={async (fd) => { await createProject(fd); closeCreate() }}
+              action={async (fd) => {
+                const res = await createProject(fd)
+                if (!toastIfFailed(res)) closeCreate()
+              }}
               onKeyDown={(e) => {
                 // Enter avanza de paso en vez de enviar el formulario a medias
                 if (e.key === 'Enter' && !isLastStep && (e.target as HTMLElement).tagName !== 'TEXTAREA') {
@@ -731,54 +750,14 @@ export default function ProjectsView({
         </div>
       )}
 
-      {/* Modal editar */}
+      {/* Modal editar (compartido con la vista del proyecto) */}
       {editing && (
-        <div className="modal-overlay" onClick={() => setEditing(null)}>
-          <div className="modal" role="dialog" aria-modal="true" onClick={(e) => e.stopPropagation()}>
-            <h2>Editar proyecto</h2>
-            <form action={async (fd) => { await updateProject(fd); setEditing(null) }}>
-              <input type="hidden" name="id" value={editing.id} />
-              <div className="flex flex-col gap-3">
-                <input name="name" className="field" defaultValue={editing.name} autoComplete="off" required />
-                <label className="k">Cliente</label>
-                <select name="client_id" className="field" defaultValue={editing.client_id ?? ''} required>
-                  <option value="" disabled>Elegí un cliente…</option>
-                  {clients.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
-                </select>
-                <label className="k">Encargado</label>
-                <select name="manager_id" className="field" defaultValue={editing.manager_id ?? ''}>
-                  <option value="">Sin encargado</option>
-                  {members.map((m) => <option key={m.user_id} value={m.user_id}>{memberName(m)}</option>)}
-                </select>
-                <label className="k">Fecha de inicio</label>
-                <input type="date" name="start_date" className="field" defaultValue={editing.start_date ?? ''} />
-                <label className="k">Fee (mensual si SEO · total si Web)</label>
-                <div className="flex gap-2">
-                  <input type="number" name="fee" className="field" placeholder="0" defaultValue={editing.fee ?? ''} style={{ flex: 1 }} min="0" step="any" />
-                  <select name="currency" className="field" defaultValue={editing.currency ?? 'COP'} style={{ width: 96 }}>
-                    <option value="COP">COP</option>
-                    <option value="USD">USD</option>
-                  </select>
-                </div>
-                <label className="k">URL del proyecto</label>
-                <input name="url" className="field" placeholder="https://…" defaultValue={editing.url ?? ''} autoComplete="off" />
-                <textarea name="description" className="field" defaultValue={editing.description ?? ''} placeholder="Descripción (opcional)" rows={3} />
-                <label className="k">Tipo de proyecto</label>
-                <select name="type" className="field" defaultValue={editing.type}>
-                  {PROJECT_TYPES.map((t) => <option key={t.key} value={t.key}>{t.label}</option>)}
-                </select>
-                <label className="k">Estado</label>
-                <select name="status" className="field" defaultValue={editing.status}>
-                  {STATUSES.map((s) => <option key={s.key} value={s.key}>{s.label}</option>)}
-                </select>
-              </div>
-              <div className="modal-actions">
-                <button type="button" className="btn btn-outline" onClick={() => setEditing(null)}>Cancelar</button>
-                <button type="submit" className="btn btn-primary">Guardar cambios</button>
-              </div>
-            </form>
-          </div>
-        </div>
+        <ProjectEditModal
+          project={editing}
+          clients={clients}
+          members={members}
+          onClose={() => setEditing(null)}
+        />
       )}
     </div>
   )

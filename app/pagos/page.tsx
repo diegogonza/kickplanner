@@ -2,19 +2,17 @@ import { redirect } from 'next/navigation'
 import { createClient } from '@/utils/supabase/server'
 import Sidebar from '@/app/components/sidebar'
 import PaymentsView from '@/app/components/payments-view'
-import { FINANCE_USER_ID } from '@/app/projects/statuses'
+import { getSessionProfile } from '@/app/lib/session'
 
 type Client = { project_id: string; name: string; type: string; currency: string; start_date: string | null; fee: number }
 type Payment = { id: string; project_id: string; seq: number; period: string | null; amount: number; currency: string; status: string; paid_on: string | null; kind: string; note: string | null }
 type FeeChange = { project_id: string; old_amount: number | null; new_amount: number; currency: string; effective_date: string; created_at: string }
 
 export default async function PagosPage() {
-  const supabase = await createClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  const { user, isAdmin } = await getSessionProfile()
   if (!user) redirect('/login')
-  if (user.id !== FINANCE_USER_ID) redirect('/')
+  if (!isAdmin) redirect('/')
+  const supabase = await createClient()
 
   // Materializa ciclos SEO y cuotas Web, luego trae los datos
   await supabase.rpc('generate_client_payments')

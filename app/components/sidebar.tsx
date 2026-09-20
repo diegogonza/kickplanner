@@ -3,7 +3,7 @@ import { signout } from '@/app/login/actions'
 import { createClient } from '@/utils/supabase/server'
 import { getSessionProfile } from '@/app/lib/session'
 import Avatar from '@/app/components/avatar'
-import { displayName, FINANCE_USER_ID } from '@/app/projects/statuses'
+import { displayName } from '@/app/projects/statuses'
 
 export default async function Sidebar({
   active = 'projects',
@@ -26,7 +26,7 @@ export default async function Sidebar({
 }) {
   // Sesión y perfil compartidos con la página que renderiza el sidebar: el
   // helper está cacheado por request, así que esto no repite la consulta.
-  const { user, fullName, avatarUrl } = await getSessionProfile()
+  const { user, fullName, avatarUrl, isAdmin } = await getSessionProfile()
   const email = user?.email ?? ''
 
   let unread = 0
@@ -39,7 +39,7 @@ export default async function Sidebar({
     unread = count ?? 0
   }
   const name = displayName({ full_name: fullName, email })
-  const canSeePayments = user?.id === FINANCE_USER_ID
+  const canSeePayments = isAdmin
 
   return (
     <aside className="sidebar">
