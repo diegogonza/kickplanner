@@ -202,3 +202,24 @@ Ninguno de estos puntos bloquea la Fase 13 con el enfoque v3 (el cliente nunca s
 - `profiles` tiene la política `SELECT ... USING (true)`.
 - `is_project_member()` autoriza lectura y escritura con la misma función; no existe un rol de solo lectura.
 - El middleware solo distingue logueado / no logueado.
+
+---
+
+## Vista de proyectos — revisión del 22-sep-2026
+
+Análisis completo en `ANALISIS-VISTA-PROYECTOS.md`; qué se cambió y por qué, en `PLAN-MEJORAS-PROYECTOS.md`. Lo implementado toca `/projects`, `app/projects/statuses.ts`, `app/projects/actions.ts` y la migración `015`.
+
+Lo que conviene tener presente desde el resto del repo:
+
+- **`current_date` no es la fecha de la operación.** La base corre en UTC y adelanta el día a las 19:00 de Bogotá. `projects_overview()` ya usa `(now() at time zone 'America/Bogota')::date`; **falta revisar con el mismo criterio** `generate_client_payments()`, `seed_web_installments()` y el `p_start default current_date` de `apply_template()`.
+- **`set_project_status` es a nivel miembro a propósito**, y ahora está escrito en el `COMMENT` de la función. Cualquier cambio a admin obliga a tocar también la píldora de estado de la lista.
+- **Un `required` dentro de un panel oculto rompe el envío del formulario sin avisar.** Pasaba en el asistente de crear proyecto. El mismo patrón de pasos ocultos está en `project-edit-modal.tsx`: ahí no hay `required`, pero conviene no añadirlo.
+- **Los componentes no se declaran dentro de otro componente.** En la tabla de proyectos eso hacía perder el foco del teclado y remontar las filas; ya está corregido ahí, pero el patrón sigue vivo en otras vistas (`clientes-view.tsx`, `plantillas-view.tsx`, `task-detail.tsx`).
+
+### Pendiente de esta revisión
+
+- `createProject` no es atómico: crea con un RPC y luego hace tres escrituras sueltas. Una función única en la base lo resolvería.
+- `projects_overview()` calcula `num_tasks` y `status_note` que la vista no usa.
+- `setProjectUrl` quedó huérfana (la celda de URL abre el modal completo).
+- Voseo/tuteo mezclados en `add-project-to-portfolio.tsx` y `seo-property-panel.tsx`.
+- `app/globals.css` sigue con cambios sin commitear de antes de esta revisión.

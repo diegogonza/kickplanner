@@ -99,6 +99,196 @@ const MESES = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'o
 const DIAS = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado']
 const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1)
 
+/**
+ * ---------- Cuentas de calendario, atadas a la zona de la operación ----------
+ *
+ * Todo lo de abajo trabaja con cadenas 'YYYY-MM-DD' y con `todayISO()`, que ya
+ * resuelve el día en TZ. Las restas se hacen sobre el mediodía UTC del día, así
+ * que ni el huso del navegador ni el del servidor (ni un cambio de horario)
+ * pueden mover el resultado: el render del servidor y el del cliente dan lo
+ * mismo, que es justo lo que evita los desajustes de hidratación.
+ */
+function dayValue(iso: string): number {
+  const [y, m, d] = iso.split('-').map(Number)
+  return Date.UTC(y, m - 1, d, 12)
+}
+
+/** Días completos entre dos fechas 'YYYY-MM-DD' (negativo si `to` es anterior). */
+export function daysBetween(fromISO: string, toISO: string): number {
+  return Math.round((dayValue(toISO) - dayValue(fromISO)) / 86400000)
+}
+
+/** Fecha larga y estable: "21 sep 2026". Sin depender del locale del entorno. */
+export function formatDateLong(iso: string): string {
+  const [y, m, d] = iso.split('-').map(Number)
+  return `${d} ${MESES[m - 1]} ${y}`
+}
+
+/** Último día del mes (1-12) de un año dado. */
+function ultimoDiaDelMes(year: number, month1a12: number): number {
+  return new Date(Date.UTC(year, month1a12, 0)).getUTCDate()
+}
+
+export type ProjectAge =
+  | { future: true; days: number }
+  | { future: false; month: number; days: number; pausedDays: number }
+
+/** Un cambio de estado del proyecto, con su fecha (en TZ) y el estado nuevo. */
+export type StatusChange = { date: string; status: string }
+
+/** Fecha 'YYYY-MM-DD' en la zona de la operación para un timestamp absoluto. */
+export function dateInTZ(ts: string): string {
+  return FMT_DIA.format(new Date(ts))
+}
+
+/**
+ * Estado vigente en una fecha según el historial (ordenado de más viejo a más
+ * nuevo): el último cambio registrado hasta ese día inclusive. null si el
+ * historial empieza después (antes de esa fecha no hay registro).
+ */
+function estadoEn(historial: StatusChange[], fecha: string): string | null {
+  let st: string | null = null
+  for (const h of historial) {
+    if (h.date > fecha) break
+    st = h.status
+  }
+  return st
+}
+
+/**
+ * Antigüedad del proyecto: meses y días ACTIVO, sin contar las pausas.
+ *
+ * El mes se cuenta por ANIVERSARIO DE CALENDARIO (no en bloques de 30 días),
+ * que es cuando se cobra el mes anticipado. Cuando el día de inicio no existe
+ * en un mes (un 31 en septiembre) el aniversario es el último día de ese mes.
+ *
+ * Con historial de estados, un aniversario solo suma si en esa fecha el
+ * proyecto NO estaba detenido: es la misma regla con la que la base genera los
+ * cobros (generate_client_payments), así que "Mes N" coincide con los meses
+ * facturables. Los días activo son los días desde el inicio menos los días en
+ * pausa. Sin historial para una fecha (registros anteriores a agosto de 2026)
+ * se asume activo.
+ *
+ * Si la fecha de inicio es futura devuelve `future`.
+ *
+ * `historial` debe venir ordenado por fecha ascendente; `today` se puede
+ * inyectar para pruebas.
+ */
+export function projectAge(
+  startISO: string | null,
+  historial: StatusChange[] = [],
+  today: string = todayISO(),
+): ProjectAge | null {
+  if (!startISO) return null
+  const total = daysBetween(startISO, today)
+  if (total < 0) return { future: true, days: -total }
+
+  // Meses: aniversarios ya cumplidos en los que el proyecto estaba activo.
+  let month = 0
+  for (let k = 0; ; k++) {
+    const aniv = aniversarioMensual(startISO, k)
+    if (aniv > today) break
+    if (estadoEn(historial, aniv) !== 'on_hold') month++
+  }
+
+  // Días en pausa: tramos en 'on_hold' entre el inicio y hoy.
+  let pausedDays = 0
+  for (let i = 0; i < historial.length; i++) {
+    if (historial[i].status !== 'on_hold') continue
+    const desde = historial[i].date > startISO ? historial[i].date : startISO
+    const finTramo = i + 1 < historial.length ? historial[i + 1].date : today
+    const hasta = finTramo < today ? finTramo : today
+    if (hasta > desde) pausedDays += daysBetween(desde, hasta)
+  }
+
+  return { future: false, month, days: total - pausedDays, pausedDays }
+}
+
+/** 'YYYY-MM-DD' + 1 día. */
+function sumarDia(iso: string): string {
+  const d = new Date(dayValue(iso) + 86400000)
+  return d.toISOString().slice(0, 10)
+}
+
+/** Aniversario mensual número `k` de una fecha: el mismo día k meses después,
+ * o el último día de ese mes si el día no existe. Es lo mismo que hace la base
+ * con `start_date + k months` en generate_client_payments(). */
+function aniversarioMensual(startISO: string, k: number): string {
+  const [sy, sm, sd] = startISO.split('-').map(Number)
+  const total = sm - 1 + k
+  const y = sy + Math.floor(total / 12)
+  const m = (total % 12) + 1
+  const d = Math.min(sd, ultimoDiaDelMes(y, m))
+  return `${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`
+}
+
+export type NextBilling = { date: string; days: number }
+
+/**
+ * Próximo cobro de un retainer SEO (mes anticipado).
+ *
+ * Se cobra en cada aniversario mensual de la fecha de inicio, con la misma
+ * regla que usa /pagos al generar los cobros (generate_client_payments), para
+ * que las dos vistas nunca se contradigan. Si hoy es aniversario, el cobro es
+ * hoy (0 días). Si el proyecto aún no arranca, el primer cobro es la propia
+ * fecha de inicio: el primer mes también se paga por adelantado.
+ *
+ * `paidThrough` (opcional, solo lo tiene admin) es el último mes recurrente
+ * pagado: si el cobro que toca ya está pagado —o se pagó por adelantado— la
+ * cuenta salta al primer aniversario posterior. Sin él es una cuenta regresiva
+ * de calendario pura.
+ *
+ * `today` se puede inyectar para pruebas; por defecto es hoy en TZ.
+ */
+export function nextBilling(
+  startISO: string | null,
+  today: string = todayISO(),
+  paidThrough: string | null = null,
+): NextBilling | null {
+  if (!startISO) return null
+  if (paidThrough && paidThrough >= today) {
+    // Buscar el primer aniversario sin pagar: el siguiente al último pagado.
+    const desde = nextBilling(startISO, sumarDia(paidThrough))
+    return desde && { date: desde.date, days: daysBetween(today, desde.date) }
+  }
+  if (startISO >= today) return { date: startISO, days: daysBetween(today, startISO) }
+  const [sy, sm] = startISO.split('-').map(Number)
+  const [ty, tm] = today.split('-').map(Number)
+  const k = (ty - sy) * 12 + (tm - sm)
+  let date = aniversarioMensual(startISO, k)
+  if (date < today) date = aniversarioMensual(startISO, k + 1)
+  return { date, days: daysBetween(today, date) }
+}
+
+/** Fecha corta "1 nov"; con año si no es el año de `today`: "5 ene 2027". */
+export function formatDateShort(iso: string, today: string = todayISO()): string {
+  const [y, m, d] = iso.split('-').map(Number)
+  return y === Number(today.slice(0, 4)) ? `${d} ${MESES[m - 1]}` : `${d} ${MESES[m - 1]} ${y}`
+}
+
+/**
+ * "Activo hace…" a partir de un timestamp absoluto.
+ *
+ * `now` se recibe en vez de llamar a `Date.now()` adentro: durante el render
+ * del servidor todavía no hay reloj del navegador, así que quien llama pasa
+ * `null` y se muestra la fecha (idéntica en ambos lados); una vez montado el
+ * componente pasa el reloj real y el texto se vuelve relativo.
+ */
+export function activeAgo(iso: string, now: number | null): string {
+  const fecha = new Date(iso)
+  if (now === null) return 'Activo ' + formatDateLong(FMT_DIA.format(fecha))
+  const secs = Math.floor((now - fecha.getTime()) / 1000)
+  if (secs < 90) return 'Activo recién'
+  const mins = Math.floor(secs / 60)
+  if (mins < 60) return `Activo hace ${mins} min`
+  const hrs = Math.floor(mins / 60)
+  if (hrs < 24) return `Activo hace ${hrs} h`
+  const days = Math.floor(hrs / 24)
+  if (days === 1) return 'Activo hace 1 día'
+  if (days < 30) return `Activo hace ${days} días`
+  return 'Activo ' + formatDateLong(FMT_DIA.format(fecha))
+}
+
 // Fecha corta estilo Asana para las tarjetas: "Hoy", "Ayer", "Mañana",
 // día de la semana si está dentro de los próximos 6 días, o "11 mayo".
 export function formatDueShort(iso: string): { label: string; overdue: boolean } {

@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { setProjectStatus } from '@/app/projects/actions'
+import { toastIfFailed } from '@/app/components/toast'
 import { PROJECT_STATUSES, projectStatusOf, displayName } from '@/app/projects/statuses'
 import Avatar from '@/app/components/avatar'
 
@@ -96,8 +97,11 @@ export default function ProjectStatus({
             </div>
 
             <form
-              action={setProjectStatus}
-              onSubmit={() => setOpen(false)}
+              action={async (fd) => {
+                // Si la base rechaza el cambio, el popover se queda abierto con
+                // la nota escrita en vez de cerrarse como si hubiera guardado.
+                if (!toastIfFailed(await setProjectStatus(fd))) setOpen(false)
+              }}
             >
               <input type="hidden" name="id" value={projectId} />
               <input type="hidden" name="status" value={selected} />

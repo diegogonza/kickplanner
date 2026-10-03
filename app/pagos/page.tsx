@@ -3,6 +3,7 @@ import { createClient } from '@/utils/supabase/server'
 import Sidebar from '@/app/components/sidebar'
 import PaymentsView from '@/app/components/payments-view'
 import { getSessionProfile } from '@/app/lib/session'
+import { todayISO } from '@/app/projects/statuses'
 
 type Client = { project_id: string; name: string; type: string; currency: string; start_date: string | null; fee: number }
 type Payment = { id: string; project_id: string; seq: number; period: string | null; amount: number; currency: string; status: string; paid_on: string | null; kind: string; note: string | null }
@@ -20,9 +21,12 @@ export default async function PagosPage() {
   const { data } = await supabase.rpc('payments_data')
   const d = (data ?? {}) as { clients?: Client[]; payments?: Payment[]; fee_history?: FeeChange[] }
   const clients = (d.clients ?? []).filter((c) => c.fee > 0 || c.start_date)
-  const payments = d.payments ?? []
+  // Los cobros anulados (status 'void') no se muestran ni suman en ningún total.
+  const payments = (d.payments ?? []).filter((p) => p.status !== 'void')
   const feeHistory = d.fee_history ?? []
-  const today = new Date().toISOString().slice(0, 10)
+  // Hoy en Bogotá, igual que la base y /projects: en UTC el día cambia a las
+  // 19:00 y el cobro de hoy salía "vencido" cinco horas antes de tiempo.
+  const today = todayISO()
 
   const activos = clients.filter((c) => c.start_date).length
 

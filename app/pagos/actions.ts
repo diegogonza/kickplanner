@@ -109,3 +109,32 @@ export async function deletePayment(formData: FormData) {
   await supabase.from('client_payments').delete().eq('id', id)
   revalidatePath('/pagos')
 }
+
+/**
+ * "Elimina" un cobro mensual: lo ANULA (status = 'void') en vez de borrarlo.
+ *
+ * generate_client_payments() rellena todo mes que falte cada vez que se abre
+ * /pagos o /projects, así que un cobro mensual borrado reaparecería en la
+ * siguiente carga. Anulado, el mes queda registrado y no se regenera, pero no
+ * se muestra, no se cobra y no cuenta como deuda (migración 016g).
+ *
+ * Solo cobros recurrentes y no pagados: uno pagado primero se "Deshace". Las
+ * cuotas Web siguen usando deletePayment (esas no se regeneran).
+ */
+export async function voidPayment(formData: FormData) {
+  const id = formData.get('id') as string
+  if (!id) return
+  if (!(await isAdmin())) return
+
+  const supabase = await createClient()
+  const { error } = await supabase
+    .from('client_payments')
+    .update({ status: 'void', paid_on: null })
+    .eq('id', id)
+    .eq('kind', 'recurring')
+    .neq('status', 'paid')
+  if (error) console.error('voidPayment:', error.message)
+  revalidatePath('/pagos')
+  revalidatePath('/projects')
+  revalidatePath('/')
+}

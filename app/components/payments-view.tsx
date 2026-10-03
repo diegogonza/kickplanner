@@ -9,6 +9,7 @@ import {
   updatePayment,
   addInstallment,
   deletePayment,
+  voidPayment,
   changeFee,
 } from '@/app/pagos/actions'
 
@@ -254,11 +255,25 @@ export default function PaymentsView({
                           </span>
                           <span className="pay-cycle-amt">{money(Number(p.amount), p.currency)}</span>
                           <span className={`pay-badge ${badge}`}>{badgeText}</span>
-                          {p.status === 'paid' ? (
-                            <form action={markPaymentPending}><input type="hidden" name="id" value={p.id} /><button type="submit" className="pay-action-undo">Deshacer</button></form>
-                          ) : (
-                            <form action={markPaymentPaid}><input type="hidden" name="id" value={p.id} /><button type="submit" className="pay-action-pay">Marcar pagado</button></form>
-                          )}
+                          <span className="pay-cycle-actions">
+                            {p.status === 'paid' ? (
+                              <form action={markPaymentPending}><input type="hidden" name="id" value={p.id} /><button type="submit" className="pay-action-undo">Deshacer</button></form>
+                            ) : (
+                              <>
+                                <form action={markPaymentPaid}><input type="hidden" name="id" value={p.id} /><button type="submit" className="pay-action-pay">Marcar pagado</button></form>
+                                {/* Anula el cobro (no se regenera). Un pagado no se elimina: primero "Deshacer". */}
+                                <form
+                                  action={voidPayment}
+                                  onSubmit={(e) => {
+                                    if (!confirm(`¿Eliminar el cobro del Mes ${p.seq}${p.period ? ` (${fmt(p.period)})` : ''}? Deja de contar como deuda y no se vuelve a generar.`)) e.preventDefault()
+                                  }}
+                                >
+                                  <input type="hidden" name="id" value={p.id} />
+                                  <button type="submit" className="pay-inst-del" title="Eliminar cobro" aria-label={`Eliminar cobro del Mes ${p.seq}`}>✕</button>
+                                </form>
+                              </>
+                            )}
+                          </span>
                         </div>
                       )
                     }

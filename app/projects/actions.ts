@@ -212,39 +212,76 @@ export async function setProjectManager(formData: FormData): Promise<ActionResul
   return OK
 }
 
-export async function setProjectStatus(formData: FormData) {
+/**
+ * Cambia el estado del proyecto. A propósito NO exige admin: la función
+ * `set_project_status` de la base valida `is_project_member`, porque reportar
+ * cómo va un proyecto es trabajo del equipo (ver migración 015, donde está el
+ * razonamiento completo). Lo que sí hace ahora es devolver el resultado: antes
+ * era `void` y un rechazo de la base no llegaba nunca a la persona.
+ */
+export async function setProjectStatus(formData: FormData): Promise<ActionResult> {
   const id = formData.get('id') as string
   const raw = formData.get('status') as string
   const note = ((formData.get('note') as string) ?? '').trim() || null
-  if (!id || !PROJECT_STATUS.includes(raw as never)) return
+  if (!id || !PROJECT_STATUS.includes(raw as never)) return failed('Ese estado no existe.')
 
   const supabase = await createClient()
-  await supabase.rpc('set_project_status', { p_project_id: id, p_status: raw, p_note: note })
+  const { error } = await supabase.rpc('set_project_status', {
+    p_project_id: id,
+    p_status: raw,
+    p_note: note,
+  })
+  if (error) {
+    console.error('setProjectStatus:', error.message)
+    // El RPC lanza 'no autorizado' cuando quien pide no es miembro del proyecto
+    return error.message.includes('no autorizado') ? DENIED : failed()
+  }
   revalidatePath('/') // el panel vive en la raíz
   revalidatePath('/projects')
   revalidatePath(`/projects/${id}`)
+  return OK
 }
 
-export async function toggleFavorite(formData: FormData) {
+/**
+ * Marca o desmarca un favorito. Es por usuario, así que no hay chequeo de rol;
+ * la RLS de `project_favorites` exige ser miembro del proyecto para insertar.
+ * Al quitar no se mira `count`: que no hubiera fila es el estado que la persona
+ * pedía igualmente, no un rechazo.
+ */
+export async function toggleFavorite(formData: FormData): Promise<ActionResult> {
   const id = formData.get('project_id') as string
   const isFav = (formData.get('favorite') as string) === 'true'
-  if (!id) return
+  if (!id) return failed()
 
   const supabase = await createClient()
   const {
     data: { user },
   } = await supabase.auth.getUser()
-  if (!user) return
+  if (!user) return DENIED
 
   if (isFav) {
-    await supabase.from('project_favorites').delete().eq('project_id', id).eq('user_id', user.id)
+    const { error } = await supabase
+      .from('project_favorites')
+      .delete()
+      .eq('project_id', id)
+      .eq('user_id', user.id)
+    if (error) {
+      console.error('toggleFavorite/delete:', error.message)
+      return failed('No se pudo quitar de favoritos.')
+    }
   } else {
-    await supabase
+    const { error } = await supabase
       .from('project_favorites')
       .upsert({ project_id: id, user_id: user.id }, { onConflict: 'project_id,user_id', ignoreDuplicates: true })
+    if (error) {
+      // Una violación de RLS aquí significa que ya no eres miembro del proyecto
+      console.error('toggleFavorite/upsert:', error.message)
+      return error.code === '42501' ? DENIED : failed('No se pudo marcar como favorito.')
+    }
   }
   revalidatePath('/')
   revalidatePath('/projects')
+  return OK
 }
 
 export async function deleteProject(formData: FormData): Promise<ActionResult> {

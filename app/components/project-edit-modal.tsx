@@ -173,7 +173,7 @@ export default function ProjectEditModal({
                     defaultValue={project.client_id ?? ''}
                     disabled={!listsReady}
                   >
-                    <option value="" disabled>{listsReady ? 'Elegí un cliente…' : 'Cargando…'}</option>
+                    <option value="" disabled>{listsReady ? 'Elige un cliente…' : 'Cargando…'}</option>
                     {(clients ?? []).map((c) => (
                       <option key={c.id} value={c.id}>{c.name}</option>
                     ))}
@@ -251,7 +251,7 @@ export default function ProjectEditModal({
                     <option key={s.key} value={s.key}>{s.label}</option>
                   ))}
                 </select>
-                <p className="wizard-help">Si lo cambiás, queda registrado en el historial de estado del proyecto.</p>
+                <p className="wizard-help">Si lo cambias, queda registrado en el historial de estado del proyecto.</p>
               </div>
               <div className="wizard-field">
                 <label className="k" htmlFor="pe-desc">Descripción (opcional)</label>
