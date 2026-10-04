@@ -10,10 +10,12 @@ import { useEffect, useRef } from 'react'
 export default function InlineTaskTitle({
   value,
   onChange,
+  onBlur,
   id,
 }: {
   value: string
   onChange: (value: string) => void
+  onBlur?: () => void
   id?: string
 }) {
   const ref = useRef<HTMLTextAreaElement>(null)
@@ -33,6 +35,7 @@ export default function InlineTaskTitle({
       className="panel-title-input"
       value={value}
       onChange={(e) => onChange(e.target.value)}
+      onBlur={onBlur}
       onKeyDown={(e) => {
         // Enter confirma: el título es de una sola línea
         if (e.key === 'Enter') {

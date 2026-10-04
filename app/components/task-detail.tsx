@@ -30,6 +30,8 @@ import InlineTaskTitle from '@/app/components/inline-task-title'
 import SubtaskList from '@/app/components/subtask-list'
 import CommentEditor from '@/app/components/comment-editor'
 import CommentBody from '@/app/components/comment-body'
+import { must, type JobOpts } from '@/app/lib/write'
+import { confirmCompleteSubtasks } from '@/app/lib/complete-subtasks'
 
 type Ancestor = { id: string; title: string }
 type Mention = { id: string; name: string | null; email: string; avatar: string | null }
@@ -57,7 +59,7 @@ type Activity = {
 }
 
 // Campos que el modal edita con estado local (optimista)
-type Editable = Pick<Task, 'title' | 'status' | 'priority' | 'due_date' | 'assignee_id' | 'description'>
+type Editable = Pick<Task, 'title' | 'status' | 'priority' | 'due_date' | 'assignee_id' | 'description' | 'drive_url'>
 
 function fmtDate(s: string): string {
   const [y, m, d] = s.split('-').map(Number)
@@ -102,6 +104,7 @@ function etiquetaDia(iso: string): string {
 export default function TaskDetail({
   task,
   subtasks,
+  childCounts,
   tags,
   allTags,
   ancestors,
@@ -111,11 +114,11 @@ export default function TaskDetail({
   currentUserId,
   projectId,
   projectName,
-  view,
   closeHref,
 }: {
   task: Task
   subtasks: Task[]
+  childCounts: Record<string, number>
   tags: Tag[]
   allTags: Tag[]
   ancestors: Ancestor[]
@@ -125,7 +128,6 @@ export default function TaskDetail({
   currentUserId: string
   projectId: string
   projectName: string
-  view: string
   closeHref: string
 }) {
   const router = useRouter()
@@ -209,10 +211,32 @@ export default function TaskDetail({
 
   // Las escrituras se encolan: se serializan entre sí y, al cerrar, el refresh
   // espera a que terminen (así la lista de atrás nunca queda con el valor viejo).
+  //
+  // Cada trabajo atrapa su propio error: uno que falla no corta la cadena, se
+  // avisa con un toast y, si trae `undo`, la pantalla vuelve al último valor
+  // que la base confirmó.
   const chain = useRef<Promise<unknown>>(Promise.resolve())
-  const enqueue = useCallback((fn: () => Promise<unknown>) => {
+  const enqueue = useCallback((run: () => Promise<unknown>, opts: JobOpts) => {
     dirty.current = true
-    chain.current = chain.current.then(fn, fn)
+    chain.current = chain.current.then(async () => {
+      try {
+        await run()
+      } catch {
+        opts.undo?.()
+        const tail = opts.hint ?? (opts.undo ? 'Se revirtió el cambio.' : '')
+        toast(`No se pudo guardar ${opts.what}. ${tail}`.trim(), 'error')
+      }
+    })
+  }, [])
+
+  // Lo que espera en un debounce (títulos de subtareas, descripción) se
+  // registra acá para guardarse ANTES de cerrar o de navegar a otra tarea.
+  const flushers = useRef(new Set<() => void>())
+  const registerFlush = useCallback((fn: () => void) => {
+    flushers.current.add(fn)
+    return () => {
+      flushers.current.delete(fn)
+    }
   }, [])
 
   const patch = useCallback((p: Partial<Editable>) => {
@@ -224,13 +248,14 @@ export default function TaskDetail({
   const me = members.find((m) => m.user_id === currentUserId)
 
   const pushAct = useCallback(
-    (type: string, to: string | null) => {
+    (type: string, to: string | null): string => {
+      const id = `local-${type}-${Date.now()}`
       setSync((s) => ({
         ...s,
         local: [
           ...s.local,
           {
-            id: `local-${type}-${Date.now()}`,
+            id,
             actor_id: currentUserId,
             actor_name: me?.full_name ?? null,
             actor_avatar: me?.avatar_url ?? null,
@@ -241,46 +266,120 @@ export default function TaskDetail({
           },
         ],
       }))
+      return id
     },
     [currentUserId, me]
   )
 
+  // ---- Subtareas: progreso ----------------------------------------------
+  const [subStats, setSubStats] = useState({ done: 0, total: subtasks.length })
+  const onSubStats = useCallback((done: number, total: number) => {
+    setSubStats((prev) => (prev.done === done && prev.total === total ? prev : { done, total }))
+  }, [])
   // ---- Escrituras --------------------------------------------------------
-  const setStatus = (status: Status) => {
-    patch({ status })
-    pushAct('status', status)
-    enqueue(async () => {
-      await supabase.from('tasks').update({ status }).eq('id', task.id)
-      await supabase.from('task_activity').insert({ task_id: task.id, type: 'status', meta: { to: status } })
-    })
+  // Último valor CONFIRMADO por la base. Si una escritura falla, el campo vuelve
+  // a esto, pero solo si todavía muestra el valor que falló (si el usuario ya
+  // lo cambió otra vez, no se le pisa).
+  const confirmed = useRef<Partial<Editable>>({
+    status: task.status,
+    priority: task.priority,
+    due_date: task.due_date,
+    assignee_id: task.assignee_id,
+    drive_url: task.drive_url,
+  })
+
+  const setField = <K extends 'status' | 'priority' | 'due_date' | 'assignee_id' | 'drive_url'>(
+    key: K,
+    value: Editable[K],
+    what: string,
+    write: () => Promise<unknown>,
+    act?: string,
+    alsoUndo?: () => void
+  ) => {
+    patch({ [key]: value } as Partial<Editable>)
+    const actId = act ? pushAct(act, (value as string | null) ?? null) : null
+    enqueue(
+      async () => {
+        await write()
+        confirmed.current[key] = value
+      },
+      {
+        what,
+        undo: () => {
+          setSync((s) => ({
+            ...s,
+            ov: s.ov[key] === value ? { ...s.ov, [key]: confirmed.current[key] } : s.ov,
+            local: actId ? s.local.filter((a) => a.id !== actId) : s.local,
+          }))
+          alsoUndo?.()
+        },
+      }
+    )
   }
 
-  const setPrio = (priority: Priority | null) => {
-    patch({ priority })
-    pushAct('priority', priority)
-    enqueue(async () => {
-      await supabase.from('tasks').update({ priority }).eq('id', task.id)
-      await supabase.from('task_activity').insert({ task_id: task.id, type: 'priority', meta: { to: priority } })
-    })
+  // La actividad la registra también la base por trigger (migración 017): si
+  // ya está aplicada, este insert se descarta como duplicado. Si falla, no
+  // importa: el cambio en sí ya se guardó.
+  const logAct = (type: string, to: string | null) =>
+    supabase.from('task_activity').insert({ task_id: task.id, type, meta: { to } })
+
+  // Subtareas marcadas como hechas en bloque al completar la tarea: la lista
+  // lo aplica al instante y lo deshace si la base rechaza el cambio.
+  const [allDone, setAllDone] = useState({ seq: 0, on: false })
+
+  const setStatus = async (status: Status) => {
+    if (status === t.status) return
+    if (status === 'done') {
+      // Aviso si quedan subtareas sin finalizar (se cuentan las de la lista,
+      // que ya incluye lo optimista). Cancelar no cambia nada.
+      const abiertas = subStats.total - subStats.done
+      // Si alguna subtarea tiene subtareas propias, el conteo local no alcanza
+      // (también se completan las de más abajo): se cuenta en la base.
+      const hayNietas = subtasks.some((s) => (childCounts[s.id] ?? 0) > 0)
+      const conocidas = hayNietas ? undefined : abiertas
+      if ((hayNietas || abiertas > 0) && !(await confirmCompleteSubtasks(task.id, conocidas))) return
+      if (abiertas > 0) setAllDone((a) => ({ seq: a.seq + 1, on: true }))
+      // Completa la tarea y todas sus subtareas abiertas, a cualquier
+      // profundidad, en una sola operación (registra la actividad de cada una)
+      setField(
+        'status',
+        status,
+        'el estado',
+        () => must(supabase.rpc('complete_task_tree', { p_task_id: task.id })),
+        'status',
+        abiertas > 0 ? () => setAllDone((a) => ({ seq: a.seq + 1, on: false })) : undefined
+      )
+      return
+    }
+    setField('status', status, 'el estado', async () => {
+      await must(supabase.from('tasks').update({ status }).eq('id', task.id).select('id'))
+      await logAct('status', status)
+    }, 'status')
   }
 
-  const setDue = (due_date: string | null) => {
-    patch({ due_date })
-    pushAct('due', due_date)
-    enqueue(async () => {
-      await supabase.from('tasks').update({ due_date }).eq('id', task.id)
-      await supabase.from('task_activity').insert({ task_id: task.id, type: 'due', meta: { to: due_date } })
-    })
-  }
+  const setPrio = (priority: Priority | null) =>
+    setField('priority', priority, 'la prioridad', async () => {
+      await must(supabase.from('tasks').update({ priority }).eq('id', task.id).select('id'))
+      await logAct('priority', priority)
+    }, 'priority')
+
+  const setDue = (due_date: string | null) =>
+    setField('due_date', due_date, 'la fecha de entrega', async () => {
+      await must(supabase.from('tasks').update({ due_date }).eq('id', task.id).select('id'))
+      await logAct('due', due_date)
+    }, 'due')
 
   // El RPC ya registra la actividad y la notificación de asignación
-  const setWho = (assignee_id: string | null) => {
-    patch({ assignee_id })
-    pushAct('assignee', assignee_id)
-    enqueue(async () => {
-      await supabase.rpc('set_task_assignee', { p_task_id: task.id, p_assignee: assignee_id })
-    })
-  }
+  const setWho = (assignee_id: string | null) =>
+    setField('assignee_id', assignee_id, 'el responsable', () =>
+      must(supabase.rpc('set_task_assignee', { p_task_id: task.id, p_assignee: assignee_id })),
+      'assignee'
+    )
+
+  const setDrive = (drive_url: string | null) =>
+    setField('drive_url', drive_url, 'el archivo de Drive', () =>
+      must(supabase.from('tasks').update({ drive_url }).eq('id', task.id).select('id'))
+    )
 
   // Título: se ve al instante, se guarda al dejar de escribir
   const titleTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -295,10 +394,21 @@ export default function TaskDetail({
       const trimmed = value.trim()
       pendingTitle.current = null
       if (!trimmed || trimmed === lastTitle.current) return
+      const prev = lastTitle.current
       lastTitle.current = trimmed
-      enqueue(async () => {
-        await supabase.from('tasks').update({ title: trimmed }).eq('id', task.id)
-      })
+      enqueue(
+        async () => {
+          await must(supabase.from('tasks').update({ title: trimmed }).eq('id', task.id).select('id'))
+        },
+        {
+          what: 'el título',
+          hint: 'Tu texto sigue en el campo.',
+          // Se olvida que "ya estaba guardado", así la próxima edición reintenta
+          undo: () => {
+            if (lastTitle.current === trimmed) lastTitle.current = prev
+          },
+        }
+      )
     },
     [enqueue, supabase, task.id]
   )
@@ -309,6 +419,21 @@ export default function TaskDetail({
     if (titleTimer.current) clearTimeout(titleTimer.current)
     titleTimer.current = setTimeout(() => saveTitle(value), 600)
   }
+
+  // Un título vacío no se guarda: al salir del campo vuelve el último guardado
+  const onTitleBlur = () => {
+    if (t.title.trim()) return
+    if (titleTimer.current) clearTimeout(titleTimer.current)
+    pendingTitle.current = null
+    patch({ title: lastTitle.current })
+  }
+
+  // Guarda YA todo lo que espera en un debounce (título y lo registrado)
+  const flushAll = useCallback(() => {
+    if (titleTimer.current) clearTimeout(titleTimer.current)
+    if (pendingTitle.current !== null) saveTitle(pendingTitle.current)
+    for (const f of flushers.current) f()
+  }, [saveTitle])
 
   // Al desmontar, no se pierde lo que quedó en el debounce
   useEffect(() => {
@@ -323,43 +448,61 @@ export default function TaskDetail({
   // Un solo cierre a la vez: Escape o un segundo clic mientras dice
   // "Guardando…" no deben iniciar otra navegación ni otro temporizador.
   const closingRef = useRef(false)
-  const requestClose = useCallback(() => {
-    if (closingRef.current) return
-    if (hasDraft.current && !window.confirm('Tenés un comentario sin enviar. ¿Cerrar de todos modos?')) return
-    // Un título escrito hace menos de 600 ms todavía está en el debounce: se
-    // guarda YA, para que entre en la cadena y la navegación lo espere (antes
-    // se guardaba al desmontar, después de navegar, y la lista mostraba el
-    // título viejo).
-    if (titleTimer.current) clearTimeout(titleTimer.current)
-    if (pendingTitle.current !== null) saveTitle(pendingTitle.current)
-    // Una sola navegación. El push ya trae la página fresca del servidor, así
-    // que no hace falta un refresh() aparte (antes eran dos renders completos).
-    // Si hubo cambios, se espera a que terminen de guardarse para que esa única
-    // respuesta ya los incluya.
-    closingRef.current = true
-    if (!dirty.current) return void router.push(closeHref)
-    // Con conexión lenta esto puede tardar: se avisa en vez de parecer ignorado.
-    // Y si Supabase no responde, a los 8 s se cierra igual: los guardados
-    // siguen en curso en segundo plano y la lista se pone al día al terminar.
-    setClosing(true)
-    let done = false
-    const go = () => {
-      if (done) return
-      done = true
-      router.push(closeHref)
-    }
-    const timer = window.setTimeout(() => {
-      toast('Algunos cambios aún se están guardando. Aparecerán en unos segundos.')
-      go()
-      const refresh = () => router.refresh()
-      chain.current.then(refresh, refresh)
-    }, 8000)
-    const finish = () => {
-      window.clearTimeout(timer)
-      go()
-    }
-    chain.current.then(finish, finish)
-  }, [closeHref, router, saveTitle])
+  // Salir del modal: cerrarlo o ir a otra tarea (subtarea, ancestro, proyecto).
+  // Un solo camino para los dos, así abrir una subtarea tiene las mismas
+  // garantías que cerrar: lo pendiente se guarda y la navegación lo espera.
+  const leave = useCallback(
+    (href: string, draftMsg: string) => {
+      if (closingRef.current) return
+      if (hasDraft.current && !window.confirm(draftMsg)) return
+      // Lo que todavía está en un debounce (título, descripción, títulos de
+      // subtareas) se guarda YA, para que entre en la cadena y la navegación lo
+      // espere (antes se perdía o llegaba después y la lista mostraba lo viejo).
+      flushAll()
+      // Una sola navegación. El push ya trae la página fresca del servidor, así
+      // que no hace falta un refresh() aparte (antes eran dos renders completos).
+      // Si hubo cambios, se espera a que terminen de guardarse para que esa única
+      // respuesta ya los incluya.
+      closingRef.current = true
+      if (!dirty.current) return void router.push(href)
+      // Con conexión lenta esto puede tardar: se avisa en vez de parecer ignorado.
+      // Y si Supabase no responde, a los 8 s se sale igual: los guardados
+      // siguen en curso en segundo plano y la página se pone al día al terminar.
+      setClosing(true)
+      let done = false
+      const go = () => {
+        if (done) return
+        done = true
+        router.push(href)
+      }
+      const timer = window.setTimeout(() => {
+        toast('Algunos cambios aún se están guardando. Aparecerán en unos segundos.')
+        go()
+        const refresh = () => router.refresh()
+        chain.current.then(refresh, refresh)
+      }, 8000)
+      const finish = () => {
+        window.clearTimeout(timer)
+        go()
+      }
+      chain.current.then(finish, finish)
+    },
+    [router, flushAll]
+  )
+
+  const requestClose = useCallback(
+    () => leave(closeHref, 'Tenés un comentario sin enviar. ¿Cerrar de todos modos?'),
+    [leave, closeHref]
+  )
+  const navigateTo = useCallback(
+    (href: string) => leave(href, 'Tenés un comentario sin enviar. ¿Salir de todos modos?'),
+    [leave]
+  )
+  const onNavClick = (e: React.MouseEvent, href: string) => {
+    if (e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return
+    e.preventDefault()
+    navigateTo(href)
+  }
 
   const onDraftChange = useCallback((v: boolean) => {
     hasDraft.current = v
@@ -422,10 +565,12 @@ export default function TaskDetail({
     [projectId]
   )
 
+  // Al eliminar una subtarea se vuelve a su tarea padre, no al proyecto.
+  // push trae la página fresca: un refresh() previo solo duplicaba el render.
+  const parentId = task.parent_id
   const afterDestructive = useCallback(() => {
-    // push trae la página fresca: un refresh() previo solo duplicaba el render
-    router.push(closeHref)
-  }, [closeHref, router])
+    router.push(parentId ? `${closeHref}&task=${parentId}` : closeHref)
+  }, [closeHref, parentId, router])
 
   const afterDuplicate = useCallback(() => {
     router.refresh()
@@ -436,10 +581,19 @@ export default function TaskDetail({
   const pickTag = (next: Tag | null) => {
     setSync((s) => ({ ...s, tag: next }))
     dirty.current = true
-    enqueue(async () => {
-      await supabase.from('task_tags').delete().eq('task_id', task.id)
-      if (next) await supabase.from('task_tags').insert({ task_id: task.id, tag_id: next.id })
-    })
+    const prev = tag
+    enqueue(
+      async () => {
+        // Borrar puede afectar 0 filas si no tenía etiqueta: acá solo vale el error
+        const del = await supabase.from('task_tags').delete().eq('task_id', task.id)
+        if (del.error) throw del.error
+        if (next) await must(supabase.from('task_tags').insert({ task_id: task.id, tag_id: next.id }).select('task_id'))
+      },
+      {
+        what: 'la etiqueta',
+        undo: () => setSync((s) => (s.tag?.id === next?.id ? { ...s, tag: prev } : s)),
+      }
+    )
   }
 
   // Reutiliza la etiqueta si ya existe con ese nombre (sin distinguir mayúsculas)
@@ -462,11 +616,6 @@ export default function TaskDetail({
     if (found) pickTag(found)
   }
 
-  // ---- Subtareas: progreso ----------------------------------------------
-  const [subStats, setSubStats] = useState({ done: 0, total: subtasks.length })
-  const onSubStats = useCallback((done: number, total: number) => {
-    setSubStats((prev) => (prev.done === done && prev.total === total ? prev : { done, total }))
-  }, [])
   const pct = subStats.total > 0 ? Math.round((subStats.done / subStats.total) * 100) : 0
 
   // ---- Feed --------------------------------------------------------------
@@ -490,7 +639,8 @@ export default function TaskDetail({
   }, [])
 
   const done = t.status === 'done'
-  const hrefFor = (id: string) => `/projects/${projectId}?view=${view}&task=${id}`
+  // Conserva la vista y el filtro (hide=done) de la página de atrás
+  const hrefFor = useCallback((id: string) => `${closeHref}&task=${id}`, [closeHref])
 
   const actText = (a: Activity): string => {
     const to = a.meta?.to ?? null
@@ -564,6 +714,7 @@ export default function TaskDetail({
         <div className="tm-head-r">
           <TaskActionsMenu
             taskId={task.id}
+            title={t.title}
             projectId={projectId}
             onDeleted={afterDestructive}
             onDuplicated={afterDuplicate}
@@ -581,16 +732,16 @@ export default function TaskDetail({
       <div className="tm-grid">
         <div className="tm-main">
           <nav className="breadcrumb tm-crumb">
-            <Link href={`/projects/${projectId}?view=${view}`}>{projectName}</Link>
+            <Link href={closeHref} onClick={(e) => onNavClick(e, closeHref)}>{projectName}</Link>
             {ancestors.map((a) => (
               <span key={a.id} className="tm-crumb-i">
                 <span className="tm-crumb-sep">/</span>
-                <Link href={hrefFor(a.id)}>{a.title}</Link>
+                <Link href={hrefFor(a.id)} onClick={(e) => onNavClick(e, hrefFor(a.id))}>{a.title}</Link>
               </span>
             ))}
           </nav>
 
-          <InlineTaskTitle id={titleId} value={t.title} onChange={onTitle} />
+          <InlineTaskTitle id={titleId} value={t.title} onChange={onTitle} onBlur={onTitleBlur} />
 
           {/* Metadatos sin cajas: rótulo gris + valor como chip.
               El valor se resalta al pasar el cursor para indicar que es editable. */}
@@ -643,16 +794,18 @@ export default function TaskDetail({
             taskId={task.id}
             initial={task.description}
             onSaved={(v) => patch({ description: v })}
+            enqueue={enqueue}
+            registerFlush={registerFlush}
           />
 
           <div className="section-label">Archivo de Drive</div>
-          <DriveField taskId={task.id} projectId={projectId} value={t.drive_url} />
+          <DriveField value={t.drive_url} onSave={setDrive} />
 
           <div className="tm-subs-head">
             <span className="section-label" style={{ margin: 0 }}>Subtareas</span>
             {subStats.total > 0 && (
               <>
-                <span className="tm-prog" role="progressbar" aria-valuenow={pct} aria-valuemin={0} aria-valuemax={100}>
+                <span className="tm-prog" role="progressbar" aria-label="Progreso de subtareas" aria-valuenow={pct} aria-valuemin={0} aria-valuemax={100}>
                   <span style={{ width: `${pct}%` }} />
                 </span>
                 <span className="tm-prog-n">
@@ -664,13 +817,15 @@ export default function TaskDetail({
           <SubtaskList
             parentId={task.id}
             projectId={projectId}
-            view={view}
             subtasks={subtasks}
             members={members}
+            childCounts={childCounts}
+            hrefFor={hrefFor}
+            onOpen={navigateTo}
             onStats={onSubStats}
-            onDirty={() => {
-              dirty.current = true
-            }}
+            enqueue={enqueue}
+            registerFlush={registerFlush}
+            allDone={allDone}
           />
         </div>
 

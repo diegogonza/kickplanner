@@ -1,17 +1,19 @@
 'use client'
 
 import { useState } from 'react'
-import { setDriveUrl } from '@/app/projects/actions'
 import { parseDrive, isDriveUrl, driveLabel } from '@/app/projects/drive'
 
+/**
+ * Enlace de Drive de la tarea. Guarda con el mismo patrón que el resto del
+ * modal (optimista + cola), en vez de una acción de servidor que revalidaba la
+ * página entera del proyecto.
+ */
 export default function DriveField({
-  taskId,
-  projectId,
   value,
+  onSave,
 }: {
-  taskId: string
-  projectId: string
   value: string | null
+  onSave: (url: string | null) => void
 }) {
   const [override, setOverride] = useState<'edit' | null>(null)
   const [url, setUrl] = useState(value ?? '')
@@ -29,23 +31,21 @@ export default function DriveField({
           <span>Adjuntar un archivo de Google Drive</span>
         </div>
         <form
-          action={setDriveUrl}
           className="drive-edit"
           onSubmit={(e) => {
+            e.preventDefault()
             const v = url.trim()
             if (v && !isDriveUrl(v)) {
-              e.preventDefault()
               setError('Pegá un enlace válido de Google Drive o Google Docs.')
-            } else {
-              setError(null)
-              setOverride(null)
+              return
             }
+            setError(null)
+            setOverride(null)
+            if (v !== (value ?? '')) onSave(v || null)
           }}
         >
-          <input type="hidden" name="id" value={taskId} />
-          <input type="hidden" name="project_id" value={projectId} />
           <input
-            name="drive_url"
+            aria-label="Enlace de Google Drive"
             className="field"
             placeholder="Pega el enlace de Google Drive…"
             value={url}
@@ -105,22 +105,30 @@ export default function DriveField({
               </svg>
             </button>
           )}
-          <button type="button" className="btn-ghost" title="Editar enlace" onClick={() => setOverride('edit')}>
+          <button type="button" className="btn-ghost" title="Editar enlace" onClick={() => {
+              setUrl(value ?? '')
+              setOverride('edit')
+            }}>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
               <path d="M18.5 2.5a2.12 2.12 0 0 1 3 3L12 15l-4 1 1-4z" />
             </svg>
           </button>
-          <form action={setDriveUrl}>
-            <input type="hidden" name="id" value={taskId} />
-            <input type="hidden" name="project_id" value={projectId} />
-            <input type="hidden" name="drive_url" value="" />
-            <button type="submit" className="btn-ghost" title="Quitar archivo">
+          <button
+            type="button"
+            className="btn-ghost"
+            title="Quitar archivo"
+            aria-label="Quitar archivo de Drive"
+            onClick={() => {
+              setUrl('')
+              setPreview(false)
+              onSave(null)
+            }}
+          >
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6" />
               </svg>
-            </button>
-          </form>
+          </button>
         </div>
       </div>
 

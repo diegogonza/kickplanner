@@ -1,11 +1,12 @@
 'use client'
 
+import { confirmDeleteTask } from '@/app/lib/confirm-delete'
 import { useCallback, useEffect, useRef, useState, useTransition } from 'react'
 import { createPortal } from 'react-dom'
 import { useRouter } from 'next/navigation'
 import { duplicateTask, deleteTask } from '@/app/projects/actions'
 
-export type CtxTask = { id: string; projectId: string }
+export type CtxTask = { id: string; projectId: string; title?: string }
 
 type MenuState = { x: number; y: number; task: CtxTask } | null
 
@@ -72,8 +73,10 @@ function TaskContextMenu({ x, y, task, onClose }: { x: number; y: number; task: 
       onClose()
     })
 
-  const doDelete = () => {
-    if (!confirm('¿Eliminar esta tarea y sus subtareas? Esta acción no se puede deshacer.')) return
+  const doDelete = async () => {
+    // El menú se cierra antes de preguntar: el diálogo queda solo en pantalla
+    onClose()
+    if (!(await confirmDeleteTask({ taskId: task.id, title: task.title }))) return
     startTransition(async () => {
       await deleteTask(fd())
       router.refresh()

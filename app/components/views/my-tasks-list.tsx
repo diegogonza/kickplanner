@@ -1,5 +1,7 @@
 'use client'
 
+import { guardDeleteTask } from '@/app/lib/confirm-delete'
+import { guardComplete } from '@/app/lib/complete-subtasks'
 import { useState } from 'react'
 import Link from 'next/link'
 import { isOverdue, parseDue, type Task } from '@/app/projects/statuses'
@@ -100,8 +102,8 @@ export default function MyTasksList({ tasks }: { tasks: MyTask[] }) {
                   const done = t.status === 'done'
                   const overdue = isOverdue(t.due_date, done)
                   return (
-                    <div key={t.id} className={`lrow ${done ? 'done' : ''}`} onContextMenu={(e) => onContextMenu(e, { id: t.id, projectId: t.project_id })}>
-                      <form action={toggleComplete}>
+                    <div key={t.id} className={`lrow ${done ? 'done' : ''}`} onContextMenu={(e) => onContextMenu(e, { id: t.id, projectId: t.project_id, title: t.title })}>
+                      <form action={toggleComplete} onSubmit={guardComplete(t.id)}>
                         <input type="hidden" name="id" value={t.id} />
                         <input type="hidden" name="project_id" value={t.project_id} />
                         <input type="hidden" name="status" value={t.status} />
@@ -138,7 +140,7 @@ export default function MyTasksList({ tasks }: { tasks: MyTask[] }) {
                         <DueDateInput taskId={t.id} projectId={t.project_id} value={t.due_date} />
                       </div>
 
-                      <form action={deleteTask}>
+                      <form action={deleteTask} onSubmit={guardDeleteTask({ taskId: t.id, title: t.title })}>
                         <input type="hidden" name="id" value={t.id} />
                         <input type="hidden" name="project_id" value={t.project_id} />
                         <button type="submit" className="btn-ghost ldel" title="Eliminar tarea">

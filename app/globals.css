@@ -7172,3 +7172,156 @@ a.proj-bill:hover .proj-bill-when {
 .btn-danger:hover {
   filter: brightness(0.93);
 }
+
+/* ---------- MODAL: subtareas — estados nuevos (2026-10-04) ---------- */
+/* Fila recién creada, esperando el id real de la base */
+.subrow.is-pendiente {
+  opacity: 0.55;
+}
+.subrow.is-pendiente .subrow-grip {
+  cursor: default;
+}
+/* La subtarea tiene subtareas propias: chip que la abre */
+.subrow-hijas {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 2px 6px;
+  border-radius: var(--r-full);
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--text-3);
+  background: var(--panel);
+}
+.subrow-hijas:hover {
+  color: var(--text);
+  background: var(--border);
+}
+/* Sin cursor (táctil) no hay hover: los accesos de la fila quedan visibles */
+@media (hover: none) {
+  .subrow-grip,
+  .subrow-open {
+    opacity: 1;
+  }
+}
+@media (max-width: 720px) {
+  /* El título gana el espacio: la fecha vacía se oculta y la que existe se compacta */
+  .subrow {
+    gap: 6px;
+  }
+  .subrow-grip {
+    display: none;
+  }
+  .subrow-due:not(.has-date) {
+    display: none;
+  }
+  .subrow-due .dropdown-trigger {
+    padding: 3px 4px;
+    opacity: 1;
+  }
+  .subrow-assignee {
+    margin-left: auto;
+  }
+  .subrow-due.has-date + .subrow-assignee {
+    margin-left: 0;
+  }
+}
+
+/* ---------- DIÁLOGO DE CONFIRMACIÓN (reemplaza window.confirm) ---------- */
+/* Por encima del modal de tarea (60) y de los menús flotantes (90); los
+   toasts (120) siguen quedando arriba de todo. */
+.cdlg-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 110;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  background: rgba(9, 30, 22, 0.42);
+  animation: cdlgFade 0.14s ease-out;
+}
+.cdlg {
+  width: 100%;
+  max-width: 420px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-xl);
+  box-shadow: var(--shadow-lg);
+  padding: var(--space-6);
+  animation: cdlgIn 0.18s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+.cdlg-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  margin-bottom: var(--space-4);
+  border-radius: var(--r-full);
+  background: var(--brand-50);
+  color: var(--brand-600);
+  box-shadow: inset 0 0 0 1px var(--brand-100);
+}
+.cdlg-icon.is-alert {
+  background: var(--urgent-bg);
+  color: var(--urgent-text);
+  box-shadow: none;
+}
+.cdlg-icon svg {
+  width: 20px;
+  height: 20px;
+}
+.cdlg-title {
+  margin: 0 0 6px;
+  font-size: 17px;
+  font-weight: 700;
+  line-height: 1.3;
+  color: var(--text);
+}
+.cdlg-body {
+  font-size: 13.5px;
+  line-height: 1.55;
+  color: var(--text-3);
+}
+.cdlg-body b {
+  color: var(--text);
+  font-weight: 600;
+}
+/* Rojo de texto (#c0272d, 5.9:1 con blanco) en vez del rojo de acento
+   (#e5484d, 3.9:1): el botón de eliminar tiene que leerse bien. */
+.cdlg .btn-danger {
+  background: var(--urgent-text);
+}
+.cdlg-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: var(--space-6);
+}
+@keyframes cdlgFade {
+  from {
+    opacity: 0;
+  }
+}
+@keyframes cdlgIn {
+  from {
+    opacity: 0;
+    transform: translateY(6px) scale(0.98);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .cdlg-overlay,
+  .cdlg {
+    animation: none;
+  }
+}
+@media (max-width: 480px) {
+  .cdlg-actions {
+    flex-direction: column-reverse;
+  }
+  .cdlg-actions .btn {
+    justify-content: center;
+  }
+}

@@ -1,12 +1,13 @@
 'use client'
 
+import { guardComplete } from '@/app/lib/complete-subtasks'
 import { useEffect, useState, useTransition } from 'react'
 import Link from 'next/link'
 import { PRIORITIES, formatDueShort, type Task, type Tag, type Member } from '@/app/projects/statuses'
 import { toggleComplete, createTaskWithTag, moveTaskTag } from '@/app/projects/actions'
 import AddTaskRow from '@/app/components/add-task-row'
 import Avatar from '@/app/components/avatar'
-import { useTaskContextMenu } from '@/app/components/task-context-menu'
+import { useTaskContextMenu, type CtxTask } from '@/app/components/task-context-menu'
 
 const NONE = '__none__'
 
@@ -33,7 +34,7 @@ function TaskCard({
   dragging: boolean
   onDragStart: (taskId: string, from: string) => void
   onDragEnd: () => void
-  onContextMenu: (e: React.MouseEvent, task: { id: string; projectId: string }) => void
+  onContextMenu: (e: React.MouseEvent, task: CtxTask) => void
 }) {
   const prio = PRIORITIES.find((p) => p.key === task.priority)
   const subs = subtaskCounts[task.id] ?? 0
@@ -49,7 +50,7 @@ function TaskCard({
         e.dataTransfer.effectAllowed = 'move'
       }}
       onDragEnd={onDragEnd}
-      onContextMenu={(e) => onContextMenu(e, { id: task.id, projectId })}
+      onContextMenu={(e) => onContextMenu(e, { id: task.id, projectId, title: task.title })}
     >
       {prio && (
         <div className="card-prio" style={{ background: `${prio.color}14`, color: prio.color }}>
@@ -61,7 +62,7 @@ function TaskCard({
       )}
       <div className="task-mini-body">
         <div className="flex items-start gap-3">
-          <form action={toggleComplete}>
+          <form action={toggleComplete} onSubmit={guardComplete(task.id, subs ? undefined : 0)}>
             <input type="hidden" name="id" value={task.id} />
             <input type="hidden" name="project_id" value={projectId} />
             <input type="hidden" name="status" value={task.status} />

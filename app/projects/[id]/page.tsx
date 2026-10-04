@@ -215,6 +215,13 @@ export default async function ProjectPage({
     subtaskCounts[p] = (subtaskCounts[p] ?? 0) + 1;
   }
 
+  // Cuántas subtareas tiene cada tarea, sin filtrar por "ocultar completadas":
+  // el modal lo usa para marcar las subtareas que a su vez tienen hijas.
+  const allChildCounts: Record<string, number> = {};
+  for (const r of (subRows ?? []) as Task[]) {
+    if (r.parent_id) allChildCounts[r.parent_id] = (allChildCounts[r.parent_id] ?? 0) + 1;
+  }
+
   const members = (membersData ?? []) as Member[];
   const memberMap: Record<string, Member> = {};
   for (const m of members) memberMap[m.user_id] = m;
@@ -313,24 +320,17 @@ export default async function ProjectPage({
       );
       return { taskTags, usedTags };
     })(),
-    // Cadena de ancestros (breadcrumb de subtareas). Es secuencial por
-    // naturaleza, pero solo corre con una subtarea abierta.
+    // Cadena de ancestros (breadcrumb de subtareas): una sola consulta
+    // recursiva en la base (antes, un bucle de hasta 10 consultas en serie).
     (async () => {
-      const chain: { id: string; title: string }[] = [];
-      let pid = panelTask?.parent_id ?? null;
-      let guard = 0;
-      while (pid && guard < 10) {
-        const { data: anc } = await supabase
-          .from("tasks")
-          .select("id, title, parent_id")
-          .eq("id", pid)
-          .maybeSingle();
-        if (!anc) break;
-        chain.unshift({ id: anc.id, title: anc.title });
-        pid = anc.parent_id as string | null;
-        guard++;
-      }
-      return chain;
+      if (!panelTask?.parent_id) return [] as { id: string; title: string }[];
+      const { data } = await supabase.rpc("task_ancestors", {
+        p_task_id: panelTask.id,
+      });
+      return ((data ?? []) as { id: string; title: string }[]).map((a) => ({
+        id: a.id,
+        title: a.title,
+      }));
     })(),
   ]);
   const { clientName, portalSlug } = clientInfo;
@@ -560,6 +560,7 @@ export default async function ProjectPage({
           key={panelTask.id}
           task={panelTask}
           subtasks={subtasks}
+          childCounts={allChildCounts}
           tags={panelTags}
           allTags={allTags}
           ancestors={ancestors}
@@ -569,7 +570,6 @@ export default async function ProjectPage({
           currentUserId={user.id}
           projectId={project.id}
           projectName={project.name}
-          view={active}
           closeHref={closeHref}
         />
       )}

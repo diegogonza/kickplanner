@@ -5,6 +5,7 @@ import "./globals.css";
 import GlobalSearch from "./components/global-search";
 import AppChrome from "./components/app-chrome";
 import Toaster from "./components/toast";
+import ConfirmHost from "./components/confirm-dialog";
 
 const jakarta = Plus_Jakarta_Sans({
   subsets: ["latin"],
@@ -32,6 +33,7 @@ export default function RootLayout({
           </AppChrome>
           <div className="app-main">{children}</div>
           <Toaster />
+          <ConfirmHost />
         </div>
       </body>
     </html>

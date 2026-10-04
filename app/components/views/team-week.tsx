@@ -366,7 +366,7 @@ export default function TeamWeek({
                                     setDrag(null)
                                     setOverKey(null)
                                   }}
-                                  onContextMenu={(e) => onContextMenu(e, { id: t.id, projectId: t.project_id })}
+                                  onContextMenu={(e) => onContextMenu(e, { id: t.id, projectId: t.project_id, title: t.title })}
                                   onClick={() => abrir(t)}
                                 >
                                   <span className="tw-chip-t">{t.title}</span>

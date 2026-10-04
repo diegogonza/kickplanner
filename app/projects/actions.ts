@@ -394,8 +394,14 @@ export async function toggleComplete(formData: FormData) {
   const next = current === 'done' ? 'todo' : 'done'
 
   const supabase = await createClient()
-  await supabase.from('tasks').update({ status: next }).eq('id', id)
-  await supabase.from('task_activity').insert({ task_id: id, type: 'status', meta: { to: next } })
+  if (next === 'done') {
+    // Completa la tarea y TODAS sus subtareas abiertas (el cliente ya pidió
+    // confirmación); la función registra también la actividad de cada una.
+    await supabase.rpc('complete_task_tree', { p_task_id: id })
+  } else {
+    await supabase.from('tasks').update({ status: next }).eq('id', id)
+    await supabase.from('task_activity').insert({ task_id: id, type: 'status', meta: { to: next } })
+  }
   revalidatePath(`/projects/${projectId}`)
   revalidatePath('/mis-tareas')
   revalidatePath('/equipo')
@@ -553,30 +559,6 @@ export async function updateDueDate(formData: FormData) {
   await supabase.from('task_activity').insert({ task_id: id, type: 'due', meta: { to: dueDate } })
   revalidatePath(`/projects/${projectId}`)
   revalidatePath('/mis-tareas')
-}
-
-// ---------- ARCHIVO DE DRIVE ----------
-
-export async function setDriveUrl(formData: FormData) {
-  const id = formData.get('id') as string
-  const projectId = formData.get('project_id') as string
-  const raw = ((formData.get('drive_url') as string) ?? '').trim()
-
-  let value: string | null = null
-  if (raw) {
-    try {
-      const host = new URL(raw).hostname.toLowerCase()
-      // Solo se aceptan enlaces de Google Drive / Docs
-      if (host === 'drive.google.com' || host === 'docs.google.com') value = raw
-      else return
-    } catch {
-      return
-    }
-  }
-
-  const supabase = await createClient()
-  await supabase.from('tasks').update({ drive_url: value }).eq('id', id)
-  revalidatePath(`/projects/${projectId}`)
 }
 
 // ---------- ETIQUETAS (globales, se crean solas) ----------

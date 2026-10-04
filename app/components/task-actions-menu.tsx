@@ -1,5 +1,6 @@
 'use client'
 
+import { confirmDeleteTask } from '@/app/lib/confirm-delete'
 import { useRef, useState, useTransition } from 'react'
 import { deleteTask, duplicateTask } from '@/app/projects/actions'
 import Popover from '@/app/components/popover'
@@ -10,11 +11,13 @@ import Popover from '@/app/components/popover'
  */
 export default function TaskActionsMenu({
   taskId,
+  title,
   projectId,
   onDeleted,
   onDuplicated,
 }: {
   taskId: string
+  title?: string
   projectId: string
   onDeleted: () => void
   onDuplicated: () => void
@@ -39,9 +42,9 @@ export default function TaskActionsMenu({
     })
   }
 
-  const doDelete = () => {
-    if (!confirm('¿Eliminar esta tarea y sus subtareas? Esta acción no se puede deshacer.')) return
+  const doDelete = async () => {
     setOpen(false)
+    if (!(await confirmDeleteTask({ taskId, title }))) return
     startTransition(async () => {
       await deleteTask(fd())
       onDeleted()

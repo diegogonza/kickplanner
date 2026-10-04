@@ -228,7 +228,7 @@ export default function CalendarView({
                 key={t.id}
                 className={`cal-chip ${done ? 'done' : ''} ${drag?.id === t.id ? 'dragging' : ''}`}
                 title={who ? `${t.title} · ${who}` : t.title}
-                onContextMenu={(e) => onContextMenu(e, { id: t.id, projectId: t.project_id ?? projectId })}
+                onContextMenu={(e) => onContextMenu(e, { id: t.id, projectId: t.project_id ?? projectId, title: t.title })}
                 draggable
                 onDragStart={(e) => {
                   setDrag({ id: t.id, pid: t.project_id })

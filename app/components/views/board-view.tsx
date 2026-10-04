@@ -1,5 +1,7 @@
 'use client'
 
+import { confirmDeleteTask } from '@/app/lib/confirm-delete'
+import { confirmCompleteSubtasks } from '@/app/lib/complete-subtasks'
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
@@ -44,23 +46,29 @@ export default function BoardView({
   const hrefFor = (id: string) => `/projects/${projectId}?view=${view}${hideDone ? '&hide=done' : ''}&task=${id}`
 
   // ---- Mutaciones (optimistas + persistencia con el cliente del navegador) ----
-  const move = async (id: string, status: Status) => {
+  // Pasar a "Hecho" (arrastrando o con el check) completa también las
+  // subtareas abiertas, previo aviso. Si se cancela, la tarea no se mueve.
+  const setStatusOf = async (id: string, status: Status) => {
+    const current = items.find((t) => t.id === id)
+    if (!current || current.status === status) return
+    if (status === 'done' && !(await confirmCompleteSubtasks(id, subtaskCounts[id] ? undefined : 0))) return
     setItems((prev) => prev.map((t) => (t.id === id ? { ...t, status } : t)))
-    await supabase.from('tasks').update({ status }).eq('id', id)
-    // Arrastrar en el tablero también deja rastro en el historial de la tarea
-    await supabase.from('task_activity').insert({ task_id: id, type: 'status', meta: { to: status } })
+    if (status === 'done') {
+      await supabase.rpc('complete_task_tree', { p_task_id: id })
+    } else {
+      await supabase.from('tasks').update({ status }).eq('id', id)
+      // Arrastrar en el tablero también deja rastro en el historial de la tarea
+      await supabase.from('task_activity').insert({ task_id: id, type: 'status', meta: { to: status } })
+    }
     router.refresh()
   }
+  const move = (id: string, status: Status) => setStatusOf(id, status)
 
-  const toggleDone = async (task: Task) => {
-    const next: Status = task.status === 'done' ? 'todo' : 'done'
-    setItems((prev) => prev.map((t) => (t.id === task.id ? { ...t, status: next } : t)))
-    await supabase.from('tasks').update({ status: next }).eq('id', task.id)
-    await supabase.from('task_activity').insert({ task_id: task.id, type: 'status', meta: { to: next } })
-    router.refresh()
-  }
+  const toggleDone = (task: Task) => setStatusOf(task.id, task.status === 'done' ? 'todo' : 'done')
 
   const remove = async (id: string) => {
+    const task = items.find((t) => t.id === id)
+    if (!(await confirmDeleteTask({ taskId: id, title: task?.title }))) return
     setItems((prev) => prev.filter((t) => t.id !== id))
     await supabase.from('tasks').delete().eq('id', id)
     router.refresh()
@@ -118,7 +126,7 @@ export default function BoardView({
                     key={task.id}
                     className={`task-mini ${done ? 'done' : ''} ${dragId === task.id ? 'dragging' : ''}`}
                     draggable
-                    onContextMenu={(e) => onContextMenu(e, { id: task.id, projectId })}
+                    onContextMenu={(e) => onContextMenu(e, { id: task.id, projectId, title: task.title })}
                     onDragStart={() => setDragId(task.id)}
                     onDragEnd={() => {
                       setDragId(null)

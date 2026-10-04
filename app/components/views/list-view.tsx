@@ -1,5 +1,7 @@
 'use client'
 
+import { guardDeleteTask } from '@/app/lib/confirm-delete'
+import { guardComplete } from '@/app/lib/complete-subtasks'
 import { useState } from 'react'
 import Link from 'next/link'
 import { STATUSES, isOverdue, type Task, type Member } from '@/app/projects/statuses'
@@ -68,9 +70,9 @@ export default function ListView({
     const done = task.status === 'done'
     const overdue = isOverdue(task.due_date, done)
     return (
-      <div className={`lrow ${done ? 'done' : ''}`} onContextMenu={(e) => onContextMenu(e, { id: task.id, projectId })}>
+      <div className={`lrow ${done ? 'done' : ''}`} onContextMenu={(e) => onContextMenu(e, { id: task.id, projectId, title: task.title })}>
         {/* 1. Check */}
-        <form action={toggleComplete}>
+        <form action={toggleComplete} onSubmit={guardComplete(task.id, subtaskCounts[task.id] ? undefined : 0)}>
           <input type="hidden" name="id" value={task.id} />
           <input type="hidden" name="project_id" value={projectId} />
           <input type="hidden" name="status" value={task.status} />
@@ -126,7 +128,7 @@ export default function ListView({
         </div>
 
         {/* 6. Eliminar (aparece al pasar el cursor) */}
-        <form action={deleteTask}>
+        <form action={deleteTask} onSubmit={guardDeleteTask({ taskId: task.id, title: task.title })}>
           <input type="hidden" name="id" value={task.id} />
           <input type="hidden" name="project_id" value={projectId} />
           <button type="submit" className="btn-ghost ldel" title="Eliminar tarea">
@@ -232,9 +234,9 @@ export default function ListView({
                           {children.map((sub, i) => {
                             const subDone = sub.status === 'done'
                             return (
-                              <div key={sub.id} className={`lsubrow ${subDone ? 'done' : ''}`} onContextMenu={(e) => onContextMenu(e, { id: sub.id, projectId })}>
+                              <div key={sub.id} className={`lsubrow ${subDone ? 'done' : ''}`} onContextMenu={(e) => onContextMenu(e, { id: sub.id, projectId, title: sub.title })}>
                                 <span className="num">{i + 1}</span>
-                                <form action={toggleComplete}>
+                                <form action={toggleComplete} onSubmit={guardComplete(sub.id, subtaskCounts[sub.id] ? undefined : 0)}>
                                   <input type="hidden" name="id" value={sub.id} />
                                   <input type="hidden" name="project_id" value={projectId} />
                                   <input type="hidden" name="status" value={sub.status} />
