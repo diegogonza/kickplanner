@@ -5,15 +5,79 @@ import { getSessionProfile } from '@/app/lib/session'
 import ProjectsView, { type ProjectOverview } from '@/app/components/projects-view'
 import { dateInTZ, type StatusChange } from '@/app/projects/statuses'
 import NewProjectTrigger from '@/app/components/new-project-trigger'
+import TabLink from '@/app/components/tab-link'
+import PanelDashboard from '@/app/components/panel-dashboard'
+
+// Vistas de /projects. "proyectos" es la tabla de siempre (vista por defecto);
+// "panel" es el tablero de indicadores que antes era la portada (/).
+const VIEWS = [
+  { key: 'proyectos', label: 'Proyectos' },
+  { key: 'panel', label: 'Panel' },
+] as const
+type ViewKey = (typeof VIEWS)[number]['key']
+
+const VIEW_ICONS: Record<ViewKey, React.ReactNode> = {
+  proyectos: <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />,
+  panel: (
+    <>
+      <path d="M3 3v18h18" />
+      <rect x="7" y="12" width="3" height="6" rx="1" />
+      <rect x="12" y="8" width="3" height="10" rx="1" />
+      <rect x="17" y="5" width="3" height="13" rx="1" />
+    </>
+  ),
+}
+
+function ViewTabs({ active }: { active: ViewKey }) {
+  return (
+    <div className="tabs">
+      {VIEWS.map((v) => (
+        <TabLink key={v.key} href={v.key === 'proyectos' ? '/projects' : `/projects?view=${v.key}`} active={active === v.key}>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            {VIEW_ICONS[v.key]}
+          </svg>
+          {v.label}
+        </TabLink>
+      ))}
+    </div>
+  )
+}
 
 export default async function Home({
   searchParams,
 }: {
-  searchParams: Promise<{ client?: string }>
+  searchParams: Promise<{ client?: string; view?: string }>
 }) {
-  const { client: clientFilter } = await searchParams
+  const { client: clientFilter, view } = await searchParams
   const { user, isAdmin } = await getSessionProfile()
   if (!user) redirect('/login')
+
+  // Vista Panel: no necesita la carga de la tabla (cobros, historial, etc.);
+  // PanelDashboard hace su propia consulta (pm_dashboard).
+  if (view === 'panel') {
+    return (
+      <div className="flex h-full">
+        <Sidebar active="projects" />
+
+        <div className="flex flex-1 flex-col overflow-hidden">
+          <header className="topbar" style={{ borderBottom: 'none' }}>
+            <div>
+              <div className="breadcrumb">Espacio de trabajo</div>
+              <h1 className="page-title">Proyectos</h1>
+            </div>
+          </header>
+          <ViewTabs active="panel" />
+
+          <div className="viewscroll flex-1 overflow-y-auto px-6">
+            <div className="w-full">
+              <PanelDashboard />
+            </div>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
   const supabase = await createClient()
 
   // Para admin, primero se materializan los cobros que ya tocaron (lo mismo que
@@ -107,6 +171,7 @@ export default async function Home({
           </div>
           <NewProjectTrigger />
         </header>
+        <ViewTabs active="proyectos" />
 
         <div className="viewscroll flex-1 overflow-y-auto overflow-x-auto px-6">
           <div className="w-full">

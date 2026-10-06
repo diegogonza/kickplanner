@@ -19,7 +19,7 @@ export default async function Sidebar({
     | 'mis-tareas'
     | 'equipo'
     | 'notificaciones'
-    | 'panel'
+    | 'inicio'
     | 'pagos'
     | 'ajustes'
     | 'buscar'
@@ -45,14 +45,12 @@ export default async function Sidebar({
     <aside className="sidebar">
       <nav className="flex flex-col gap-1">
         <div className="nav-label" style={{ marginTop: 0 }}>Gestión (PM)</div>
-        <Link className={`nav-item ${active === 'panel' ? 'active' : ''}`} href="/">
+        <Link className={`nav-item ${active === 'inicio' ? 'active' : ''}`} href="/">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M3 3v18h18" />
-            <rect x="7" y="12" width="3" height="6" rx="1" />
-            <rect x="12" y="8" width="3" height="10" rx="1" />
-            <rect x="17" y="5" width="3" height="13" rx="1" />
+            <path d="M3 10.5 12 3l9 7.5" />
+            <path d="M5 9.5V20a1 1 0 0 0 1 1h4v-6h4v6h4a1 1 0 0 0 1-1V9.5" />
           </svg>
-          Panel
+          Inicio
         </Link>
         <Link className={`nav-item ${active === 'mis-tareas' ? 'active' : ''}`} href="/mis-tareas">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">

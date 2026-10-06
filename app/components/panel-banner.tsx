@@ -1,7 +1,17 @@
+import Link from "next/link";
 import { getSessionProfile } from "@/app/lib/session";
 
+/** Dato real del día para la columna derecha del banner (reemplaza la lista fija). */
+export type BannerStat = {
+  value: number;
+  label: string;
+  href?: string;
+  /** "alert": se pinta en rojo cuando value > 0 (atrasadas, en riesgo). */
+  tone?: "alert";
+};
+
 /** Primer nombre a partir del perfil; si no hay, la parte anterior al @ del correo. */
-function firstName(fullName: string | null, email: string): string {
+export function firstName(fullName: string | null, email: string): string {
   const fromProfile = fullName?.trim().split(/\s+/)[0];
   if (fromProfile) return fromProfile;
   const local = (email.split("@")[0] || "")
@@ -24,6 +34,7 @@ export default async function PanelBanner({
   highlight = "imparable",
   quote = "“La disciplina de hoy construye los resultados de mañana.”",
   items = DEFAULT_ITEMS,
+  stats,
 }: {
   /** Si no se pasa, se resuelve del perfil de la sesión. */
   name?: string;
@@ -32,6 +43,8 @@ export default async function PanelBanner({
   highlight?: string;
   quote?: string;
   items?: string[];
+  /** Si se pasa, la columna derecha muestra este resumen en vez de `items`. */
+  stats?: BannerStat[];
 }) {
   let resolved = name;
   if (!resolved) {
@@ -64,24 +77,52 @@ export default async function PanelBanner({
           />
         </div>
 
-        <ul className="pbanner-list">
-          {items.map((it, i) => (
-            <li className="pbanner-item" key={`${i}-${it}`}>
-              <span className="pbanner-check" aria-hidden="true">
-                <svg viewBox="0 0 24 24" fill="none">
-                  <path
-                    d="m5 12.5 4.2 4.2L19 7"
-                    stroke="currentColor"
-                    strokeWidth="2.6"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
-                </svg>
-              </span>
-              {it}
-            </li>
-          ))}
-        </ul>
+        {stats ? (
+          <div className="pbanner-list">
+            <h3 className="pbanner-list-title" id="pbanner-resumen">Resumen</h3>
+            <ul className="pbanner-stats" aria-labelledby="pbanner-resumen">
+            {stats.map((st) => {
+              const alert = st.tone === "alert" && st.value > 0;
+              const body = (
+                <>
+                  <span className={`pbanner-num${alert ? " is-alert" : ""}`}>{st.value}</span>
+                  {st.label}
+                </>
+              );
+              return (
+                <li className="pbanner-item" key={st.label}>
+                  {st.href ? (
+                    <Link href={st.href} className="pbanner-stat-link">
+                      {body}
+                    </Link>
+                  ) : (
+                    body
+                  )}
+                </li>
+              );
+            })}
+            </ul>
+          </div>
+        ) : (
+          <ul className="pbanner-list">
+            {items.map((it, i) => (
+              <li className="pbanner-item" key={`${i}-${it}`}>
+                <span className="pbanner-check" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" fill="none">
+                    <path
+                      d="m5 12.5 4.2 4.2L19 7"
+                      stroke="currentColor"
+                      strokeWidth="2.6"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                  </svg>
+                </span>
+                {it}
+              </li>
+            ))}
+          </ul>
+        )}
       </div>
     </section>
   );

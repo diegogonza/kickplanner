@@ -1,205 +1,103 @@
-import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/utils/supabase/server'
 import { getSessionProfile } from '@/app/lib/session'
 import Sidebar from '@/app/components/sidebar'
-import Avatar from '@/app/components/avatar'
-import PanelBanner from '@/app/components/panel-banner'
-import SeoHealth from '@/app/components/seo-health'
-import { STATUSES, PRIORITIES, PROJECT_STATUSES, projectStatusOf, displayName } from '@/app/projects/statuses'
+import PanelBanner, { type BannerStat } from '@/app/components/panel-banner'
+import HomeMyTasks, { type HomeTask } from '@/app/components/home-my-tasks'
+import HomeMyProjects, { type HomeProject } from '@/app/components/home-my-projects'
+import { todayISO, TZ } from '@/app/projects/statuses'
 
-type PerProject = { id: string; name: string; status: string; total: number; done: number; overdue: number }
-type Workload = {
-  assignee_id: string
-  full_name: string | null
-  email: string
-  avatar_url: string | null
-  open: number
-  overdue: number
-}
-type Dash = {
-  projects_total: number
-  projects_by_status: Record<string, number>
-  tasks_total: number
-  tasks_by_status: Record<string, number>
-  tasks_by_priority: Record<string, number>
-  overdue: number
-  due_soon: number
-  unassigned: number
-  completed_pct: number
-  per_project: PerProject[]
-  workload: Workload[]
+// "Martes, 6 de octubre" en la zona de la operación
+const FMT_FECHA = new Intl.DateTimeFormat('es-CO', { timeZone: TZ, weekday: 'long', day: 'numeric', month: 'long' })
+function fechaHoy(): string {
+  const f = FMT_FECHA.format(new Date())
+  return f.charAt(0).toUpperCase() + f.slice(1)
 }
 
-export default async function PanelPage() {
-  // Cacheado por request: lo comparte con el sidebar y con el banner.
-  const { user } = await getSessionProfile()
+type ProjRel = { name: string; color_hue: number | null } | { name: string; color_hue: number | null }[] | null
+
+// Portada del espacio de trabajo: saludo + "Mis tareas" (hoy / con retraso) +
+// proyectos de los que el usuario es responsable. El panel de indicadores
+// vive en /projects?view=panel.
+export default async function HomePage() {
+  const { user, fullName, avatarUrl } = await getSessionProfile()
   if (!user) redirect('/login')
 
   const supabase = await createClient()
+  const today = todayISO()
+  // Fin de la ventana "próximos 7 días" (YYYY-MM-DD), contando desde mañana.
+  const [y, m, d] = today.split('-').map(Number)
+  const in7 = new Date(Date.UTC(y, m - 1, d + 7)).toISOString().slice(0, 10)
 
-  const { data } = await supabase.rpc('pm_dashboard')
-  const d = (data ?? {}) as Dash
-  const pct = d.completed_pct ?? 0
+  const [tasksRes, projectsRes, weekRes] = await Promise.all([
+    // Pendientes del usuario con fecha hasta hoy: las de hoy y las atrasadas.
+    // Las finalizadas no se muestran.
+    supabase
+      .from('tasks')
+      .select('id, title, status, due_date, project_id, projects(name, color_hue)')
+      .eq('assignee_id', user.id)
+      .neq('status', 'done')
+      .lte('due_date', today)
+      .order('due_date', { ascending: true }),
+    supabase
+      .from('projects')
+      .select('id, name, type, color_hue, status')
+      .eq('manager_id', user.id)
+      .order('name'),
+    // Solo el conteo: pendientes que vencen entre mañana y dentro de 7 días.
+    supabase
+      .from('tasks')
+      .select('id', { count: 'exact', head: true })
+      .eq('assignee_id', user.id)
+      .neq('status', 'done')
+      .gt('due_date', today)
+      .lte('due_date', in7),
+  ])
+  if (tasksRes.error) console.error('home tasks:', tasksRes.error.message)
+  if (projectsRes.error) console.error('home projects:', projectsRes.error.message)
 
-  // Donut de progreso
-  const R = 52
-  const C = 2 * Math.PI * R
-  const dash = (C * pct) / 100
+  const tasks: HomeTask[] = ((tasksRes.data ?? []) as unknown as (Omit<HomeTask, 'project_name' | 'project_hue'> & { projects: ProjRel })[]).map(
+    ({ projects, ...t }) => {
+      const p = Array.isArray(projects) ? projects[0] : projects
+      return { ...t, project_name: p?.name ?? 'Proyecto', project_hue: p?.color_hue ?? null }
+    }
+  )
+  const todayTasks = tasks.filter((t) => t.due_date === today)
+  // Las más recientes primero: lo que se atrasó ayer importa más que lo de hace un mes.
+  const overdueTasks = tasks.filter((t) => t.due_date !== today).reverse()
+  const projects = (projectsRes.data ?? []) as (HomeProject & { status: string })[]
+  const atRisk = projects.filter((p) => p.status === 'at_risk').length
 
-  const statusMax = Math.max(1, ...STATUSES.map((s) => d.tasks_by_status?.[s.key] ?? 0))
-  const workloadMax = Math.max(1, ...(d.workload ?? []).map((w) => w.open))
-
-  const prioList = [
-    ...PRIORITIES.map((p) => ({ key: p.key, label: p.label, color: p.color })),
-    { key: 'none', label: 'Sin prioridad', color: 'var(--text-3)' },
-  ]
-
-  const kpis: { label: string; value: number | string; color: string; href?: string }[] = [
-    { label: 'Proyectos', value: d.projects_total ?? 0, color: 'var(--text)' },
-    { label: 'Tareas', value: d.tasks_total ?? 0, color: 'var(--text)' },
-    { label: 'Completado', value: `${pct}%`, color: 'var(--low-fg)' },
-    { label: 'Vencidas', value: d.overdue ?? 0, color: 'var(--urgent-fg)', href: '/panel/tareas?filter=overdue' },
-    { label: 'Vencen en 7 días', value: d.due_soon ?? 0, color: 'var(--mod-fg)', href: '/panel/tareas?filter=due_soon' },
-    { label: 'Sin responsable', value: d.unassigned ?? 0, color: 'var(--text-2)', href: '/panel/tareas?filter=unassigned' },
+  const plural = (n: number, uno: string, varios: string) => (n === 1 ? uno : varios)
+  const stats: BannerStat[] = [
+    { value: todayTasks.length, label: plural(todayTasks.length, 'tarea para hoy', 'tareas para hoy') },
+    { value: overdueTasks.length, label: plural(overdueTasks.length, 'tarea atrasada', 'tareas atrasadas'), tone: 'alert' },
+    { value: weekRes.count ?? 0, label: 'en los próximos 7 días', href: '/mis-tareas' },
+    { value: atRisk, label: plural(atRisk, 'proyecto en riesgo', 'proyectos en riesgo'), tone: 'alert', href: '/projects' },
   ]
 
   return (
     <div className="flex h-full">
-      <Sidebar active="panel" />
+      <Sidebar active="inicio" />
 
       <div className="flex flex-1 flex-col overflow-hidden">
         <header className="topbar" style={{ borderBottom: 'none' }}>
           <div>
             <div className="breadcrumb">Espacio de trabajo</div>
-            <h1 className="page-title">Panel</h1>
+            <h1 className="page-title">{fechaHoy()}</h1>
           </div>
         </header>
 
         <div className="viewscroll flex-1 overflow-y-auto px-6">
-          <div className="w-full">
-            <PanelBanner />
+          <PanelBanner stats={stats} />
 
-            {/* Solo se dibuja si hay algo roto. Ver seo-health.tsx. */}
-            <SeoHealth />
-
-            {/* KPIs */}
-            <div className="kpi-grid">
-              {kpis.map((k) =>
-                k.href ? (
-                  <Link className="kpi kpi-link" key={k.label} href={k.href} title={`Ver ${k.label.toLowerCase()}`}>
-                    <div className="kpi-num" style={{ color: k.color }}>{k.value}</div>
-                    <div className="kpi-label">{k.label}</div>
-                  </Link>
-                ) : (
-                  <div className="kpi" key={k.label}>
-                    <div className="kpi-num" style={{ color: k.color }}>{k.value}</div>
-                    <div className="kpi-label">{k.label}</div>
-                  </div>
-                )
-              )}
-            </div>
-
-            {/* Progreso + prioridad + carga */}
-            <div className="dash-grid">
-              <div className="card">
-                <div className="section-head" style={{ margin: '0 0 var(--space-4)' }}>Progreso general</div>
-                <div className="flex items-center gap-5">
-                  <svg viewBox="0 0 120 120" width="120" height="120" style={{ flex: '0 0 120px' }}>
-                    <circle cx="60" cy="60" r={R} fill="none" stroke="var(--panel)" strokeWidth="14" />
-                    <circle
-                      cx="60" cy="60" r={R} fill="none" stroke="var(--brand-600)" strokeWidth="14" strokeLinecap="round"
-                      strokeDasharray={`${dash} ${C}`} transform="rotate(-90 60 60)"
-                    />
-                    <text x="60" y="60" textAnchor="middle" dominantBaseline="central" fontSize="22" fontWeight="700" fill="var(--text)">{pct}%</text>
-                  </svg>
-                  <div className="flex-1">
-                    {STATUSES.map((s) => {
-                      const v = d.tasks_by_status?.[s.key] ?? 0
-                      return (
-                        <div key={s.key} className="bar-row">
-                          <span className="bar-label"><span className="dot" style={{ background: s.color }} />{s.label}</span>
-                          <span className="bar"><span className="bar-fill" style={{ width: `${(v / statusMax) * 100}%`, background: s.color }} /></span>
-                          <span className="bar-val">{v}</span>
-                        </div>
-                      )
-                    })}
-                  </div>
-                </div>
-                <div className="dash-sep" />
-                <div className="section-head" style={{ margin: '0 0 var(--space-3)' }}>Por prioridad</div>
-                <div className="flex flex-wrap gap-2">
-                  {prioList.map((p) => (
-                    <span key={p.key} className="prio-chip" style={{ color: p.color }}>
-                      <span className="dot" style={{ background: p.color }} />
-                      {p.label}: <b>{d.tasks_by_priority?.[p.key] ?? 0}</b>
-                    </span>
-                  ))}
-                </div>
-              </div>
-
-              <div className="card">
-                <div className="section-head" style={{ margin: '0 0 var(--space-4)' }}>Carga por responsable</div>
-                {(d.workload ?? []).length === 0 ? (
-                  <p className="card-desc">No hay tareas asignadas.</p>
-                ) : (
-                  <div className="flex flex-col gap-3">
-                    {(d.workload ?? []).map((w) => (
-                      <div key={w.assignee_id} className="wl-row">
-                        <Avatar name={w.full_name} email={w.email} url={w.avatar_url} size={28} />
-                        <div className="wl-main">
-                          <div className="wl-top">
-                            <span className="wl-name">{displayName({ full_name: w.full_name, email: w.email })}</span>
-                            <span className="wl-count">
-                              {w.open} abiertas
-                              {w.overdue > 0 && <span className="wl-overdue"> · {w.overdue} vencidas</span>}
-                            </span>
-                          </div>
-                          <span className="bar"><span className="bar-fill" style={{ width: `${(w.open / workloadMax) * 100}%`, background: w.overdue > 0 ? 'var(--urgent-fg)' : 'var(--brand-600)' }} /></span>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* Proyectos */}
-            <div className="card" style={{ marginTop: 'var(--space-4)' }}>
-              <div className="section-head" style={{ margin: '0 0 var(--space-3)' }}>Proyectos</div>
-              <div className="pstatus-summary">
-                {PROJECT_STATUSES.map((s) => (
-                  <div className="pss-item" key={s.key}>
-                    <span className="pss-num" style={{ color: s.color }}>{d.projects_by_status?.[s.key] ?? 0}</span>
-                    <span className="pss-label"><span className="pstatus-dot" style={{ background: s.color }} />{s.label}</span>
-                  </div>
-                ))}
-              </div>
-              <div className="dash-projects">
-                {(d.per_project ?? []).map((p) => {
-                  const prog = p.total > 0 ? Math.round((p.done / p.total) * 100) : 0
-                  const st = projectStatusOf(p.status)
-                  return (
-                    <div key={p.id} className="dproj-row">
-                      <Link href={`/projects/${p.id}`} className="dproj-name" style={{ textDecoration: 'none', color: 'inherit' }}>{p.name}</Link>
-                      <span className={`pstatus ${st.cls}`}>{st.label}</span>
-                      <span className="dproj-bar">
-                        <span className="bar" style={{ flex: 1 }}><span className="bar-fill" style={{ width: `${prog}%`, background: 'var(--brand-600)' }} /></span>
-                        <span className="dproj-pct">{prog}%</span>
-                      </span>
-                      <span className="dproj-meta">{p.done}/{p.total}</span>
-                      {p.overdue > 0 ? (
-                        <Link href={`/projects/${p.id}?view=lista&overdue=1`} className="dproj-meta dproj-overdue" title="Ver las tareas vencidas">
-                          {p.overdue} vencidas
-                        </Link>
-                      ) : (
-                        <span className="dproj-meta" style={{ color: 'var(--text-3)' }}>—</span>
-                      )}
-                    </div>
-                  )
-                })}
-              </div>
-            </div>
+          <div className="hm-grid">
+            <HomeMyTasks
+              today={todayTasks}
+              overdue={overdueTasks}
+              user={{ name: fullName, email: user.email ?? '', avatarUrl }}
+            />
+            <HomeMyProjects projects={projects} />
           </div>
         </div>
       </div>

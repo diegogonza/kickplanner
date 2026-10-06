@@ -7325,3 +7325,271 @@ a.proj-bill:hover .proj-bill-when {
     justify-content: center;
   }
 }
+
+/* ---------- PORTADA (/): módulos "Mis tareas" y "Proyectos" ---------- */
+.hm-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-4);
+  padding: 0 0 var(--space-8);
+  align-items: start;
+}
+@media (max-width: 1100px) {
+  .hm-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+.hm-card {
+  display: flex;
+  flex-direction: column;
+  padding: var(--space-5) var(--space-6) var(--space-4);
+}
+.hm-head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  margin-bottom: var(--space-3);
+}
+.hm-title {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text);
+}
+.hm-tabs {
+  display: flex;
+  gap: var(--space-1);
+  padding-bottom: var(--space-3);
+  border-bottom: 1px solid var(--border);
+}
+.hm-tab {
+  padding: 6px 10px;
+  border: 0;
+  border-radius: var(--r-sm);
+  background: transparent;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--text-2);
+  cursor: pointer;
+}
+.hm-tab:hover {
+  background: var(--panel);
+}
+.hm-tab.active {
+  background: var(--brand-50);
+  color: var(--brand-700);
+}
+.hm-tab-count {
+  font-weight: 500;
+}
+.hm-body {
+  min-height: 120px;
+}
+.hm-empty {
+  margin: 0;
+  padding: var(--space-8) 0;
+  text-align: center;
+  font-size: 12.5px;
+  color: var(--text-3);
+}
+
+/* Filas de tareas */
+.hm-tasks {
+  list-style: none;
+  margin: 0;
+  padding: var(--space-2) 0 0;
+}
+.hm-task {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  min-height: 36px;
+  border-bottom: 1px solid var(--border);
+}
+.hm-task form {
+  display: flex;
+}
+.hm-task-title {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font-size: 13px;
+  color: var(--text);
+  text-decoration: none;
+}
+.hm-task-title:hover {
+  text-decoration: underline;
+}
+.hm-proj-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 120px;
+  padding: 3px 8px;
+  border-radius: var(--r-sm);
+  background: var(--panel);
+  font-size: 11.5px;
+  color: var(--text-2);
+  text-decoration: none;
+  flex: 0 0 auto;
+}
+.hm-proj-chip:hover {
+  background: var(--brand-100);
+}
+.hm-proj-sq {
+  width: 11px;
+  height: 11px;
+  border-radius: 3px;
+  flex: 0 0 11px;
+}
+.hm-proj-name {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.hm-due {
+  flex: 0 0 52px;
+  text-align: right;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--low-fg);
+}
+.hm-due.late {
+  color: var(--urgent-fg);
+}
+.hm-more {
+  align-self: flex-start;
+  margin-top: var(--space-3);
+  padding: 4px 6px;
+  border: 0;
+  border-radius: var(--r-sm);
+  background: transparent;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-3);
+  text-decoration: none;
+  cursor: pointer;
+}
+.hm-more:hover {
+  background: var(--panel);
+  color: var(--text);
+}
+
+/* Proyectos */
+.hm-search {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: var(--space-3);
+  padding: 4px 8px;
+  border-radius: var(--r-sm);
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-3);
+  text-decoration: none;
+}
+.hm-search svg {
+  width: 13px;
+  height: 13px;
+}
+.hm-search:hover {
+  background: var(--panel);
+  color: var(--text);
+}
+.hm-projects {
+  list-style: none;
+  margin: 0;
+  padding: var(--space-2) 0 0;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-1) var(--space-4);
+}
+@media (max-width: 560px) {
+  .hm-projects {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+.hm-project {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: 6px var(--space-2);
+  border-radius: var(--r-md);
+  text-decoration: none;
+  color: var(--text);
+}
+.hm-project:hover {
+  background: var(--panel);
+}
+.hm-project-icon {
+  width: 34px;
+  height: 34px;
+  flex: 0 0 34px;
+  border-radius: var(--r-md);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.hm-project-icon svg {
+  width: 18px;
+  height: 18px;
+}
+.hm-project-name {
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+/* Banner de la portada: resumen del día en lugar de la lista fija */
+.pbanner-num {
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  min-width: 26px;
+  height: 22px;
+  padding: 0 6px;
+  border: 1.5px solid rgba(25, 245, 122, 0.55);
+  border-radius: 7px;
+  background: rgba(25, 245, 122, 0.1);
+  color: var(--pb-neon);
+  font-size: 12.5px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+.pbanner-num.is-alert {
+  border-color: rgba(255, 120, 110, 0.6);
+  background: rgba(255, 120, 110, 0.12);
+  color: #ff9a90;
+}
+.pbanner-stat-link {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: inherit;
+  text-decoration: none;
+}
+.pbanner-stat-link:hover {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.pbanner-list-title {
+  margin: 0;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--pb-neon);
+}
+.pbanner-stats {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}

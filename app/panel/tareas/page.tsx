@@ -58,20 +58,20 @@ export default async function PanelTasksPage({
 
   return (
     <div className="flex h-full">
-      <Sidebar active="panel" />
+      <Sidebar active="projects" />
 
       <div className="flex flex-1 flex-col overflow-hidden">
         <header className="topbar" style={{ borderBottom: 'none' }}>
           <div>
             <div className="breadcrumb">
-              <Link href="/" style={{ color: 'var(--text-3)' }}>Panel</Link> / {FILTERS[key].title}
+              <Link href="/projects?view=panel" style={{ color: 'var(--text-3)' }}>Panel</Link> / {FILTERS[key].title}
             </div>
             <h1 className="page-title">
               {FILTERS[key].title}
               <span className="count-badge">{listTasks.length}</span>
             </h1>
           </div>
-          <Link className="btn btn-outline" href="/">
+          <Link className="btn btn-outline" href="/projects?view=panel">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M15 18l-6-6 6-6" />
             </svg>

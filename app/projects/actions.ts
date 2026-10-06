@@ -405,6 +405,7 @@ export async function toggleComplete(formData: FormData) {
   revalidatePath(`/projects/${projectId}`)
   revalidatePath('/mis-tareas')
   revalidatePath('/equipo')
+  revalidatePath('/')
 }
 
 export async function deleteTask(formData: FormData) {
