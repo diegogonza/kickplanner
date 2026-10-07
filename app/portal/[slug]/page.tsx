@@ -3,6 +3,8 @@ import { cookies } from 'next/headers'
 import { entrarAlPortal, entrarComoEquipo, salirDelPortal } from '../actions'
 import Activities from '../activities'
 import SeoCard from '../seo-card'
+import HitosCard from '@/app/components/hitos-card'
+import { calcularHitos } from '@/app/lib/hitos'
 import {
   PORTAL_COOKIE,
   esSesionDeEquipo,
@@ -339,6 +341,11 @@ export default async function PortalCliente({
         </section>
 
         <SeoCard datos={seo} projectId={elegido.id} />
+
+        {/* Hitos de clics orgánicos: misma regla que en la app (mes completo). */}
+        {seo?.estado === 'ok' && seo.serie && seo.serie.length > 0 && (
+          <HitosCard variant="portal" hitos={calcularHitos(seo.serie)} />
+        )}
 
         <Activities tasks={det.tasks} />
 

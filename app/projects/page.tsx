@@ -7,12 +7,14 @@ import { dateInTZ, type StatusChange } from '@/app/projects/statuses'
 import NewProjectTrigger from '@/app/components/new-project-trigger'
 import TabLink from '@/app/components/tab-link'
 import PanelDashboard from '@/app/components/panel-dashboard'
+import HitosOverview from '@/app/components/hitos-overview'
 
 // Vistas de /projects. "proyectos" es la tabla de siempre (vista por defecto);
 // "panel" es el tablero de indicadores que antes era la portada (/).
 const VIEWS = [
   { key: 'proyectos', label: 'Proyectos' },
   { key: 'panel', label: 'Panel' },
+  { key: 'hitos', label: 'Hitos' },
 ] as const
 type ViewKey = (typeof VIEWS)[number]['key']
 
@@ -24,6 +26,12 @@ const VIEW_ICONS: Record<ViewKey, React.ReactNode> = {
       <rect x="7" y="12" width="3" height="6" rx="1" />
       <rect x="12" y="8" width="3" height="10" rx="1" />
       <rect x="17" y="5" width="3" height="13" rx="1" />
+    </>
+  ),
+  hitos: (
+    <>
+      <path d="M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0z" />
+      <path d="M17 5h3v2a3 3 0 0 1-3 3M7 5H4v2a3 3 0 0 0 3 3" />
     </>
   ),
 }
@@ -52,9 +60,9 @@ export default async function Home({
   const { user, isAdmin } = await getSessionProfile()
   if (!user) redirect('/login')
 
-  // Vista Panel: no necesita la carga de la tabla (cobros, historial, etc.);
-  // PanelDashboard hace su propia consulta (pm_dashboard).
-  if (view === 'panel') {
+  // Vistas Panel e Hitos: no necesitan la carga de la tabla (cobros,
+  // historial, etc.); cada una hace sus propias consultas.
+  if (view === 'panel' || view === 'hitos') {
     return (
       <div className="flex h-full">
         <Sidebar active="projects" />
@@ -66,11 +74,11 @@ export default async function Home({
               <h1 className="page-title">Proyectos</h1>
             </div>
           </header>
-          <ViewTabs active="panel" />
+          <ViewTabs active={view} />
 
           <div className="viewscroll flex-1 overflow-y-auto px-6">
             <div className="w-full">
-              <PanelDashboard />
+              {view === 'panel' ? <PanelDashboard /> : <HitosOverview />}
             </div>
           </div>
         </div>

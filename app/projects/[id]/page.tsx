@@ -4,6 +4,8 @@ import { createClient } from "@/utils/supabase/server";
 import { getSessionProfile } from "@/app/lib/session";
 import Sidebar from "@/app/components/sidebar";
 import Overview from "@/app/components/views/overview";
+import HitosCard from "@/app/components/hitos-card";
+import { calcularHitos, type MesClics } from "@/app/lib/hitos";
 import ListView from "@/app/components/views/list-view";
 import BoardView from "@/app/components/views/board-view";
 import TagsView from "@/app/components/views/tags-view";
@@ -274,7 +276,7 @@ export default async function ProjectPage({
 
   // ---- Tanda 2: lo que depende de la tanda 1, también en paralelo. Cada
   // bloque devuelve su resultado (nada de mutar variables desde afuera).
-  const [clientInfo, tagInfo, ancestors] = await Promise.all([
+  const [clientInfo, tagInfo, ancestors, hitos] = await Promise.all([
     // Cliente y enlace al portal: el portal solo si tiene acceso creado y
     // encendido; si no, no hay nada que abrir.
     (async () => {
@@ -331,6 +333,20 @@ export default async function ProjectPage({
         id: a.id,
         title: a.title,
       }));
+    })(),
+    // Hitos de clics orgánicos: solo en el Resumen de proyectos SEO.
+    (async () => {
+      if (active !== "resumen" || project.type !== "seo") return null;
+      const { data } = await supabase
+        .from("gsc_monthly")
+        .select("month, clicks, partial")
+        .eq("project_id", project.id);
+      if (!data || data.length === 0) return null;
+      return calcularHitos(
+        (data as { month: string; clicks: number; partial: boolean }[]).map(
+          (m): MesClics => ({ mes: m.month, clics: m.clicks, parcial: m.partial }),
+        ),
+      );
     })(),
   ]);
   const { clientName, portalSlug } = clientInfo;
@@ -504,7 +520,16 @@ export default async function ProjectPage({
         </div>
 
         <div className="viewscroll flex-1 overflow-y-auto px-6">
-          {active === "resumen" && <Overview tasks={list} />}
+          {active === "resumen" && (
+            <>
+              {hitos && (
+                <div style={{ marginBottom: "var(--space-4)" }}>
+                  <HitosCard hitos={hitos} />
+                </div>
+              )}
+              <Overview tasks={list} />
+            </>
+          )}
           {active === "lista" && (
             <ListView
               projectId={project.id}

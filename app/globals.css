@@ -4620,7 +4620,7 @@ a.proj-bill:hover .proj-bill-when {
   align-items: center;
 }
 .app-brand img {
-  height: 34px;
+  height: 44px;
   width: auto;
   display: block;
 }
@@ -7702,4 +7702,198 @@ a.proj-bill:hover .proj-bill-when {
 .sidebar-foot {
   flex: 0 0 auto;
   margin-top: var(--space-3);
+}
+
+/* ---------- HITOS DE CLICS ORGÁNICOS (proyecto, portal y vista general) ---------- */
+.hito-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+.hito-head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+}
+.hito-ico {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 38px;
+  height: 38px;
+  border-radius: var(--r-md);
+  background: var(--brand-50);
+  border: 1px solid var(--brand-200);
+  color: var(--brand-700);
+}
+.hito-ico svg {
+  width: 20px;
+  height: 20px;
+}
+.hito-titulos {
+  min-width: 0;
+  margin-right: auto;
+}
+.hito-titulos h2 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text);
+}
+.hito-titulos p {
+  margin: 2px 0 0;
+  font-size: 12.5px;
+  color: var(--text-3);
+}
+.hito-nivel {
+  flex: none;
+  padding: 5px 12px;
+  border-radius: var(--r-full);
+  background: var(--brand-50);
+  border: 1px solid var(--brand-200);
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--brand-700);
+}
+.hito-nivel b {
+  font-size: 14px;
+}
+.hito-vacio {
+  margin: 0;
+  font-size: 13px;
+  color: var(--text-3);
+}
+.hito-resumen {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-4);
+}
+@media (max-width: 640px) {
+  .hito-resumen {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+.hito-bloque {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  background: var(--panel);
+}
+.hito-et {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-3);
+}
+.hito-valor {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text);
+}
+.hito-sub {
+  font-size: 12.5px;
+  color: var(--text-2);
+}
+.hito-barra {
+  height: 8px;
+  margin: 4px 0 2px;
+  border-radius: var(--r-full);
+  background: var(--border);
+  overflow: hidden;
+}
+.hito-barra span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--brand-600);
+}
+/* Escalera de 17 niveles */
+.hito-escalera {
+  display: grid;
+  grid-template-columns: repeat(17, minmax(0, 1fr));
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+@media (max-width: 900px) {
+  .hito-escalera {
+    grid-template-columns: repeat(9, minmax(0, 1fr));
+  }
+}
+.hito-paso {
+  display: grid;
+  place-items: center;
+  height: 30px;
+  border-radius: var(--r-sm);
+  border: 1px solid var(--border);
+  background: var(--surface);
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-3);
+  font-variant-numeric: tabular-nums;
+}
+.hito-paso.is-done {
+  background: var(--brand-600);
+  border-color: var(--brand-600);
+  color: #fff;
+}
+.hito-paso.is-next {
+  border: 1.5px dashed var(--brand-600);
+  background: var(--brand-50);
+  color: var(--brand-700);
+}
+.hito-pie {
+  margin: 0;
+  font-size: 12.5px;
+  color: var(--text-3);
+}
+.hito-pie b {
+  color: var(--text);
+}
+/* Vista general (Proyectos → Hitos) */
+.hito-lvl {
+  display: inline-grid;
+  place-items: center;
+  min-width: 30px;
+  height: 24px;
+  padding: 0 8px;
+  border-radius: var(--r-full);
+  background: var(--brand-50);
+  border: 1px solid var(--brand-200);
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--brand-700);
+  font-variant-numeric: tabular-nums;
+}
+.hito-lvl.is-zero {
+  background: var(--panel);
+  border-color: var(--border);
+  color: var(--text-3);
+}
+.hito-mini {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-width: 160px;
+}
+.hito-mini .hito-barra {
+  flex: 1;
+  margin: 0;
+}
+.hito-mini span.pct {
+  width: 36px;
+  text-align: right;
+  font-size: 12px;
+  color: var(--text-3);
+  font-variant-numeric: tabular-nums;
+}
+.hito-num {
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
 }
