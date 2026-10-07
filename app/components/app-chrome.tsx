@@ -9,6 +9,8 @@ import { usePathname } from 'next/navigation'
  */
 export default function AppChrome({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
-  if (pathname?.startsWith('/portal')) return null
+  // Solo /portal y /portal/...: un startsWith('/portal') a secas también
+  // apagaba /portales (la página interna del equipo).
+  if (pathname === '/portal' || pathname?.startsWith('/portal/')) return null
   return <>{children}</>
 }

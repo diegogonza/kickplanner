@@ -58,7 +58,7 @@ export default function MyTasksList({ tasks }: { tasks: MyTask[] }) {
   if (tasks.length === 0) {
     return (
       <div className="card text-center" style={{ padding: 'var(--space-10)' }}>
-        <p className="card-title mb-1">No tenés tareas asignadas</p>
+        <p className="card-title mb-1">No tienes tareas pendientes</p>
         <p className="card-desc">Cuando alguien te asigne una tarea, aparecerá aquí.</p>
       </div>
     )

@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation'
 import { createClient } from '@/utils/supabase/server'
 import Sidebar from '@/app/components/sidebar'
 import PortalesView, { type PortalRow } from '@/app/components/portales-view'
+import { getSessionProfile } from '@/app/lib/session'
 
 export const dynamic = 'force-dynamic'
 
@@ -14,6 +15,7 @@ export default async function PortalesPage() {
     data: { user },
   } = await supabase.auth.getUser()
   if (!user) redirect('/login')
+  const { isAdmin } = await getSessionProfile()
 
   let rows: PortalRow[] = []
   try {
@@ -58,7 +60,7 @@ export default async function PortalesPage() {
                 </p>
               </div>
             ) : (
-              <PortalesView rows={rows} baseUrl={baseUrl} />
+              <PortalesView rows={rows} baseUrl={baseUrl} canSeeClients={isAdmin} />
             )}
           </div>
         </div>

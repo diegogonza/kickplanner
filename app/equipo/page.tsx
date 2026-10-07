@@ -2,6 +2,7 @@ import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/utils/supabase/server'
 import Sidebar from '@/app/components/sidebar'
+import { getSessionProfile } from '@/app/lib/session'
 import TeamWeek, { type TeamTask } from '@/app/components/views/team-week'
 import { todayISO, type Member } from '@/app/projects/statuses'
 
@@ -47,11 +48,11 @@ export default async function EquipoPage({
 }) {
   const { semana } = await searchParams
 
-  const supabase = await createClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  // Solo admin: la semana de todo el equipo no es para miembros.
+  const { user, isAdmin } = await getSessionProfile()
   if (!user) redirect('/login')
+  if (!isAdmin) redirect('/')
+  const supabase = await createClient()
 
   // "Hoy" sale de todayISO(), que fija la zona de la operación. Antes era
   // `new Date()` a secas: el proceso de Vercel corre en UTC, así que los

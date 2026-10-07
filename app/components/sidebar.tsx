@@ -11,9 +11,7 @@ export default async function Sidebar({
   email?: string
   active?:
     | 'projects'
-    | 'clientes'
     | 'portales'
-    | 'plantillas'
     | 'portfolios'
     | 'teams'
     | 'mis-tareas'
@@ -23,6 +21,7 @@ export default async function Sidebar({
     | 'pagos'
     | 'ajustes'
     | 'buscar'
+    | 'admin'
 }) {
   // Sesión y perfil compartidos con la página que renderiza el sidebar: el
   // helper está cacheado por request, así que esto no repite la consulta.
@@ -43,7 +42,7 @@ export default async function Sidebar({
 
   return (
     <aside className="sidebar">
-      <nav className="flex flex-col gap-1">
+      <nav className="sidebar-nav flex flex-col gap-1">
         <div className="nav-label" style={{ marginTop: 0 }}>Gestión (PM)</div>
         <Link className={`nav-item ${active === 'inicio' ? 'active' : ''}`} href="/">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -59,14 +58,16 @@ export default async function Sidebar({
           </svg>
           Mis tareas
         </Link>
-        <Link className={`nav-item ${active === 'equipo' ? 'active' : ''}`} href="/equipo">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
-            <circle cx="9" cy="7" r="4" />
-            <path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75" />
-          </svg>
-          Semana del equipo
-        </Link>
+        {isAdmin && (
+          <Link className={`nav-item ${active === 'equipo' ? 'active' : ''}`} href="/equipo">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+              <circle cx="9" cy="7" r="4" />
+              <path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75" />
+            </svg>
+            Semana del equipo
+          </Link>
+        )}
         <Link className={`nav-item ${active === 'notificaciones' ? 'active' : ''}`} href="/notificaciones">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
@@ -99,14 +100,7 @@ export default async function Sidebar({
           Equipos
         </Link>
 
-        <div className="nav-label">Clientes y cobros</div>
-        <Link className={`nav-item ${active === 'clientes' ? 'active' : ''}`} href="/clientes">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
-            <circle cx="12" cy="7" r="4" />
-          </svg>
-          Clientes
-        </Link>
+        <div className="nav-label">Clientes</div>
         <Link className={`nav-item ${active === 'portales' ? 'active' : ''}`} href="/portales">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <rect x="2" y="4" width="20" height="16" rx="2" />
@@ -126,16 +120,21 @@ export default async function Sidebar({
           </Link>
         )}
 
-        <div className="nav-label">Plantillas</div>
-        <Link className={`nav-item ${active === 'plantillas' ? 'active' : ''}`} href="/plantillas">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M4 4h16v4H4zM4 12h10v8H4zM17 12h3v8h-3z" />
-          </svg>
-          Plantillas
-        </Link>
+        {isAdmin && (
+          <>
+            <div className="nav-label">Organización</div>
+            <Link className={`nav-item ${active === 'admin' ? 'active' : ''}`} href="/admin">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M12 3 4 6v6c0 4.5 3.4 8.3 8 9 4.6-.7 8-4.5 8-9V6z" />
+                <path d="m9 12 2 2 4-4" />
+              </svg>
+              Espacio de trabajo
+            </Link>
+          </>
+        )}
       </nav>
 
-      <div className="mt-auto flex items-center gap-3 border-t pt-4" style={{ borderColor: 'var(--nav-border)' }}>
+      <div className="sidebar-foot mt-auto flex items-center gap-3 border-t pt-4" style={{ borderColor: 'var(--nav-border)' }}>
         <Avatar name={fullName} email={email} url={avatarUrl} size={34} />
         <Link href="/ajustes" className="min-w-0 flex-1" style={{ textDecoration: 'none' }} title="Editar perfil">
           <div className="truncate text-[13px] font-semibold" style={{ color: 'var(--nav-text)' }}>

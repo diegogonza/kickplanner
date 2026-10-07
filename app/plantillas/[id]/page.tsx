@@ -16,6 +16,7 @@ export default async function TemplateEditorPage({
   const { id } = await params
   const { user, isAdmin } = await getSessionProfile()
   if (!user) redirect('/login')
+  if (!isAdmin) redirect('/') // Plantillas es parte de Administración
   const supabase = await createClient()
 
   const { data: template } = await supabase
@@ -56,12 +57,13 @@ export default async function TemplateEditorPage({
 
   return (
     <div className="flex h-full">
-      <Sidebar active="plantillas" />
+      <Sidebar active="admin" />
 
       <div className="flex flex-1 flex-col overflow-hidden">
         <header className="topbar" style={{ borderBottom: 'none' }}>
           <div>
             <div className="breadcrumb">
+              <Link href="/admin" style={{ color: 'var(--text-3)' }}>Espacio de trabajo</Link> /{' '}
               <Link href="/plantillas" style={{ color: 'var(--text-3)' }}>Plantillas</Link> / <b>{template.name}</b>
             </div>
             <h1 className="page-title" style={{ gap: 10 }}>

@@ -48,7 +48,10 @@ export default async function MyTasksPage({
 
   const rows = (data ?? []) as unknown as (MyTask & { projects: ProjRel })[]
 
-  const listTasks: MyTask[] = rows.map((r) => ({ ...r, project_name: projectName(r) }))
+  // La lista solo muestra pendientes: las completadas no aportan aquí (siguen en el calendario).
+  const listTasks: MyTask[] = rows
+    .filter((r) => r.status !== 'done')
+    .map((r) => ({ ...r, project_name: projectName(r) }))
   const calTasks = rows.map((r) => ({ ...r, project_name: projectName(r), project_hue: projectHue(r) })) as unknown as (Task & {
     project_id: string
     project_name: string

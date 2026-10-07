@@ -98,11 +98,11 @@
   /* Navegación oscura (verde casi negro, familia Hell Basement) */
   --nav-bg: #041a14; /* fondo sidebar + topbar + tabs */
   --nav-raised: #0c2c22; /* fila activa / hover elevado */
-  --nav-text: #b4c9bf; /* texto de nav inactivo (claro) */
+  --nav-text: #d3e2db; /* texto de nav inactivo: 13.5:1 sobre --nav-bg */
   --nav-strong: #ffffff; /* marca, título, item activo */
-  --nav-muted: #7e958a; /* etiquetas, íconos, breadcrumb */
-  --nav-dim: #63796f; /* email atenuado */
-  --nav-border: rgba(255, 255, 255, 0.09);
+  --nav-muted: #a3b8ae; /* etiquetas, íconos, breadcrumb: 8.6:1 (antes 5.6:1) */
+  --nav-dim: #8aa196; /* texto atenuado: 6.6:1 (antes 3.9:1, no pasaba AA) */
+  --nav-border: rgba(255, 255, 255, 0.11);
   --nav-hover: rgba(255, 255, 255, 0.06);
 }
 
@@ -349,7 +349,7 @@ body {
 .nav-label {
   font-size: 11px;
   font-weight: 600;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.1em;
   text-transform: uppercase;
   color: var(--nav-muted);
   margin: var(--space-6) 0 var(--space-3);
@@ -376,15 +376,22 @@ body {
   color: var(--nav-strong);
 }
 .nav-item:hover svg {
-  color: var(--nav-text);
+  color: var(--nav-strong);
 }
+/* Activo: tinte verde, barra neón a la izquierda e ícono neón (12.4:1) */
 .nav-item.active {
-  background: var(--nav-raised);
+  /* Izquierda recta (la barra neón va de punta a punta); a la derecha, un
+     redondeo muy sutil arriba y abajo. */
+  border-radius: 0 4px 4px 0;
+  background: rgba(0, 185, 104, 0.13);
+  box-shadow:
+    inset 3px 0 0 var(--brand-neon),
+    inset 0 0 0 1px rgba(25, 245, 122, 0.16);
   color: var(--nav-strong);
   font-weight: 600;
 }
 .nav-item.active svg {
-  color: var(--brand-500);
+  color: var(--brand-neon);
 }
 /* bloque de usuario (pie de la sidebar) */
 .sidebar .btn-ghost {
@@ -2359,8 +2366,9 @@ body {
   margin-left: auto;
   font-size: 11px;
   font-weight: 700;
-  color: #fff;
-  background: var(--brand-600);
+  /* Neón con tinta oscura: 12.4:1 (blanco sobre brand-600 daba 4.7:1) */
+  color: var(--nav-bg);
+  background: var(--brand-neon);
   border-radius: var(--r-full);
   min-width: 18px;
   height: 18px;
@@ -7592,4 +7600,106 @@ a.proj-bill:hover .proj-bill-when {
   margin: 0;
   padding: 0;
   list-style: none;
+}
+
+/* ---------- ADMINISTRACIÓN (/admin) ---------- */
+.adm-wrap {
+  max-width: 880px;
+  padding: var(--space-6) 0 var(--space-10);
+}
+.adm-section-head {
+  margin-bottom: var(--space-4);
+}
+.adm-section-title {
+  margin: 0 0 4px;
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text);
+}
+.adm-section-desc {
+  margin: 0;
+  font-size: 13px;
+  color: var(--text-3);
+}
+.adm-member {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+.adm-member-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.adm-name {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 600;
+  color: var(--text);
+}
+.adm-email {
+  font-size: 12px;
+  color: var(--text-3);
+}
+.adm-you {
+  padding: 1px 6px;
+  border-radius: var(--r-full);
+  background: var(--brand-50);
+  color: var(--brand-700);
+  font-size: 11px;
+  font-weight: 600;
+}
+.adm-seg {
+  display: inline-flex;
+  padding: 2px;
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  background: var(--panel);
+}
+.adm-seg[aria-busy="true"] {
+  opacity: 0.6;
+}
+.adm-seg-btn {
+  padding: 4px 12px;
+  border: 0;
+  border-radius: calc(var(--r-md) - 2px);
+  background: transparent;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--text-3);
+  cursor: pointer;
+}
+.adm-seg-btn:hover:not(:disabled) {
+  color: var(--text);
+}
+.adm-seg-btn.on {
+  background: var(--surface);
+  color: var(--brand-700);
+  box-shadow: var(--shadow-sm);
+}
+.adm-seg-btn:disabled {
+  cursor: not-allowed;
+}
+
+/* Sidebar: cuando el menú no cabe en la altura de la ventana, el menú hace
+   scroll por dentro y el pie (perfil, ajustes, salir) queda siempre abajo,
+   sobre el fondo oscuro. Antes el contenido se desbordaba fuera del aside. */
+.sidebar {
+  min-height: 0;
+  overflow: hidden;
+}
+.sidebar-nav {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  margin-right: calc(var(--space-2) * -1);
+  padding-right: var(--space-2);
+  scrollbar-width: thin;
+  scrollbar-color: var(--nav-border) transparent;
+}
+.sidebar-foot {
+  flex: 0 0 auto;
+  margin-top: var(--space-3);
 }

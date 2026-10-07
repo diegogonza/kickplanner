@@ -6,7 +6,9 @@ export async function updateSession(request: NextRequest) {
   // se entra con la contraseña del cliente y una cookie de sesión propia. Si lo
   // dejáramos pasar por el chequeo de abajo, todo visitante sin sesión del
   // equipo terminaría rebotado a /login y el portal sería inalcanzable.
-  if (request.nextUrl.pathname.startsWith('/portal')) {
+  // Ojo: /portales es la página interna del equipo y SÍ debe pasar por acá.
+  const path = request.nextUrl.pathname
+  if (path === '/portal' || path.startsWith('/portal/')) {
     return NextResponse.next({ request })
   }
 

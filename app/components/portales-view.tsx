@@ -58,9 +58,12 @@ function estadoDe(p: PortalRow): { texto: string; clase: string } {
 export default function PortalesView({
   rows,
   baseUrl,
+  canSeeClients = false,
 }: {
   rows: PortalRow[]
   baseUrl: string
+  /** La página Clientes es solo admin: a los miembros no se les muestra el enlace. */
+  canSeeClients?: boolean
 }) {
   const [aviso, setAviso] = useState<{ ok: boolean; texto: string } | null>(null)
   // Las contraseñas recién generadas viven SOLO acá, en memoria, hasta que se
@@ -349,8 +352,13 @@ export default function PortalesView({
         El portal es <b>por cliente</b>, no por proyecto: si un cliente tiene varios
         proyectos, los ve todos con un selector, en el mismo enlace y con la misma
         contraseña. Tras <b>2 intentos fallidos</b> el acceso se bloquea 40 minutos;
-        desde acá se desbloquea al instante.{' '}
-        <Link href="/clientes" style={{ color: 'var(--brand-700)' }}>Ver clientes</Link>
+        desde acá se desbloquea al instante.
+        {canSeeClients && (
+          <>
+            {' '}
+            <Link href="/clientes" style={{ color: 'var(--brand-700)' }}>Ver clientes</Link>
+          </>
+        )}
       </p>
     </div>
   )
