@@ -6,6 +6,7 @@ import Sidebar from "@/app/components/sidebar";
 import Avatar from "@/app/components/avatar";
 import { updateProfile, uploadAvatar, removeAvatar } from "./actions";
 import GoogleConnection from "@/app/components/google-connection";
+import ConexionClaude from "@/app/components/conexion-claude";
 
 /** Consejo contextual: cambia según lo que le falte al perfil. */
 function tipFor(p: {
@@ -302,6 +303,9 @@ export default async function SettingsPage({
 
             {/* ---------- Google Search Console ---------- */}
             <GoogleConnection ok={google_ok === "1"} error={google_error} />
+
+            {/* ---------- Conexión con Claude (MCP por OAuth) ---------- */}
+            <ConexionClaude />
 
             {/* ---------- Hellix ---------- */}
             <aside className="st-card st-aside">

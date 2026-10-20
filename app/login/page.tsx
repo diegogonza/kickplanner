@@ -3,9 +3,9 @@ import { login } from "./actions";
 export default async function LoginPage({
   searchParams,
 }: {
-  searchParams: Promise<{ error?: string }>;
+  searchParams: Promise<{ error?: string; next?: string }>;
 }) {
-  const { error } = await searchParams;
+  const { error, next } = await searchParams;
 
   return (
     <main className="lg-stage">
@@ -248,6 +248,7 @@ export default async function LoginPage({
 
         <div className="lg-form-wrap">
           <form className="lg-form">
+            {next && <input type="hidden" name="next" value={next} />}
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               className="lg-logo"

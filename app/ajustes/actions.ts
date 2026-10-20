@@ -91,3 +91,18 @@ export async function removeAvatar() {
   revalidatePath('/ajustes')
   revalidatePath('/', 'layout')
 }
+
+/* ------------------------- Conexión con Claude (OAuth) ------------------------- */
+
+// Quita el acceso de una aplicación OAuth (por ejemplo Claude): Supabase marca el
+// consentimiento como revocado, cierra sus sesiones e invalida sus refresh tokens.
+// La próxima petición de esa app al MCP recibe 401.
+export async function revocarAplicacion(formData: FormData) {
+  const clientId = (formData.get('client_id') as string) ?? ''
+  if (!clientId) return
+
+  const supabase = await createClient()
+  const { error } = await supabase.auth.oauth.revokeGrant({ clientId })
+  if (error) console.error('[oauth] revokeGrant:', error)
+  revalidatePath('/ajustes')
+}

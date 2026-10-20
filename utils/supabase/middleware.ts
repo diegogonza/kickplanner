@@ -12,6 +12,17 @@ export async function updateSession(request: NextRequest) {
     return NextResponse.next({ request })
   }
 
+  // El endpoint MCP se autentica con el access token OAuth que manda Claude, no
+  // con cookies; y los metadatos /.well-known/* son públicos por definición.
+  // Sin esta salida, Claude recibiría un redirect a /login en vez de un 401.
+  if (
+    path === '/api/mcp' ||
+    path.startsWith('/api/mcp/') ||
+    path.startsWith('/.well-known/')
+  ) {
+    return NextResponse.next({ request })
+  }
+
   let supabaseResponse = NextResponse.next({ request })
 
   const supabase = createServerClient(
@@ -45,6 +56,12 @@ export async function updateSession(request: NextRequest) {
   if (!user && !request.nextUrl.pathname.startsWith('/login')) {
     const url = request.nextUrl.clone()
     url.pathname = '/login'
+    url.search = ''
+    // La pantalla de consentimiento OAuth trae un authorization_id que no se
+    // puede perder: tras iniciar sesión hay que volver exactamente ahí.
+    if (path.startsWith('/oauth/')) {
+      url.searchParams.set('next', path + request.nextUrl.search)
+    }
     return NextResponse.redirect(url)
   }
 
