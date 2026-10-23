@@ -34,10 +34,10 @@ export default function AddProjectToPortfolio({
         <div className="modal-overlay" onClick={() => setOpen(false)}>
           <div className="modal" role="dialog" aria-modal="true" onClick={(e) => e.stopPropagation()}>
             <h2>Agregar proyecto</h2>
-            <p className="modal-sub">Elegí un proyecto para sumar a este portfolio.</p>
+            <p className="modal-sub">Elige un proyecto para sumar a este portafolio.</p>
 
             {available.length === 0 ? (
-              <p className="card-desc">Todos tus proyectos ya están en este portfolio.</p>
+              <p className="card-desc">Todos tus proyectos ya están en este portafolio.</p>
             ) : (
               <div className="flex flex-col gap-1">
                 {available.map((p) => (
